@@ -1,30 +1,121 @@
 {
-    "root": true,
+    "extends": ["prettier"],
+    "ignorePatterns": ["out", "dist", "**/*.d.ts"],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": 6,
-        "sourceType": "module"
+        "sourceType": "module",
+        "project": "./tsconfig.eslint.json"
     },
-    "plugins": [
-        "@typescript-eslint"
-    ],
+    "plugins": ["@typescript-eslint", "header", "import", "jsdoc"],
+    "root": true,
     "rules": {
-        "@typescript-eslint/naming-convention": [
-            "warn",
+        "@typescript-eslint/naming-convention": "error",
+        "@typescript-eslint/semi": "error",
+        "@typescript-eslint/require-await": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/no-misused-promises": "error",
+        "@typescript-eslint/consistent-type-assertions": [
+            "error",
             {
-                "selector": "import",
-                "format": [ "camelCase", "PascalCase" ]
+                "assertionStyle": "as",
+                "objectLiteralTypeAssertions": "never"
             }
         ],
-        "@typescript-eslint/semi": "warn",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "header/header": [2, "block", "\n * Copyright (c) Microsoft Corporation. All rights reserved.\n ", 2],
+        "import/order": [
+            "error",
+            {
+                "alphabetize": {
+                    "order": "asc",
+                    "caseInsensitive": false
+                },
+                "newlines-between": "always"
+            }
+        ],
+        "import/no-default-export": "error",
+        "import/no-duplicates": "error",
         "curly": "warn",
-        "eqeqeq": "warn",
-        "no-throw-literal": "warn",
-        "semi": "off"
+        "eqeqeq": "error",
+        "no-throw-literal": "error",
+        "semi": "off",
+        "quotes": [
+            2,
+            "double",
+            {
+                "avoidEscape": true
+            }
+        ],
+        "jsdoc/check-access": "error",
+        "jsdoc/check-alignment": "error",
+        "jsdoc/check-indentation": "error",
+        "jsdoc/check-param-names": "error",
+        "jsdoc/check-values": "error",
+        "jsdoc/check-tag-names": "error",
+        "jsdoc/check-types": "error",
+        "jsdoc/no-bad-blocks": "error",
+        "jsdoc/no-types": "error",
+        "jsdoc/require-description": "error",
+        "jsdoc/require-description-complete-sentence": "error",
+        "jsdoc/require-hyphen-before-param-description": ["error", "never"],
+        "jsdoc/require-jsdoc": [
+            "error",
+            {
+                "contexts": [
+                    "ClassProperty",
+                    "TSInterfaceDeclaration",
+                    "TSPropertySignature",
+                    "ExportDefaultDeclaration > ArrowFunctionExpression",
+                    "ObjectProperty > ArrowFunctionExpression",
+                    "ClassProperty > ArrowFunctionExpression"
+                ],
+                "require": {
+                    "ClassDeclaration": true,
+                    "MethodDefinition": true
+                }
+            }
+        ],
+        "jsdoc/require-param": [
+            "error",
+            {
+                "checkDestructured": false
+            }
+        ],
+        "jsdoc/require-param-description": "error",
+        "jsdoc/require-param-name": "error",
+        "jsdoc/require-returns": "error",
+        "jsdoc/require-returns-check": "error",
+        "jsdoc/require-returns-description": "error",
+        "max-classes-per-file": "error",
+        "import/no-nodejs-modules": "off",
+        "max-lines-per-function": [
+            "error",
+            {
+                "max": 150,
+                "skipBlankLines": true,
+                "skipComments": true
+            }
+        ],
+        "sort-imports": [
+            "error",
+            {
+                "ignoreDeclarationSort": true
+            }
+        ]
     },
-    "ignorePatterns": [
-        "out",
-        "dist",
-        "**/*.d.ts"
-    ]
+    "settings": {
+        "import/resolver": {
+            "node": {
+                "extensions": [".ts", ".tsx"]
+            }
+        },
+        "jsdoc": {
+            "tagNamePreference": {
+                "auguments": "extends"
+            }
+        }
+    }
 }
+
+
