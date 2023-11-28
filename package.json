@@ -9,13 +9,17 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+"activationEvents": [
+    "onLanguage:log"
+],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "t200logs.helloWorld",
-        "title": "Hello World"
+    {
+        "command": "t200logs.parseLogs",
+        "title": "Parse T2.1 logs in current workspace",
+        "category": "T200Logs",
+        "shortTitle": "Parse T2.1 logs"
       }
     ]
   },
