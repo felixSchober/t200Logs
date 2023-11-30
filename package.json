@@ -1,63 +1,87 @@
 {
-  "name": "t200logs",
-  "displayName": "T200Logs",
-  "description": "",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.84.0"
-  },
-  "categories": [
-    "Other"
-  ],
-"activationEvents": [
-    "onLanguage:log"
-],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-    {
-        "command": "t200logs.parseLogs",
-        "title": "Parse T2.1 logs in current workspace",
-        "category": "T200Logs",
-        "shortTitle": "Parse T2.1 logs"
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "yarn run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
-  },
-  "devDependencies": {
-    "@types/mocha": "^10.0.3",
-    "@types/node": "18.x",
-    "@types/vscode": "^1.84.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0-alpha.0",
-    "@typescript-eslint/parser": "^7.0.0-alpha.0",
-    "@vscode/test-electron": "^2.3.6",
-    "eslint": "^8.52.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-header": "^3.1.1",
-    "eslint-plugin-import": "^2.29.0",
-    "eslint-plugin-jsdoc": "^46.9.0",
-    "eslint-plugin-jsx-a11y": "^6.8.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prefer-arrow": "^1.2.3",
-    "eslint-plugin-security": "^1.7.1",
-    "glob": "^10.3.10",
-    "mocha": "^10.2.0",
-    "prettier": "^3.1.0",
-    "prettier-package-json": "^2.8.0",
-    "ts-loader": "^9.5.0",
-    "ts-prune": "^0.10.3",
-    "typescript": "^5.2.2",
-    "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4"
-  }
+    "name": "t200logs",
+    "displayName": "T200Logs",
+    "description": "",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.84.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onFileSystem:scheme:**/desktop/**"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "t200logs.hideIsoDates",
+                "title": "Hide all ISO dates in current workspace",
+                "category": "T200Logs",
+                "shortTitle": "Hide ISO Dates"
+            },
+            {
+                "command": "t200logs.openLogViewer",
+                "title": "Open Log Viewer",
+                "category": "T200Logs",
+                "shortTitle": "Open Log Viewer"
+            }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "t200logs",
+                    "title": "T200Logs",
+                    "icon": "media/icon.png"
+                }
+            ]
+        },
+        "views": {
+            "t200logs": [
+                {
+                    "type": "webview",
+                    "id": "t200logs",
+                    "name": "T200Logs"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "yarn run package",
+        "compile": "webpack",
+        "watch": "webpack --watch",
+        "package": "webpack --mode production --devtool hidden-source-map",
+        "compile-tests": "tsc -p . --outDir out",
+        "watch-tests": "tsc -p . -w --outDir out",
+        "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/mocha": "^10.0.3",
+        "@types/node": "18.x",
+        "@types/vscode": "^1.84.0",
+        "@typescript-eslint/eslint-plugin": "^7.0.0-alpha.0",
+        "@typescript-eslint/parser": "^7.0.0-alpha.0",
+        "@vscode/test-electron": "^2.3.6",
+        "eslint": "^8.52.0",
+        "eslint-config-prettier": "^9.0.0",
+        "eslint-plugin-header": "^3.1.1",
+        "eslint-plugin-import": "^2.29.0",
+        "eslint-plugin-jsdoc": "^46.9.0",
+        "eslint-plugin-jsx-a11y": "^6.8.0",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-prefer-arrow": "^1.2.3",
+        "eslint-plugin-security": "^1.7.1",
+        "glob": "^10.3.10",
+        "mocha": "^10.2.0",
+        "prettier": "^3.1.0",
+        "prettier-package-json": "^2.8.0",
+        "ts-loader": "^9.5.0",
+        "ts-prune": "^0.10.3",
+        "typescript": "^5.2.2",
+        "webpack": "^5.89.0",
+        "webpack-cli": "^5.1.4"
+    }
 }
