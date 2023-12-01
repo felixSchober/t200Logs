@@ -3,6 +3,9 @@
  */
 
 /* eslint-disable max-classes-per-file */
+import * as fs from "fs";
+import * as path from "path";
+
 import * as vscode from "vscode";
 
 import { GoToSourceLensProvider } from "./codeLensProvider/GoToSourceLensProvider";
@@ -55,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
                 decorationsArray.push(decoration);
             }
 
-            const decorationType = vscode.window.createTextEditorDecorationType({});
+            // const decorationType = vscode.window.createTextEditorDecorationType({});
             // editor.setDecorations(decorationType, decorationsArray);
         }
     });
@@ -81,9 +84,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(openLogViewerDisposable);
 
-    const panelDisposable = vscode.window.registerWebviewViewProvider("t200logs", new LogsWebviewViewProvider(onFilterChanged));
+    const panelDisposable = vscode.window.registerWebviewViewProvider(
+        "t200logs",
+        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged)
+    );
     context.subscriptions.push(panelDisposable);
-
 }
 
 /**
@@ -160,47 +165,50 @@ class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
 
         return foldingRanges;
     }
-
 }
 
 /**
  * The view provider for the side bar.
  */
 class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
-
     /**
      * Creates a new instance of the view provider.
+     * @param extensionUri The path to the extension.
      * @param onFilterChanged The event emitter for when the filter changes.
      */
-    constructor(private readonly onFilterChanged: vscode.EventEmitter<FilterChangedEvent>) { }
+    constructor(
+        private readonly extensionUri: vscode.Uri,
+        private readonly onFilterChanged: vscode.EventEmitter<FilterChangedEvent>
+    ) {}
 
     /**
      * Resolves and defines a webview view.
      * @param webviewView The webview we've been asked to resolve.
-     * @param context The context for the webview.
-     * @param token A cancellation token.
+     * @param _ The context for the webview.
+     * @param __ A cancellation token.
      */
-    public resolveWebviewView(webviewView: vscode.WebviewView, context: vscode.WebviewViewResolveContext<unknown>, token: vscode.CancellationToken): void | Thenable<void> {
+    public resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        _: vscode.WebviewViewResolveContext<unknown>,
+        __: vscode.CancellationToken
+    ): void | Thenable<void> {
         webviewView.webview.options = {
-            enableScripts: true
+            enableScripts: true,
         };
 
         webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
-        webviewView.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case "applyFilters":
-                        console.log(message);
-                        this.onFilterChanged.fire({
-                            timeFilter: message.timeFilter,
-                            keywordFilter: message.keywordFilter
-                        });
-                        break;
-                }
-            },
-            undefined
-        );
+        webviewView.webview.onDidReceiveMessage(message => {
+            switch (message.command) {
+                case "applyFilters":
+                    console.log(message);
+                    this.onFilterChanged.fire({
+                        timeFilter: message.timeFilter,
+                        keywordFilter: message.keywordFilter,
+                    });
+                    break;
+            }
+        }, undefined);
     }
 
     /**
@@ -209,75 +217,19 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
      * @returns The HTML content for the webview.
      */
     private getHtmlForWebview(webview: vscode.Webview): string {
-        // Use a nonce to whitelist which scripts can be run for security reasons
-    const nonce = getNonce();
+        const htmlPath = path.join(this.extensionUri.path, "src", "sidePanel", "webview.html");
+        // Path to the CSS file
+        const cssPath = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "src", "sidePanel", "styles.css"));
+        // Path to the JS file
+        const jsPath = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "src", "sidePanel", "scripts.js"));
 
-    return `<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${webview.cspSource};">
-            <title>Log Filter</title>
-            <style>
-                /* Add your styles here */
-                body {
-                    padding: 10px;
-                    font-family: Arial, sans-serif;
-                }
-                input, button {
-                    margin: 5px;
-                }
-            </style>
-        </head>
-        <body>
-            <div>
-                <label for="timeFilter">Time Filter:</label>
-                <input type="text" id="timeFilter" placeholder="e.g., 12:00-13:00">
-            </div>
-            <div>
-                <label for="keywordFilter">Keyword Filter:</label>
-                <input type="text" id="keywordFilter" placeholder="Enter keyword">
-            </div>
-            <button id="applyFilters">Apply Filters</button>
+        // Read HTML content
+        let htmlContent = fs.readFileSync(htmlPath, "utf8");
 
-            <script nonce="${nonce}">
-                const vscode = acquireVsCodeApi();
+        htmlContent = htmlContent.replace("%%CSS_PATH%%", cssPath.toString());
+        htmlContent = htmlContent.replace("%%JS_PATH%%", jsPath.toString());
 
-                document.getElementById('applyFilters').addEventListener('click', () => {
-                    const timeFilter = document.getElementById('timeFilter').value;
-                    const keywordFilter = document.getElementById('keywordFilter').value;
-                    vscode.postMessage({
-                        command: 'applyFilters',
-                        timeFilter: timeFilter,
-                        keywordFilter: keywordFilter
-                    });
-                });
-            </script>
-        </body>
-        </html>`;
+        return htmlContent;
     }
-
-
-
-}
-
-/**
- * Returns a nonce for the webview.
- * @returns A nonce for the webview.
- */
-function getNonce() {
-    let text = "";
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-
-
-
-
-
-
 
 }

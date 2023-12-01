@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta http-equiv="Content-Security-Policy"
+              content="default-src 'none'; style-src vscode-resource: 'unsafe-inline'; script-src vscode-resource:;">
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+        <title>Log Filter</title>
+
+        <head>
+            <link href="%%CSS_PATH%%"
+                  rel="stylesheet">
+        </head>
+    </head>
+
+    <body>
+        <div>
+            <label for="timeFilter">Time Filter:</label>
+            <input type="text"
+                   id="timeFilter"
+                   placeholder="e.g., 12:00-13:00">
+        </div>
+        <div>
+            <label for="keywordFilter">Keyword Filter:</label>
+            <input type="text"
+                   id="keywordFilter"
+                   placeholder="Enter keyword">
+        </div>
+        <button id="applyFilters">Apply Filters</button>
+
+        <script src="%%JS_PATH%%"></script>
+    </body>
+
+</html>
