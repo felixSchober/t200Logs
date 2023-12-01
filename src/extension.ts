@@ -220,16 +220,29 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
         const htmlPath = path.join(this.extensionUri.path, "src", "sidePanel", "webview.html");
         // Path to the CSS file
         const cssPath = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "src", "sidePanel", "styles.css"));
+
+        const codionCssPath = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "src", "sidePanel", "codion.css"));
+
         // Path to the JS file
         const jsPath = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "src", "sidePanel", "scripts.js"));
+
+        // path to the toolkit.min.js file
+        const toolkitJsPath = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "src", "sidePanel", "toolkit.min.js"));
 
         // Read HTML content
         let htmlContent = fs.readFileSync(htmlPath, "utf8");
 
         htmlContent = htmlContent.replace("%%CSS_PATH%%", cssPath.toString());
         htmlContent = htmlContent.replace("%%JS_PATH%%", jsPath.toString());
+        htmlContent = htmlContent.replace("%%TOOLKIT_JS_PATH%%", toolkitJsPath.toString());
+        htmlContent = htmlContent.replace("%%CODION_CSS_PATH%%", codionCssPath.toString());
 
         return htmlContent;
     }
+
+
+
+
+
 
 }
