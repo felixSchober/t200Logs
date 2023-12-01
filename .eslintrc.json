@@ -1,6 +1,6 @@
 {
     "extends": ["prettier"],
-    "ignorePatterns": ["out", "dist", "**/*.d.ts"],
+    "ignorePatterns": ["out", "dist", "**/*.d.ts", "**/*.min.js"],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": 6,
@@ -117,5 +117,6 @@
         }
     }
 }
+
 
 

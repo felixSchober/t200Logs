@@ -15,4 +15,22 @@ input, button {
 
 button {
     margin-left: 10px;
+    border: "1px solid red"
+}
+
+
+.flex-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.col {
+    flex: 1;
+    margin: 10px;
+}
+
+.flex-break {
+    flex-basis: 100%;
+    height: 0;
 }
