@@ -13,11 +13,49 @@ export type FilterChangedEvent = {
     /**
      * The time filter.
      */
-    timeFilter: string | null;
+    fromDate?: string;
+
+    /**
+     * The time filter.
+     */
+    tillDate?: string;
+
+    /**
+     * Adds a keyword to the filter.
+     */
+    addKeywordFilter?: string;
+
+    /**
+     * Removes a keyword from the filter.
+     */
+    removeKeywordFilter?: string;
+};
+
+export type DisplaySettingsChangedEvent = {
+    /**
+     * Whether to display the file names. A null value means that the user did not change the setting.
+     */
+    displayFileNames: boolean | null;
+
+    /**
+     * Whether to display the guids. A null value means that the user did not change the setting.
+     */
+    displayGuids: boolean | null;
+};
+
+export type FilterKeywordChangedEvent = {
+    /**
+     * The id of the checkbox.
+     */
+    checkboxId: string;
     /**
      * The keyword filter.
      */
-    keywordFilter: string | null;
+    keyword: string;
+    /**
+     * The state of the checkbox.
+     */
+    isChecked: boolean;
 };
 
 type LogEntry = {
@@ -53,11 +91,22 @@ const MAX_LOG_FILES_PER_SERVICE = 2;
  * A content provider that transforms the content of a log file.
  */
 export class LogContentProvider implements vscode.TextDocumentContentProvider {
-    // private readonly isDateRegexForHiding = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}/;
-    // private readonly webDateRegexForHiding = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/;
+    private readonly guidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/g;
 
-    private timeFilter: string | null = null;
-    private keywordFilter: string | null = null;
+    /**
+     * Filter out log entries that are before this date.
+     */
+    private timeFilterFrom: string | null = null;
+
+    /**
+     * Filter out log entries that are after this date.
+     */
+    private timeFilterTill: string | null = null;
+
+    /**
+     * Filter out log entries that do not contain either of these keywords.
+     */
+    private keywordFilters: string[] = [];
 
     public static readonly documentScheme = "log-viewer";
 
@@ -66,7 +115,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     /**
      * Strings to remove from the log entries.
      */
-    private readonly stringsToRemove = [
+    private stringsToRemove = [
         /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}/,
         /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/,
         /\sInf\s/,
@@ -89,24 +138,60 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
     private changeTrigger = 0;
 
+    private _displayFileNames = true;
+
     /**
      * Creates a new instance of the LogContentProvider class.
      * @param onFilterChangeEvent The event that is fired when the filter changes.
+     * @param onDisplaySettingsChangedEvent The event that is fired when the display settings change.
      */
-    constructor(onFilterChangeEvent: vscode.Event<FilterChangedEvent>) {
+    constructor(
+        onFilterChangeEvent: vscode.Event<FilterChangedEvent>,
+        onDisplaySettingsChangedEvent: vscode.Event<DisplaySettingsChangedEvent>
+    ) {
         onFilterChangeEvent(filterChangeEvent => {
-            this.updateFilters(filterChangeEvent.timeFilter, filterChangeEvent.keywordFilter);
+            this.updateFilters(filterChangeEvent);
+        });
+
+        onDisplaySettingsChangedEvent(displaySettingsChangedEvent => {
+            this.changeTrigger++;
+
+            if (displaySettingsChangedEvent.displayFileNames !== null) {
+                this._displayFileNames = displaySettingsChangedEvent.displayFileNames;
+            }
+
+            if (displaySettingsChangedEvent.displayGuids !== null) {
+                // if the user wants to display the guids, remove the regex that removes them
+                if (displaySettingsChangedEvent.displayGuids) {
+                    this.stringsToRemove = this.stringsToRemove.filter(regex => regex.source !== this.guidRegex.source);
+                } else {
+                    this.stringsToRemove.push(this.guidRegex);
+                }
+            }
+            this._onDidChange.fire(LogContentProvider.documentUri);
         });
     }
 
     /**
      * Updates the filters for the log entries.
-     * @param timeFilter The time filter.
-     * @param keywordFilter The keyword filter.
+     * @param filterChangeEvent The event that is fired when the filter changes.
      */
-    private updateFilters(timeFilter: string | null, keywordFilter: string | null) {
-        this.timeFilter = timeFilter;
-        this.keywordFilter = keywordFilter;
+    private updateFilters(filterChangeEvent: FilterChangedEvent) {
+        if (filterChangeEvent.addKeywordFilter) {
+            this.keywordFilters.push(filterChangeEvent.addKeywordFilter);
+        }
+
+        if (filterChangeEvent.removeKeywordFilter) {
+            this.keywordFilters = this.keywordFilters.filter(keyword => keyword !== filterChangeEvent.removeKeywordFilter);
+        }
+
+        if (filterChangeEvent.fromDate || filterChangeEvent.fromDate === "") {
+            this.timeFilterFrom = filterChangeEvent.fromDate;
+        }
+
+        if (filterChangeEvent.tillDate || filterChangeEvent.tillDate === "") {
+            this.timeFilterTill = filterChangeEvent.tillDate;
+        }
 
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
@@ -221,7 +306,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
         return content
             .split("\n")
-            .filter(entry => this.matchesFilter(entry))
+            .filter(entry => this.matchesKeywordFilter(entry))
             .map(line => {
                 const match = line.match(isoDateRegex) || line.match(webDateRegex);
                 return {
@@ -229,7 +314,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
                     text: line,
                     service: serviceName,
                 };
-            });
+            })
+            .filter(entry => this.matchesTimeFilter(entry));
     }
 
     /**
@@ -237,19 +323,36 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      * @param logEntryLine The log entry to check.
      * @returns True if the log entry should stay, false if it should be filtered out.
      */
-    private matchesFilter(logEntryLine: string): boolean {
-        if (this.timeFilter) {
-            const timeRegex = new RegExp(this.timeFilter);
-            const timeMatch = logEntryLine.match(timeRegex);
-            if (!timeMatch) {
+    private matchesKeywordFilter(logEntryLine: string): boolean {
+        if (this.keywordFilters.length > 0) {
+            // Check if the log entry contains any of the keywords
+            const keywordRegex = new RegExp(this.keywordFilters.join("|"));
+            const keywordMatch = logEntryLine.match(keywordRegex);
+            if (!keywordMatch) {
                 return false;
             }
         }
 
-        if (this.keywordFilter) {
-            const keywordRegex = new RegExp(this.keywordFilter);
-            const keywordMatch = logEntryLine.match(keywordRegex);
-            if (!keywordMatch) {
+        return true;
+    }
+
+    /**
+     * Checks if the given log entry should be filtered out.
+     * @param logEntry The log entry to check.
+     * @returns True if the log entry should stay, false if it should be filtered out.
+     */
+    private matchesTimeFilter(logEntry: LogEntry): boolean {
+        // make sure the filter is defined and a valid date
+        if (this.timeFilterFrom && !isNaN(Date.parse(this.timeFilterFrom))) {
+            const timeFrom = new Date(this.timeFilterFrom);
+            if (logEntry.date < timeFrom) {
+                return false;
+            }
+        }
+
+        if (this.timeFilterTill && !isNaN(Date.parse(this.timeFilterTill))) {
+            const timeTill = new Date(this.timeFilterTill);
+            if (logEntry.date > timeTill) {
                 return false;
             }
         }
@@ -279,7 +382,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
             // removes all information that is not needed one by one
             const entryText = this.stringsToRemove.reduce((text, regex) => text.replace(regex, ""), entry.text);
-            documentContent += `${entry.service} ${entryText}\n`;
+            documentContent += `${this._displayFileNames ? entry.service : ""} ${entryText}\n`;
         }
 
         // replace the hex values at the beginning of each log line
@@ -289,6 +392,22 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         return documentContent;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

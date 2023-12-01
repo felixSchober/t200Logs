@@ -9,7 +9,12 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 import { GoToSourceLensProvider } from "./codeLensProvider/GoToSourceLensProvider";
-import { FilterChangedEvent, LogContentProvider } from "./codeLensProvider/LogContentProvider";
+import {
+    DisplaySettingsChangedEvent,
+    FilterChangedEvent,
+    FilterKeywordChangedEvent,
+    LogContentProvider,
+} from "./codeLensProvider/LogContentProvider";
 
 /**
  * Activate the extension.
@@ -20,7 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "t200logs" is now active!');
     const onFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
-    const provider = new LogContentProvider(onFilterChanged.event);
+    const onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
+    const provider = new LogContentProvider(onFilterChanged.event, onDisplaySettingsChanged.event);
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, provider));
 
     let codeLensDisposable = vscode.languages.registerCodeLensProvider(
@@ -32,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
             const text = editor.document.getText();
-            const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}\+\d{2}:\d{2}/g;
+            const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
             const decorationsArray: vscode.DecorationOptions[] = [];
 
             let match;
@@ -86,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const panelDisposable = vscode.window.registerWebviewViewProvider(
         "t200logs",
-        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged)
+        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged, onDisplaySettingsChanged)
     );
     context.subscriptions.push(panelDisposable);
 }
@@ -118,7 +124,7 @@ class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
      */
     provideFoldingRanges(document: vscode.TextDocument): vscode.FoldingRange[] {
         const foldingRanges: vscode.FoldingRange[] = [];
-        const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+        const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
         const isDateRegexForHiding = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}/;
         const decorations: vscode.DecorationOptions[] = [];
 
@@ -175,10 +181,13 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
      * Creates a new instance of the view provider.
      * @param extensionUri The path to the extension.
      * @param onFilterChanged The event emitter for when the filter changes.
+     * @param onDisplaySettingsChanged The event emitter for when the display settings change.
      */
     constructor(
         private readonly extensionUri: vscode.Uri,
-        private readonly onFilterChanged: vscode.EventEmitter<FilterChangedEvent>
+        private readonly onFilterChanged: vscode.EventEmitter<FilterChangedEvent>,
+
+        private readonly onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>
     ) {}
 
     /**
@@ -200,11 +209,46 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.onDidReceiveMessage(message => {
             switch (message.command) {
-                case "applyFilters":
+                case "filterCheckboxStateChange":
+                    const filterDefinition = message.filterDefinition as FilterKeywordChangedEvent;
+                    console.log(message, filterDefinition);
+
+                    if (filterDefinition.isChecked) {
+                        this.onFilterChanged.fire({
+                            addKeywordFilter: filterDefinition.keyword,
+                        });
+                    } else {
+                        this.onFilterChanged.fire({
+                            removeKeywordFilter: filterDefinition.keyword,
+                        });
+                    }
+                    break;
+
+                case "timeFilterInputFromChange":
                     console.log(message);
                     this.onFilterChanged.fire({
-                        timeFilter: message.timeFilter,
-                        keywordFilter: message.keywordFilter,
+                        fromDate: message.timeFilter,
+                    });
+                    break;
+
+                case "timeFilterInputTillChange":
+                    console.log(message);
+                    this.onFilterChanged.fire({
+                        tillDate: message.timeFilter,
+                    });
+                    break;
+                case "displayFilenamesCheckboxStateChange":
+                    console.log(message);
+                    this.onDisplaySettingsChanged.fire({
+                        displayFileNames: message.isChecked,
+                        displayGuids: null,
+                    });
+                    break;
+                case "displayGuidsCheckboxStateChange":
+                    console.log(message);
+                    this.onDisplaySettingsChanged.fire({
+                        displayFileNames: null,
+                        displayGuids: message.isChecked,
                     });
                     break;
             }
@@ -239,10 +283,5 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
 
         return htmlContent;
     }
-
-
-
-
-
 
 }
