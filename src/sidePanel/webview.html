@@ -21,7 +21,419 @@
     </head>
 
     <body>
-        <div class="flex-grid">
+
+        <vscode-panels aria-label="Logs helper selection tabs">
+            <vscode-panel-tab id="tab-1">
+                FILTERING
+                <vscode-badge>1</vscode-badge>
+            </vscode-panel-tab>
+            <vscode-panel-tab id="tab-2">
+                INFO
+            </vscode-panel-tab>
+            <vscode-panel-tab id="tab-2">
+                EXPERIMENT
+            </vscode-panel-tab>
+            <vscode-panel-view id="view-1">
+
+                <section class="component-example">
+                    <p>Filter based on log level</p>
+                    <vscode-checkbox checked
+                                     id="filter_error">Error</vscode-checkbox>
+                    <vscode-checkbox checked
+                                     id="filter_warn">Warning</vscode-checkbox>
+                    <vscode-checkbox checked
+                                     id="filter_verbose">Verbose</vscode-checkbox>
+
+                    <vscode-divider role="separator"></vscode-divider>
+
+                    <p>Filter based on time</p>
+                    <vscode-text-field id="filter_date_from"
+                                       placeholder="YYYY-MM-DD HH:MM">From</vscode-text-field>
+                    <vscode-text-field id="filter_date_till"
+                                       placeholder="YYYY-MM-DD HH:MM">Till</vscode-text-field>
+
+                    <vscode-divider role="separator"></vscode-divider>
+
+                    <p>Filter based on keyword</p>
+                    <div id="filter_custom_kw"
+                         style="flex-direction: column; flex: auto; display: flex;"></div>
+                    <div style="margin-top: 8px; display: flex;">
+                        <vscode-text-field id="filter_kw_add_input"
+                                           placeholder="\.*REGEX.*/">Add a new keyword</vscode-text-field>
+                        <vscode-button id="filter_kw_add_button"
+                                       style="align-self: end; margin-left: 4px;"
+                                       appearance="primary">Add</vscode-button>
+                    </div>
+
+                    <vscode-divider role="separator"></vscode-divider>
+
+                    <p>Display settings</p>
+                    <vscode-checkbox id="display_filenames"
+                                     checked>Display file names</vscode-checkbox>
+                    <vscode-checkbox id="display_guids"
+                                     checked>Display GUIDs</vscode-checkbox>
+                </section>
+
+
+            </vscode-panel-view>
+            <vscode-panel-view id="view-2"> Details </vscode-panel-view>
+            <vscode-panel-view id="view-3">
+                <section class="component-row">
+                    <section class="component-container">
+                        <h2>Button</h2>
+                        <section class="component-example">
+                            <p>Default Button</p>
+                            <vscode-button appearance="primary">Button Text</vscode-button>
+                        </section>
+                        <section class="component-example">
+                            <p>Secondary Button</p>
+                            <vscode-button appearance="secondary">Button Text</vscode-button>
+                        </section>
+                        <section class="component-example">
+                            <p>With Disabled</p>
+                            <vscode-button disabled>Button Text</vscode-button>
+                        </section>
+                        <section class="component-example">
+                            <p>With Start Icon</p>
+                            <vscode-button>
+                                Button Text
+                                <span slot="start"
+                                      class="codicon codicon-add"></span>
+                            </vscode-button>
+                        </section>
+                        <section class="component-example">
+                            <p>With Icon Only</p>
+                            <vscode-button appearance="icon"
+                                           aria-label="Confirm">
+                                <span class="codicon codicon-check"></span>
+                            </vscode-button>
+                        </section>
+                    </section>
+                    <section class="component-container">
+                        <h2>Badge</h2>
+                        <section class="component-example">
+                            <p>Default Badge</p>
+                            <vscode-badge>1</vscode-badge>
+                        </section>
+                    </section>
+                    <section class="component-container">
+                        <h2>Checkbox</h2>
+                        <section class="component-example">
+                            <p>Default Checkbox</p>
+                            <vscode-checkbox>Label</vscode-checkbox>
+                        </section>
+                        <section class="component-example">
+                            <p>With Checked</p>
+                            <vscode-checkbox checked>Label</vscode-checkbox>
+                        </section>
+                        <section class="component-example">
+                            <p>With Indeterminate</p>
+                            <vscode-checkbox id="basic-checkbox">Label</vscode-checkbox>
+                        </section>
+                        <section class="component-example">
+                            <p>With Disabled</p>
+                            <vscode-checkbox disabled>Label</vscode-checkbox>
+                        </section>
+                        <section class="component-example">
+                            <p>With Readonly</p>
+                            <vscode-checkbox readonly>Label</vscode-checkbox>
+                        </section>
+                    </section>
+                    <section class="component-container">
+                        <h2>Data Grid</h2>
+                        <section class="component-example">
+                            <p>Default Data Grid</p>
+                            <vscode-data-grid id="default-grid"
+                                              grid-template-columns="1fr 1fr 1fr 1fr"
+                                              aria-label="Default"></vscode-data-grid>
+                        </section>
+                        <section class="component-example">
+                            <p>With Custom Titles</p>
+                            <vscode-data-grid class="basic-grid"
+                                              grid-template-columns="1fr 1fr 1fr 1fr"
+                                              aria-label="With Custom Titles"></vscode-data-grid>
+                        </section>
+                        <section class="component-example">
+                            <p>With Sticky Header</p>
+                            <vscode-data-grid class="basic-grid"
+                                              generate-header="sticky"
+                                              grid-template-columns="1fr 1fr 1fr 1fr"
+                                              aria-label="With Sticky Header"></vscode-data-grid>
+                        </section>
+                        <section class="component-example">
+                            <p>With Custom Column Widths</p>
+                            <vscode-data-grid class="basic-grid"
+                                              grid-template-columns="1fr 120px 1fr 2fr"
+                                              aria-label="With Custom Column Widths"></vscode-data-grid>
+                        </section>
+                    </section>
+                    <section class="component-container">
+                        <h2>Divider</h2>
+                        <section class="component-example">
+                            <p>With Separator Role</p>
+                            <vscode-divider role="separator"></vscode-divider>
+                        </section>
+                        <section class="component-example">
+                            <p>With Presentation Role</p>
+                            <vscode-divider role="presentation"></vscode-divider>
+                        </section>
+                    </section>
+                    <h2>Dropdown</h2>
+                    <section class="component-example">
+                        <p>Default Dropdown</p>
+                        <vscode-dropdown position="below">
+                            <vscode-option>Option Label #1</vscode-option>
+                            <vscode-option>Option Label #2</vscode-option>
+                            <vscode-option>Option Label #3</vscode-option>
+                        </vscode-dropdown>
+                    </section>
+                    <section class="component-example">
+                        <p>With Disabled</p>
+                        <vscode-dropdown disabled
+                                         position="below">
+                            <vscode-option>Option Label #1</vscode-option>
+                            <vscode-option>Option Label #2</vscode-option>
+                            <vscode-option>Option Label #3</vscode-option>
+                        </vscode-dropdown>
+                    </section>
+                    <section class="component-example">
+                        <p>With Custom Indicator Icon</p>
+                        <vscode-dropdown position="below">
+                            <span slot="indicator"
+                                  class="codicon codicon-settings"></span>
+                            <vscode-option>Option Label #1</vscode-option>
+                            <vscode-option>Option Label #2</vscode-option>
+                            <vscode-option>Option Label #3</vscode-option>
+                        </vscode-dropdown>
+                    </section>
+                </section>
+                <section class="component-container">
+                    <h2>Link</h2>
+                    <section class="component-example">
+                        <p>Default Link</p>
+                        <vscode-link href="#">Default</vscode-link>
+                    </section>
+                    <section class="component-example">
+                        <p>Inline Link</p>
+                        <p>This is a sentence with an <vscode-link href="#">inline link</vscode-link>. How does it look?</p>
+                    </section>
+                </section>
+                <section class="component-container">
+                    <h2>Panels</h2>
+                    <section class="component-example">
+                        <p>Default Panels</p>
+                        <vscode-panels aria-label="Default">
+                            <vscode-panel-tab id="tab-1">PROBLEMS</vscode-panel-tab>
+                            <vscode-panel-tab id="tab-2">OUTPUT</vscode-panel-tab>
+                            <vscode-panel-tab id="tab-3">DEBUG CONSOLE</vscode-panel-tab>
+                            <vscode-panel-tab id="tab-4">TERMINAL</vscode-panel-tab>
+                            <vscode-panel-view id="view-1">Problems content.</vscode-panel-view>
+                            <vscode-panel-view id="view-2">Output content.</vscode-panel-view>
+                            <vscode-panel-view id="view-3">Debug content.</vscode-panel-view>
+                            <vscode-panel-view id="view-4">Terminal content.</vscode-panel-view>
+                        </vscode-panels>
+                    </section>
+                    <section class="component-example">
+                        <p>With Active Tab</p>
+                        <vscode-panels activeid="tab-4"
+                                       aria-label="With Active Tab">
+                            <vscode-panel-tab id="tab-1">PROBLEMS</vscode-panel-tab>
+                            <vscode-panel-tab id="tab-2">OUTPUT</vscode-panel-tab>
+                            <vscode-panel-tab id="tab-3">DEBUG CONSOLE</vscode-panel-tab>
+                            <vscode-panel-tab id="tab-4">TERMINAL</vscode-panel-tab>
+                            <vscode-panel-view id="view-1">Problems content.</vscode-panel-view>
+                            <vscode-panel-view id="view-2">Output content.</vscode-panel-view>
+                            <vscode-panel-view id="view-3">Debug content.</vscode-panel-view>
+                            <vscode-panel-view id="view-4">Terminal content.</vscode-panel-view>
+                        </vscode-panels>
+                    </section>
+                    <section class="component-example">
+                        <p>With Badge</p>
+                        <vscode-panels aria-label="With Badge">
+                            <vscode-panel-tab id="tab-1">
+                                PROBLEMS
+                                <vscode-badge>1</vscode-badge>
+                            </vscode-panel-tab>
+                            <vscode-panel-tab id="tab-2">
+                                OUTPUT
+                                <vscode-badge>1</vscode-badge>
+                            </vscode-panel-tab>
+                            <vscode-panel-tab id="tab-3">
+                                DEBUG CONSOLE
+                            </vscode-panel-tab>
+                            <vscode-panel-tab id="tab-4">
+                                TERMINAL
+                                <vscode-badge>1</vscode-badge>
+                            </vscode-panel-tab>
+                            <vscode-panel-view id="view-1"> Problems Content </vscode-panel-view>
+                            <vscode-panel-view id="view-2"> Output Content </vscode-panel-view>
+                            <vscode-panel-view id="view-3"> Debug Console Content </vscode-panel-view>
+                            <vscode-panel-view id="view-4"> Terminal Content </vscode-panel-view>
+                        </vscode-panels>
+                    </section>
+                </section>
+                <section class="component-container">
+                    <h2>Progress Ring</h2>
+                    <section class="component-example">
+                        <p>Default Progress Ring</p>
+                        <vscode-progress-ring></vscode-progress-ring>
+                    </section>
+                </section>
+                <section class="component-container">
+                    <h2>Radio Group + Radio</h2>
+                    <section class="component-example">
+                        <p>Default Radio Group</p>
+                        <vscode-radio-group>
+                            <label slot="label">Group Label</label>
+                            <vscode-radio value="value-1">Label</vscode-radio>
+                            <vscode-radio value="value-2">Label</vscode-radio>
+                            <vscode-radio value="value-3">Label</vscode-radio>
+                        </vscode-radio-group>
+                    </section>
+                    <section class="component-example">
+                        <p>With Disabled</p>
+                        <vscode-radio-group disabled>
+                            <label slot="label">Group Label</label>
+                            <vscode-radio value="value-1">Radio Label</vscode-radio>
+                            <vscode-radio value="value-2">Radio Label</vscode-radio>
+                            <vscode-radio value="value-3">Radio Label</vscode-radio>
+                        </vscode-radio-group>
+                    </section>
+                    <section class="component-example">
+                        <p>With Readonly</p>
+                        <vscode-radio-group readonly>
+                            <label slot="label">Group Label</label>
+                            <vscode-radio value="value-1">Radio Label</vscode-radio>
+                            <vscode-radio value="value-2">Radio Label</vscode-radio>
+                            <vscode-radio value="value-3">Radio Label</vscode-radio>
+                        </vscode-radio-group>
+                    </section>
+                    <section class="component-example">
+                        <p>With Vertical Orientation</p>
+                        <vscode-radio-group orientation="vertical">
+                            <label slot="label">Group Label</label>
+                            <vscode-radio value="value-1">Radio Label</vscode-radio>
+                            <vscode-radio value="value-2">Radio Label</vscode-radio>
+                            <vscode-radio value="value-3">Radio Label</vscode-radio>
+                        </vscode-radio-group>
+                    </section>
+                </section>
+                <section class="component-container">
+                    <h2>Tag</h2>
+                    <section class="component-example">
+                        <p>Default Tag</p>
+                        <vscode-tag>Tag Text</vscode-tag>
+                    </section>
+                </section>
+                <section class="component-container">
+                    <h2>Text Area</h2>
+                    <section class="component-example">
+                        <p>Default Text Area</p>
+                        <vscode-text-area>Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Disabled</p>
+                        <vscode-text-area disabled>Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Placeholder</p>
+                        <vscode-text-area placeholder="This is placeholder text">Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Readonly</p>
+                        <vscode-text-area readonly>Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Cols</p>
+                        <vscode-text-area cols="50">Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Rows</p>
+                        <vscode-text-area rows="20">Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Maxlength</p>
+                        <vscode-text-area maxlength="10">Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Resize None</p>
+                        <vscode-text-area resize="none">Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Resize Both</p>
+                        <vscode-text-area resize="both">Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Resize Vertical</p>
+                        <vscode-text-area resize="vertical">Text Area Label</vscode-text-area>
+                    </section>
+                    <section class="component-example">
+                        <p>With Resize Horizontal</p>
+                        <vscode-text-area resize="horizontal">Text Area Label</vscode-text-area>
+                    </section>
+                </section>
+                <section class="component-container">
+                    <h2>Text Field</h2>
+                    <section class="component-example">
+                        <p>Default Text Field</p>
+                        <vscode-text-field>Text Field Label</vscode-text-field>
+                    </section>
+                    <section class="component-example">
+                        <p>With Disabled</p>
+                        <vscode-text-field disabled>Text Field Label</vscode-text-field>
+                    </section>
+                    <section class="component-example">
+                        <p>With Placeholder</p>
+                        <vscode-text-field placeholder="This is placeholder text">Text Field Label</vscode-text-field>
+                    </section>
+                    <section class="component-example">
+                        <p>With Readonly</p>
+                        <vscode-text-field readonly>Text Area Label</vscode-text-field>
+                    </section>
+                    <section class="component-example">
+                        <p>With Size</p>
+                        <vscode-text-field size="50">Text Field Label</vscode-text-field>
+                    </section>
+                    <section class="component-example">
+                        <p>With Maxlength</p>
+                        <vscode-text-field maxlength="10">Text Field Label</vscode-text-field>
+                    </section>
+                    <section class="component-example">
+                        <p>With Start Icon</p>
+                        <vscode-text-field>
+                            Label
+                            <span slot="start"
+                                  class="codicon codicon-search"></span>
+                        </vscode-text-field>
+                    </section>
+                    <section class="component-example">
+                        <p>With End Icon</p>
+                        <vscode-text-field>
+                            Label
+                            <span slot="end"
+                                  class="codicon codicon-text-size"></span>
+                        </vscode-text-field>
+                    </section>
+                </section>
+            </vscode-panel-view>
+        </vscode-panels>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- <div class="flex-grid">
 
             <label class="col"
                    for="timeFilter">Time Filter:</label>
@@ -38,346 +450,9 @@
                    placeholder="Enter keyword">
         </div>
 
-        <button id="applyFilters">Apply Filters</button>
+        <button id="applyFilters">Apply Filters</button> -->
 
-        <section class="component-row">
-            <section class="component-container">
-                <h2>Button</h2>
-                <section class="component-example">
-                    <p>Default Button</p>
-                    <vscode-button appearance="primary">Button Text</vscode-button>
-                </section>
-                <section class="component-example">
-                    <p>Secondary Button</p>
-                    <vscode-button appearance="secondary">Button Text</vscode-button>
-                </section>
-                <section class="component-example">
-                    <p>With Disabled</p>
-                    <vscode-button disabled>Button Text</vscode-button>
-                </section>
-                <section class="component-example">
-                    <p>With Start Icon</p>
-                    <vscode-button>
-                        Button Text
-                        <span slot="start"
-                              class="codicon codicon-add"></span>
-                    </vscode-button>
-                </section>
-                <section class="component-example">
-                    <p>With Icon Only</p>
-                    <vscode-button appearance="icon"
-                                   aria-label="Confirm">
-                        <span class="codicon codicon-check"></span>
-                    </vscode-button>
-                </section>
-            </section>
-            <section class="component-container">
-                <h2>Badge</h2>
-                <section class="component-example">
-                    <p>Default Badge</p>
-                    <vscode-badge>1</vscode-badge>
-                </section>
-            </section>
-            <section class="component-container">
-                <h2>Checkbox</h2>
-                <section class="component-example">
-                    <p>Default Checkbox</p>
-                    <vscode-checkbox>Label</vscode-checkbox>
-                </section>
-                <section class="component-example">
-                    <p>With Checked</p>
-                    <vscode-checkbox checked>Label</vscode-checkbox>
-                </section>
-                <section class="component-example">
-                    <p>With Indeterminate</p>
-                    <vscode-checkbox id="basic-checkbox">Label</vscode-checkbox>
-                </section>
-                <section class="component-example">
-                    <p>With Disabled</p>
-                    <vscode-checkbox disabled>Label</vscode-checkbox>
-                </section>
-                <section class="component-example">
-                    <p>With Readonly</p>
-                    <vscode-checkbox readonly>Label</vscode-checkbox>
-                </section>
-            </section>
-            <section class="component-container">
-                <h2>Data Grid</h2>
-                <section class="component-example">
-                    <p>Default Data Grid</p>
-                    <vscode-data-grid id="default-grid"
-                                      grid-template-columns="1fr 1fr 1fr 1fr"
-                                      aria-label="Default"></vscode-data-grid>
-                </section>
-                <section class="component-example">
-                    <p>With Custom Titles</p>
-                    <vscode-data-grid class="basic-grid"
-                                      grid-template-columns="1fr 1fr 1fr 1fr"
-                                      aria-label="With Custom Titles"></vscode-data-grid>
-                </section>
-                <section class="component-example">
-                    <p>With Sticky Header</p>
-                    <vscode-data-grid class="basic-grid"
-                                      generate-header="sticky"
-                                      grid-template-columns="1fr 1fr 1fr 1fr"
-                                      aria-label="With Sticky Header"></vscode-data-grid>
-                </section>
-                <section class="component-example">
-                    <p>With Custom Column Widths</p>
-                    <vscode-data-grid class="basic-grid"
-                                      grid-template-columns="1fr 120px 1fr 2fr"
-                                      aria-label="With Custom Column Widths"></vscode-data-grid>
-                </section>
-            </section>
-            <section class="component-container">
-                <h2>Divider</h2>
-                <section class="component-example">
-                    <p>With Separator Role</p>
-                    <vscode-divider role="separator"></vscode-divider>
-                </section>
-                <section class="component-example">
-                    <p>With Presentation Role</p>
-                    <vscode-divider role="presentation"></vscode-divider>
-                </section>
-            </section>
-            <h2>Dropdown</h2>
-            <section class="component-example">
-                <p>Default Dropdown</p>
-                <vscode-dropdown position="below">
-                    <vscode-option>Option Label #1</vscode-option>
-                    <vscode-option>Option Label #2</vscode-option>
-                    <vscode-option>Option Label #3</vscode-option>
-                </vscode-dropdown>
-            </section>
-            <section class="component-example">
-                <p>With Disabled</p>
-                <vscode-dropdown disabled
-                                 position="below">
-                    <vscode-option>Option Label #1</vscode-option>
-                    <vscode-option>Option Label #2</vscode-option>
-                    <vscode-option>Option Label #3</vscode-option>
-                </vscode-dropdown>
-            </section>
-            <section class="component-example">
-                <p>With Custom Indicator Icon</p>
-                <vscode-dropdown position="below">
-                    <span slot="indicator"
-                          class="codicon codicon-settings"></span>
-                    <vscode-option>Option Label #1</vscode-option>
-                    <vscode-option>Option Label #2</vscode-option>
-                    <vscode-option>Option Label #3</vscode-option>
-                </vscode-dropdown>
-            </section>
-        </section>
-        <section class="component-container">
-            <h2>Link</h2>
-            <section class="component-example">
-                <p>Default Link</p>
-                <vscode-link href="#">Default</vscode-link>
-            </section>
-            <section class="component-example">
-                <p>Inline Link</p>
-                <p>This is a sentence with an <vscode-link href="#">inline link</vscode-link>. How does it look?</p>
-            </section>
-        </section>
-        <section class="component-container">
-            <h2>Panels</h2>
-            <section class="component-example">
-                <p>Default Panels</p>
-                <vscode-panels aria-label="Default">
-                    <vscode-panel-tab id="tab-1">PROBLEMS</vscode-panel-tab>
-                    <vscode-panel-tab id="tab-2">OUTPUT</vscode-panel-tab>
-                    <vscode-panel-tab id="tab-3">DEBUG CONSOLE</vscode-panel-tab>
-                    <vscode-panel-tab id="tab-4">TERMINAL</vscode-panel-tab>
-                    <vscode-panel-view id="view-1">Problems content.</vscode-panel-view>
-                    <vscode-panel-view id="view-2">Output content.</vscode-panel-view>
-                    <vscode-panel-view id="view-3">Debug content.</vscode-panel-view>
-                    <vscode-panel-view id="view-4">Terminal content.</vscode-panel-view>
-                </vscode-panels>
-            </section>
-            <section class="component-example">
-                <p>With Active Tab</p>
-                <vscode-panels activeid="tab-4"
-                               aria-label="With Active Tab">
-                    <vscode-panel-tab id="tab-1">PROBLEMS</vscode-panel-tab>
-                    <vscode-panel-tab id="tab-2">OUTPUT</vscode-panel-tab>
-                    <vscode-panel-tab id="tab-3">DEBUG CONSOLE</vscode-panel-tab>
-                    <vscode-panel-tab id="tab-4">TERMINAL</vscode-panel-tab>
-                    <vscode-panel-view id="view-1">Problems content.</vscode-panel-view>
-                    <vscode-panel-view id="view-2">Output content.</vscode-panel-view>
-                    <vscode-panel-view id="view-3">Debug content.</vscode-panel-view>
-                    <vscode-panel-view id="view-4">Terminal content.</vscode-panel-view>
-                </vscode-panels>
-            </section>
-            <section class="component-example">
-                <p>With Badge</p>
-                <vscode-panels aria-label="With Badge">
-                    <vscode-panel-tab id="tab-1">
-                        PROBLEMS
-                        <vscode-badge>1</vscode-badge>
-                    </vscode-panel-tab>
-                    <vscode-panel-tab id="tab-2">
-                        OUTPUT
-                        <vscode-badge>1</vscode-badge>
-                    </vscode-panel-tab>
-                    <vscode-panel-tab id="tab-3">
-                        DEBUG CONSOLE
-                    </vscode-panel-tab>
-                    <vscode-panel-tab id="tab-4">
-                        TERMINAL
-                        <vscode-badge>1</vscode-badge>
-                    </vscode-panel-tab>
-                    <vscode-panel-view id="view-1"> Problems Content </vscode-panel-view>
-                    <vscode-panel-view id="view-2"> Output Content </vscode-panel-view>
-                    <vscode-panel-view id="view-3"> Debug Console Content </vscode-panel-view>
-                    <vscode-panel-view id="view-4"> Terminal Content </vscode-panel-view>
-                </vscode-panels>
-            </section>
-        </section>
-        <section class="component-container">
-            <h2>Progress Ring</h2>
-            <section class="component-example">
-                <p>Default Progress Ring</p>
-                <vscode-progress-ring></vscode-progress-ring>
-            </section>
-        </section>
-        <section class="component-container">
-            <h2>Radio Group + Radio</h2>
-            <section class="component-example">
-                <p>Default Radio Group</p>
-                <vscode-radio-group>
-                    <label slot="label">Group Label</label>
-                    <vscode-radio value="value-1">Label</vscode-radio>
-                    <vscode-radio value="value-2">Label</vscode-radio>
-                    <vscode-radio value="value-3">Label</vscode-radio>
-                </vscode-radio-group>
-            </section>
-            <section class="component-example">
-                <p>With Disabled</p>
-                <vscode-radio-group disabled>
-                    <label slot="label">Group Label</label>
-                    <vscode-radio value="value-1">Radio Label</vscode-radio>
-                    <vscode-radio value="value-2">Radio Label</vscode-radio>
-                    <vscode-radio value="value-3">Radio Label</vscode-radio>
-                </vscode-radio-group>
-            </section>
-            <section class="component-example">
-                <p>With Readonly</p>
-                <vscode-radio-group readonly>
-                    <label slot="label">Group Label</label>
-                    <vscode-radio value="value-1">Radio Label</vscode-radio>
-                    <vscode-radio value="value-2">Radio Label</vscode-radio>
-                    <vscode-radio value="value-3">Radio Label</vscode-radio>
-                </vscode-radio-group>
-            </section>
-            <section class="component-example">
-                <p>With Vertical Orientation</p>
-                <vscode-radio-group orientation="vertical">
-                    <label slot="label">Group Label</label>
-                    <vscode-radio value="value-1">Radio Label</vscode-radio>
-                    <vscode-radio value="value-2">Radio Label</vscode-radio>
-                    <vscode-radio value="value-3">Radio Label</vscode-radio>
-                </vscode-radio-group>
-            </section>
-        </section>
-        <section class="component-container">
-            <h2>Tag</h2>
-            <section class="component-example">
-                <p>Default Tag</p>
-                <vscode-tag>Tag Text</vscode-tag>
-            </section>
-        </section>
-        <section class="component-container">
-            <h2>Text Area</h2>
-            <section class="component-example">
-                <p>Default Text Area</p>
-                <vscode-text-area>Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Disabled</p>
-                <vscode-text-area disabled>Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Placeholder</p>
-                <vscode-text-area placeholder="This is placeholder text">Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Readonly</p>
-                <vscode-text-area readonly>Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Cols</p>
-                <vscode-text-area cols="50">Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Rows</p>
-                <vscode-text-area rows="20">Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Maxlength</p>
-                <vscode-text-area maxlength="10">Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Resize None</p>
-                <vscode-text-area resize="none">Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Resize Both</p>
-                <vscode-text-area resize="both">Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Resize Vertical</p>
-                <vscode-text-area resize="vertical">Text Area Label</vscode-text-area>
-            </section>
-            <section class="component-example">
-                <p>With Resize Horizontal</p>
-                <vscode-text-area resize="horizontal">Text Area Label</vscode-text-area>
-            </section>
-        </section>
-        <section class="component-container">
-            <h2>Text Field</h2>
-            <section class="component-example">
-                <p>Default Text Field</p>
-                <vscode-text-field>Text Field Label</vscode-text-field>
-            </section>
-            <section class="component-example">
-                <p>With Disabled</p>
-                <vscode-text-field disabled>Text Field Label</vscode-text-field>
-            </section>
-            <section class="component-example">
-                <p>With Placeholder</p>
-                <vscode-text-field placeholder="This is placeholder text">Text Field Label</vscode-text-field>
-            </section>
-            <section class="component-example">
-                <p>With Readonly</p>
-                <vscode-text-field readonly>Text Area Label</vscode-text-field>
-            </section>
-            <section class="component-example">
-                <p>With Size</p>
-                <vscode-text-field size="50">Text Field Label</vscode-text-field>
-            </section>
-            <section class="component-example">
-                <p>With Maxlength</p>
-                <vscode-text-field maxlength="10">Text Field Label</vscode-text-field>
-            </section>
-            <section class="component-example">
-                <p>With Start Icon</p>
-                <vscode-text-field>
-                    Label
-                    <span slot="start"
-                          class="codicon codicon-search"></span>
-                </vscode-text-field>
-            </section>
-            <section class="component-example">
-                <p>With End Icon</p>
-                <vscode-text-field>
-                    Label
-                    <span slot="end"
-                          class="codicon codicon-text-size"></span>
-                </vscode-text-field>
-            </section>
-        </section>
-        </section>
+
 
         <script src="%%TOOLKIT_JS_PATH%%"></script>
         <script src="%%JS_PATH%%"></script>
