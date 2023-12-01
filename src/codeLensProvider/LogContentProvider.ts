@@ -114,10 +114,10 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
     /**
      * Provide textual content for a given uri.
-     * @param uri An uri which scheme matches the scheme this provider was created for.
+     * @param _ An uri which scheme matches the scheme this provider was created for.
      * @returns A string representing the textual content.
      */
-    async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+    async provideTextDocumentContent(_: vscode.Uri): Promise<string> {
         if (!vscode.workspace.workspaceFolders) {
             return "";
         }
@@ -289,4 +289,6 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         return documentContent;
     }
 }
+
+
 
