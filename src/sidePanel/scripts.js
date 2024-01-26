@@ -139,13 +139,6 @@ function addNewCheckboxFilter(filter, addToList = true) {
     sendCheckboxStateChange(checkbox.id);
 }
 
-// const sendUpdateFilterNumberRequestMessage = () => {
-//     // send message to extension to get the number of active filters
-//     vscode.postMessage({
-//         command: "getNumberOfActiveFilters",
-//     });
-// };
-
 const DEFAULT_DEBOUNCE_TIME = 3000;
 
 /**
@@ -207,6 +200,14 @@ function main() {
         vscode.postMessage({
             command: "displayGuidsCheckboxStateChange",
             isChecked: document.getElementById("display_guids").checked,
+        });
+    });
+
+    // adding a listener to the display_visualHints checkbox to send a message to the extension
+    document.getElementById("display_visualHints").addEventListener("change", () => {
+        vscode.postMessage({
+            command: "displayVisualHintsCheckboxStateChange",
+            isChecked: document.getElementById("display_visualHints").checked,
         });
     });
 

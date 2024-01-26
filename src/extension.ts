@@ -15,18 +15,17 @@ import {
     FilterKeywordChangedEvent,
     LogContentProvider,
 } from "./codeLensProvider/LogContentProvider";
+import { TextDecorator } from "./textDecorations/TextDecorator";
 
 /**
  * Activate the extension.
  * @param context The extension context.
  */
 export function activate(context: vscode.ExtensionContext) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "t200logs" is now active!');
     const onFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
     const onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
     const provider = new LogContentProvider(onFilterChanged.event, onDisplaySettingsChanged.event);
+    const textDecorator = new TextDecorator();
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, provider));
 
     let codeLensDisposable = vscode.languages.registerCodeLensProvider(
@@ -35,52 +34,56 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     let disposableDecoration = vscode.commands.registerCommand("t200logs.hideIsoDates", () => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor) {
-            const text = editor.document.getText();
-            const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
-            const decorationsArray: vscode.DecorationOptions[] = [];
+        textDecorator.toggleReadableIsoDates();
+        // const editor = vscode.window.activeTextEditor;
+        // if (editor) {
+        //     const text = editor.document.getText();
+        //     const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
+        //     const decorationsArray: vscode.DecorationOptions[] = [];
 
-            let match;
-            while ((match = isoDateRegex.exec(text))) {
-                const date = new Date(match[0]);
-                const humanReadableDate = date.toLocaleString(); // Convert to a human-readable format
+        //     let match;
+        //     while ((match = isoDateRegex.exec(text))) {
+        //         const date = new Date(match[0]);
+        //         const humanReadableDate = date.toLocaleString(); // Convert to a human-readable format
 
-                const startPos = editor.document.positionAt(match.index);
-                const endPos = editor.document.positionAt(match.index + match[0].length);
+        //         const startPos = editor.document.positionAt(match.index);
+        //         const endPos = editor.document.positionAt(match.index + match[0].length);
 
-                const decoration = {
-                    range: new vscode.Range(startPos, endPos),
-                    renderOptions: {
-                        after: {
-                            contentText: ` [${humanReadableDate}]`,
-                            color: "lightgrey", // You can adjust the color
-                            fontWeight: "bold",
-                            textDecoration: "none;",
-                        },
-                    },
-                };
+        //         const decoration = {
+        //             range: new vscode.Range(startPos, endPos),
+        //             renderOptions: {
+        //                 after: {
+        //                     contentText: ` [${humanReadableDate} UTC]`,
+        //                     color: "lightgrey", // You can adjust the color
+        //                     fontWeight: "bold",
+        //                     textDecoration: "none;",
+        //                 },
+        //             },
+        //         };
 
-                decorationsArray.push(decoration);
-            }
+        //         decorationsArray.push(decoration);
+        //     }
 
-            // const decorationType = vscode.window.createTextEditorDecorationType({});
-            // editor.setDecorations(decorationType, decorationsArray);
-        }
+        //     const decorationType = vscode.window.createTextEditorDecorationType({});
+        //     editor.setDecorations(decorationType, decorationsArray);
+        // }
     });
 
-    console.log("T200Logs extension activated");
+    let disposableDecorationHints = vscode.commands.registerCommand("t200logs.addVisualHints", () => {
+        textDecorator.toggleSeverityLevelHighlighting();
+    });
 
     const foldingProvider = new LogFoldingRangeProvider();
     context.subscriptions.push(
         vscode.languages.registerFoldingRangeProvider(
-            { scheme: "file", language: "log" }, // Adjust the language if necessary
+            { scheme: LogContentProvider.documentScheme, language: "log" }, // Adjust the language if necessary
             foldingProvider
         )
     );
 
     context.subscriptions.push(codeLensDisposable);
     context.subscriptions.push(disposableDecoration);
+    context.subscriptions.push(disposableDecorationHints);
 
     // Add a command to open the virtual document
     const openLogsDocument = async () => {
@@ -96,12 +99,19 @@ export function activate(context: vscode.ExtensionContext) {
     const getNumberOfActiveFilters = () => {
         return provider.getNumberOfActiveFilters();
     };
-
     const panelDisposable = vscode.window.registerWebviewViewProvider(
         "t200logs",
-        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged, onDisplaySettingsChanged, getNumberOfActiveFilters, openLogsDocument)
+        new LogsWebviewViewProvider(
+            context.extensionUri,
+            onFilterChanged,
+            onDisplaySettingsChanged,
+            getNumberOfActiveFilters,
+            openLogsDocument
+        )
     );
     context.subscriptions.push(panelDisposable);
+
+    console.log("T200Logs extension activated");
 }
 
 /**
@@ -132,39 +142,23 @@ class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
     provideFoldingRanges(document: vscode.TextDocument): vscode.FoldingRange[] {
         const foldingRanges: vscode.FoldingRange[] = [];
         const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
-        const isDateRegexForHiding = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}/;
+        // const isDateRegexForHiding = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}/;
+        const endMarkerRegex = new RegExp(`.*${LogContentProvider.foldingRegionEndMarker}.*`, "g");
         const decorations: vscode.DecorationOptions[] = [];
-
-        let currentSecond = null;
         let startLine = null;
 
         for (let i = 0; i < document.lineCount; i++) {
             const lineText = document.lineAt(i).text;
-            const match = lineText.match(isoDateRegex);
+            const startRegionMatch = lineText.match(isoDateRegex);
+            const endRegionMatch = lineText.match(endMarkerRegex);
 
-            if (match) {
-                const second = match[0];
+            if (startRegionMatch) {
+                startLine = i;
+            }
 
-                if (currentSecond === second && startLine === null) {
-                    startLine = i;
-                } else if (currentSecond !== second) {
-                    if (startLine !== null) {
-                        foldingRanges.push(new vscode.FoldingRange(startLine, i - 1));
-
-                        // Apply decoration to hide dates except the first one in the region
-                        for (let line = startLine + 1; line <= i - 1; line++) {
-                            // get a new match to get the full date string
-                            const dateMatch = document.lineAt(line).text.match(isDateRegexForHiding);
-                            if (!dateMatch) {
-                                continue;
-                            }
-
-                            const startPos = document.lineAt(line).range.start;
-                            const endPos = startPos.translate(0, dateMatch[0].length);
-                            decorations.push({ range: new vscode.Range(startPos, endPos) });
-                        }
-                    }
-                    currentSecond = second;
+            if (endRegionMatch) {
+                if (startLine !== null) {
+                    foldingRanges.push(new vscode.FoldingRange(startLine, i));
                     startLine = null;
                 }
             }
@@ -213,6 +207,9 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                 .then(() => {
                     this.hasLogsViewerBeenOpened = true;
                     console.log("LogsWebviewViewProvider: opened logs document");
+
+                    // add text decorations by triggering the text decoration command
+                    void vscode.commands.executeCommand("t200logs.hideIsoDates");
                 })
                 .catch(e => {
                     console.error("Failed to open logs document", e);
@@ -286,6 +283,10 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                         displayFileNames: null,
                         displayGuids: message.isChecked,
                     });
+                    break;
+                case "displayVisualHintsCheckboxStateChange":
+                    console.log(message);
+                    void vscode.commands.executeCommand("t200logs.addVisualHints");
                     break;
                 case "openLogsDocument":
                     void this.openLogsDocument();

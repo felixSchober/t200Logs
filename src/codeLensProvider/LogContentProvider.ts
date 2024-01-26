@@ -115,6 +115,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
     public static readonly documentScheme = "log-viewer";
 
+    public static readonly foldingRegionEndMarker = "======";
+
     public static readonly documentUri = vscode.Uri.parse(`${this.documentScheme}:/log-viewer.log`);
 
     /**
@@ -409,7 +411,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
             if (!currentSecond || entry.date.getSeconds() !== currentSecond.getSeconds()) {
                 if (currentSecond !== null) {
                     // Add a foldable region marker (this is a placeholder, actual folding is handled elsewhere)
-                    documentContent += "// Folding region end\n\n";
+                    documentContent += `// ${LogContentProvider.foldingRegionEndMarker}\n\n`;
                 }
                 currentSecond = entry.date;
                 documentContent += `// ${currentSecond.toISOString()}\n`;
@@ -427,6 +429,9 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         return documentContent;
     }
 }
+
+
+
 
 
 

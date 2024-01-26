@@ -26,6 +26,12 @@
                 "title": "Open Log Viewer",
                 "category": "T200Logs",
                 "shortTitle": "Open Log Viewer"
+            },
+            {
+                "command": "t200logs.addVisualHints",
+                "title": "Add visual hints to log viewer",
+                "category": "T200Logs",
+                "shortTitle": "Add visual hints"
             }
         ],
         "viewsContainers": {
