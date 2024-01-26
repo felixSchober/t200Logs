@@ -8,7 +8,7 @@ import * as path from "path";
 
 import * as vscode from "vscode";
 
-import { GoToSourceLensProvider } from "./codeLensProvider/GoToSourceLensProvider";
+import { DateRange, FilterTimeRangeLensProvider } from "./codeLensProvider/FilterTimeRangeLensProvider";
 import {
     DisplaySettingsChangedEvent,
     FilterChangedEvent,
@@ -29,8 +29,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, provider));
 
     let codeLensDisposable = vscode.languages.registerCodeLensProvider(
-        { scheme: "file", pattern: "**/desktop/**" },
-        new GoToSourceLensProvider()
+        { scheme: LogContentProvider.documentScheme },
+        new FilterTimeRangeLensProvider()
     );
 
     let disposableDecoration = vscode.commands.registerCommand("t200logs.toggleReadableIsoDates", () => {
@@ -62,7 +62,12 @@ export function activate(context: vscode.ExtensionContext) {
         await openLogsDocument();
     });
 
+    const inlineDateFilterDisposable = vscode.commands.registerCommand(FilterTimeRangeLensProvider.commandId, (dateRange: DateRange) => {
+        FilterTimeRangeLensProvider.executeCommand(dateRange, onFilterChanged);
+    });
+
     context.subscriptions.push(openLogViewerDisposable);
+    context.subscriptions.push(inlineDateFilterDisposable);
 
     const getNumberOfActiveFilters = () => {
         return provider.getNumberOfActiveFilters();
@@ -175,9 +180,6 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                 .then(() => {
                     this.hasLogsViewerBeenOpened = true;
                     console.log("LogsWebviewViewProvider: opened logs document");
-
-                    // add text decorations by triggering the text decoration command
-                    void vscode.commands.executeCommand("t200logs.toggleReadableIsoDates");
                 })
                 .catch(e => {
                     console.error("Failed to open logs document", e);
@@ -256,6 +258,10 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                     console.log(message);
                     void vscode.commands.executeCommand("t200logs.toggleVisualHints");
                     break;
+                case "displayReadableIsoDatesCheckboxStateChange":
+                    console.log(message);
+                    void vscode.commands.executeCommand("t200logs.toggleReadableIsoDates");
+                    break;
                 case "openLogsDocument":
                     void this.openLogsDocument();
                     break;
@@ -304,7 +310,6 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
 
         return htmlContent;
     }
-
 
 
 }

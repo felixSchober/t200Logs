@@ -104,6 +104,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     private timeFilterFrom: string | null;
 
     /**
+     * The minimum date that can be used as a filter except if the user wants to display all entries.
+     */
+    private minimumDate: string | null = new Date(1000).toISOString();
+
+    /**
      * Filter out log entries that are after this date.
      */
     private timeFilterTill: string | null = null;
@@ -116,6 +121,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     public static readonly documentScheme = "log-viewer";
 
     public static readonly foldingRegionEndMarker = "======";
+
+    /**
+     * The prefix for the folding region markers. E.g. // ====== or // 2023-11-28T15:16:31.758465+00:00.
+     */
+    public static readonly foldingRegionPrefix = "// ";
 
     public static readonly documentUri = vscode.Uri.parse(`${this.documentScheme}:/log-viewer.log`);
 
@@ -180,7 +190,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
         // set the "timeFilterFrom" to a second after timestamp 0.
         // This is done so that we ignore all events that do not have a timestamp.
-        this.timeFilterFrom = new Date(1000).toISOString();
+        this.timeFilterFrom = this.minimumDate;
     }
 
     /**
@@ -197,7 +207,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         }
 
         if (filterChangeEvent.fromDate || filterChangeEvent.fromDate === "") {
-            this.timeFilterFrom = filterChangeEvent.fromDate;
+            if (filterChangeEvent.fromDate === "") {
+                this.timeFilterFrom = this.minimumDate;
+            } else {
+                this.timeFilterFrom = filterChangeEvent.fromDate;
+            }
         }
 
         if (filterChangeEvent.tillDate || filterChangeEvent.tillDate === "") {
@@ -205,9 +219,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         }
 
         if (filterChangeEvent.removeEntriesWithNoEventTime === true) {
-            this.timeFilterFrom = new Date(1000).toISOString();
+            this.minimumDate = new Date(1000).toISOString();
+            this.timeFilterFrom = this.minimumDate;
         } else if (filterChangeEvent.removeEntriesWithNoEventTime === false) {
             this.timeFilterFrom = null;
+            this.minimumDate = null;
         }
 
         this.changeTrigger++;
@@ -411,10 +427,10 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
             if (!currentSecond || entry.date.getSeconds() !== currentSecond.getSeconds()) {
                 if (currentSecond !== null) {
                     // Add a foldable region marker (this is a placeholder, actual folding is handled elsewhere)
-                    documentContent += `// ${LogContentProvider.foldingRegionEndMarker}\n\n`;
+                    documentContent += `${LogContentProvider.foldingRegionPrefix}${LogContentProvider.foldingRegionEndMarker}\n\n`;
                 }
                 currentSecond = entry.date;
-                documentContent += `// ${currentSecond.toISOString()}\n`;
+                documentContent += `${LogContentProvider.foldingRegionPrefix}${currentSecond.toISOString()}\n`;
             }
 
             // removes all information that is not needed one by one
@@ -429,6 +445,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         return documentContent;
     }
 }
+
+
 
 
 

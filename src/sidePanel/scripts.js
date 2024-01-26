@@ -202,6 +202,14 @@ function main() {
         });
     });
 
+    // adding a listener to the display_readableIsoDates checkbox to send a message to the extension
+    document.getElementById("display_readableIsoDates").addEventListener("change", () => {
+        vscode.postMessage({
+            command: "displayReadableIsoDatesCheckboxStateChange",
+            isChecked: document.getElementById("display_readableIsoDates").checked,
+        });
+    });
+
     // add a "debounced" listener to the timeFilter input field to send a message to the extension when the user stops typing
     const timeFilterInputFrom = document.getElementById("filter_date_from");
     let timeoutFrom = null;

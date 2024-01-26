@@ -32,6 +32,11 @@
                 "title": "Toggles visual hints in log viewer",
                 "category": "T200Logs",
                 "shortTitle": "Toggle visual hints"
+            },
+            {
+                "command": "t200logs.inlineDateFilter",
+                "title": "Inline date filter",
+                "category": "T200Logs"
             }
         ],
         "viewsContainers": {
