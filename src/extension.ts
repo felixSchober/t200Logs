@@ -90,9 +90,13 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(openLogViewerDisposable);
 
+    const getNumberOfActiveFilters = () => {
+        return provider.getNumberOfActiveFilters();
+    };
+
     const panelDisposable = vscode.window.registerWebviewViewProvider(
         "t200logs",
-        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged, onDisplaySettingsChanged)
+        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged, onDisplaySettingsChanged, getNumberOfActiveFilters)
     );
     context.subscriptions.push(panelDisposable);
 }
@@ -182,12 +186,13 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
      * @param extensionUri The path to the extension.
      * @param onFilterChanged The event emitter for when the filter changes.
      * @param onDisplaySettingsChanged The event emitter for when the display settings change.
+     * @param getNumberOfActiveFilters A function that returns the number of active filters.
      */
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly onFilterChanged: vscode.EventEmitter<FilterChangedEvent>,
-
-        private readonly onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>
+        private readonly onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>,
+        private readonly getNumberOfActiveFilters: () => number
     ) {}
 
     /**
@@ -237,6 +242,12 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                         tillDate: message.timeFilter,
                     });
                     break;
+                case "filterNoEventTimeCheckboxStateChange":
+                    console.log(message);
+                    this.onFilterChanged.fire({
+                        removeEntriesWithNoEventTime: message.isChecked,
+                    });
+                    break;
                 case "displayFilenamesCheckboxStateChange":
                     console.log(message);
                     this.onDisplaySettingsChanged.fire({
@@ -251,6 +262,16 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                         displayGuids: message.isChecked,
                     });
                     break;
+            }
+
+            // if command was a filter command - send message back with currently active filters
+            if (message.command.startsWith("filter")) {
+                const numberOfActiveFilters = this.getNumberOfActiveFilters();
+                console.log("numberOfActiveFilters", numberOfActiveFilters);
+                void webviewView.webview.postMessage({
+                    command: "updateNumberOfActiveFilters",
+                    numberOfActiveFilters,
+                });
             }
         }, undefined);
     }

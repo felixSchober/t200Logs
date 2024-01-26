@@ -25,7 +25,7 @@
         <vscode-panels aria-label="Logs helper selection tabs">
             <vscode-panel-tab id="tab-1">
                 FILTERING
-                <vscode-badge>1</vscode-badge>
+                <vscode-badge id="filter_rules_badge">1</vscode-badge>
             </vscode-panel-tab>
             <vscode-panel-tab id="tab-2">
                 INFO
@@ -47,6 +47,8 @@
                     <vscode-divider role="separator"></vscode-divider>
 
                     <p>Filter based on time</p>
+                    <vscode-checkbox checked
+                                     id="filter_no_event_time">Filter out entries that don't have a time</vscode-checkbox>
                     <vscode-text-field id="filter_date_from"
                                        placeholder="YYYY-MM-DD HH:MM">From</vscode-text-field>
                     <vscode-text-field id="filter_date_till"

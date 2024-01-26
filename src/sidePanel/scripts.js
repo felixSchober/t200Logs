@@ -60,7 +60,6 @@ const customFilters = [
 // getting messages from extension
 window.addEventListener("message", event => {
     const message = event.data;
-    debugger;
     console.log("Received message from extension: ", message);
     switch (message.command) {
 
@@ -71,6 +70,14 @@ window.addEventListener("message", event => {
         case "updateDataGrid":
             const dataGrid = document.getElementById("default-grid");
             dataGrid.rowsData = message.data;
+            break;
+        case "updateNumberOfActiveFilters":
+            if (message.numberOfActiveFilters === 0) {
+                document.getElementById("filter_rules_badge").style.visibility = "hidden";
+            } else {
+                document.getElementById("filter_rules_badge").style.visibility = "visible";
+                document.getElementById("filter_rules_badge").innerText = message.numberOfActiveFilters;
+            }
             break;
         default:
             break;
@@ -123,11 +130,21 @@ function addNewCheckboxFilter(filter, addToList = true) {
     sendCheckboxStateChange(checkbox.id);
 }
 
+// const sendUpdateFilterNumberRequestMessage = () => {
+//     // send message to extension to get the number of active filters
+//     vscode.postMessage({
+//         command: "getNumberOfActiveFilters",
+//     });
+// };
+
+const DEFAULT_DEBOUNCE_TIME = 3000;
+
 /**
  * Main entry point for the webview.
  */
 function main() {
 
+    // prevent the main function from being called more than once
     if (hasBeenLoaded) {
         return;
     }
@@ -135,7 +152,6 @@ function main() {
 
     // add custom filters
     for (const filter of customFilters) {
-        debugger;
         // adding a checkbox to the DOM
         addNewCheckboxFilter(filter, false);
     }
@@ -190,7 +206,7 @@ function main() {
                 command: "timeFilterInputFromChange",
                 timeFilter: timeFilterInputFrom.value,
             });
-        }, 500);
+        }, DEFAULT_DEBOUNCE_TIME);
     });
 
     // add a "debounced" listener to the timeFilter input field to send a message to the extension when the user stops typing
@@ -203,7 +219,15 @@ function main() {
                 command: "timeFilterInputTillChange",
                 timeFilter: timeFilterInputTill.value,
             });
-        }, 500);
+        }, DEFAULT_DEBOUNCE_TIME);
+    });
+
+    // adding a listener to the filter_no_event_time checkbox to send a message to the extension
+    document.getElementById("filter_no_event_time").addEventListener("change", () => {
+        vscode.postMessage({
+            command: "filterNoEventTimeCheckboxStateChange",
+            isChecked: document.getElementById("filter_no_event_time").checked,
+        });
     });
 
 

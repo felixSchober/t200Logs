@@ -21,6 +21,11 @@ export type FilterChangedEvent = {
     tillDate?: string;
 
     /**
+     * When true, removes all entries that do not have an event time.
+     */
+    removeEntriesWithNoEventTime?: boolean;
+
+    /**
      * Adds a keyword to the filter.
      */
     addKeywordFilter?: string;
@@ -96,7 +101,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     /**
      * Filter out log entries that are before this date.
      */
-    private timeFilterFrom: string | null = null;
+    private timeFilterFrom: string | null;
 
     /**
      * Filter out log entries that are after this date.
@@ -170,6 +175,10 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
             }
             this._onDidChange.fire(LogContentProvider.documentUri);
         });
+
+        // set the "timeFilterFrom" to a second after timestamp 0.
+        // This is done so that we ignore all events that do not have a timestamp.
+        this.timeFilterFrom = new Date(1000).toISOString();
     }
 
     /**
@@ -193,8 +202,34 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
             this.timeFilterTill = filterChangeEvent.tillDate;
         }
 
+        if (filterChangeEvent.removeEntriesWithNoEventTime === true) {
+            this.timeFilterFrom = new Date(1000).toISOString();
+        } else if (filterChangeEvent.removeEntriesWithNoEventTime === false) {
+            this.timeFilterFrom = null;
+        }
+
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
+    }
+
+    /**
+     * Calculates the number of filters that are currently active.
+     * @returns The number of filters that are currently active.
+     */
+    public getNumberOfActiveFilters(): number {
+        const numberOfKeywordFilters = this.keywordFilters.length;
+        const numberOfTimeFilters = (this.timeFilterFrom ? 1 : 0) + (this.timeFilterTill ? 1 : 0);
+        const isErrorLevelChecked = true;
+        const isWarningLevelChecked = true;
+        const isVerboseLevelChecked = true;
+
+        return (
+            numberOfKeywordFilters +
+            numberOfTimeFilters +
+            (isErrorLevelChecked ? 0 : 1) +
+            (isWarningLevelChecked ? 0 : 1) +
+            (isVerboseLevelChecked ? 0 : 1)
+        );
     }
 
     /**
@@ -392,6 +427,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         return documentContent;
     }
 }
+
+
+
+
+
 
 
 
