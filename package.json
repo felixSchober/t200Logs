@@ -16,10 +16,10 @@
     "contributes": {
         "commands": [
             {
-                "command": "t200logs.hideIsoDates",
-                "title": "Hide all ISO dates in current workspace",
+                "command": "t200logs.toggleReadableIsoDates",
+                "title": "Toggles readable dates to log viewer",
                 "category": "T200Logs",
-                "shortTitle": "Hide ISO Dates"
+                "shortTitle": "Toggle readable dates"
             },
             {
                 "command": "t200logs.openLogViewer",
@@ -28,10 +28,10 @@
                 "shortTitle": "Open Log Viewer"
             },
             {
-                "command": "t200logs.addVisualHints",
-                "title": "Add visual hints to log viewer",
+                "command": "t200logs.toggleVisualHints",
+                "title": "Toggles visual hints in log viewer",
                 "category": "T200Logs",
-                "shortTitle": "Add visual hints"
+                "shortTitle": "Toggle visual hints"
             }
         ],
         "viewsContainers": {

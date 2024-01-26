@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
         new GoToSourceLensProvider()
     );
 
-    let disposableDecoration = vscode.commands.registerCommand("t200logs.hideIsoDates", () => {
+    let disposableDecoration = vscode.commands.registerCommand("t200logs.toggleReadableIsoDates", () => {
         textDecorator.toggleReadableIsoDates();
         // const editor = vscode.window.activeTextEditor;
         // if (editor) {
@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
         // }
     });
 
-    let disposableDecorationHints = vscode.commands.registerCommand("t200logs.addVisualHints", () => {
+    let disposableDecorationHints = vscode.commands.registerCommand("t200logs.toggleVisualHints", () => {
         textDecorator.toggleSeverityLevelHighlighting();
     });
 
@@ -209,7 +209,7 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                     console.log("LogsWebviewViewProvider: opened logs document");
 
                     // add text decorations by triggering the text decoration command
-                    void vscode.commands.executeCommand("t200logs.hideIsoDates");
+                    void vscode.commands.executeCommand("t200logs.toggleReadableIsoDates");
                 })
                 .catch(e => {
                     console.error("Failed to open logs document", e);
@@ -286,7 +286,7 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case "displayVisualHintsCheckboxStateChange":
                     console.log(message);
-                    void vscode.commands.executeCommand("t200logs.addVisualHints");
+                    void vscode.commands.executeCommand("t200logs.toggleVisualHints");
                     break;
                 case "openLogsDocument":
                     void this.openLogsDocument();
@@ -336,5 +336,6 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
 
         return htmlContent;
     }
+
 
 }
