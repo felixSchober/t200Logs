@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
     const onFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
     const onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
     const provider = new LogContentProvider(onFilterChanged.event, onDisplaySettingsChanged.event);
-    const textDecorator = new TextDecorator();
+    const textDecorator = new TextDecorator(onFilterChanged.event, onDisplaySettingsChanged.event);
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, provider));
 
     let codeLensDisposable = vscode.languages.registerCodeLensProvider(
@@ -310,6 +310,7 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
 
         return htmlContent;
     }
+
 
 
 }

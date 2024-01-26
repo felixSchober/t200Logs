@@ -4,6 +4,8 @@
 
 import * as vscode from "vscode";
 
+import { DisplaySettingsChangedEvent, FilterChangedEvent } from "../codeLensProvider/LogContentProvider";
+
 /**
  * TextDecorator is a class that provides the ability to decorate in the logs viewer.
  */
@@ -26,8 +28,13 @@ export class TextDecorator {
 
     /**
      * Initializes a new instance of the TextDecorator class.
+     * @param onFilterChangeEvent The event that is fired when the filter changes.
+     * @param onDisplaySettingsChangedEvent The event that is fired when the display settings change.
      */
-    constructor() {
+    constructor(
+        onFilterChangeEvent: vscode.Event<FilterChangedEvent>,
+        onDisplaySettingsChangedEvent: vscode.Event<DisplaySettingsChangedEvent>
+    ) {
         this.errorTextDecoration = vscode.window.createTextEditorDecorationType({
             backgroundColor: "rgba(255, 0, 0, 0.2)",
         });
@@ -35,6 +42,16 @@ export class TextDecorator {
             backgroundColor: "rgba(255, 255, 0, 0.2)",
         });
         this.isoDateTextDecoration = vscode.window.createTextEditorDecorationType({});
+
+        onFilterChangeEvent(() => {
+            this.applySeverityLevelHighlighting();
+            this.applyReadableIsoDates();
+        });
+
+        onDisplaySettingsChangedEvent(() => {
+            this.applySeverityLevelHighlighting(true);
+            this.applyReadableIsoDates();
+        });
     }
 
     /**
@@ -51,51 +68,69 @@ export class TextDecorator {
                 return;
             }
 
-            const text = editor.document.getText();
+            this.applySeverityLevelHighlighting(true);
+        }
+    }
 
-            // matches all lines that contain either of the following:
-            // - ERROR
-            // - Err
-            // - <ERR>
-            const errorRegEx = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*/g;
+    /**
+     * Applies the highlighting of the severity level in the logs viewer.
+     * This applies the highlighting to the entire document.
+     * To toggle the highlighting, use the {@link toggleSeverityLevelHighlighting} method.
+     * @param wasTurnedOn Flag indicating whether the highlighting is being toggled. If true, the method will ignore the current state of the highlighting and apply it anyway. If `false`, the method will only apply the highlighting if it is already applied.
+     */
+    public applySeverityLevelHighlighting(wasTurnedOn: boolean = false) {
+        // apply the highlighting if
+        // - the highlighting has not been applied before. Called by the internal toggle method.
+        // - the highlighting has been applied before. We need to re-apply it because the filter has been changed.
+        if (this.isSeverityLevelHighlightingEnabled || wasTurnedOn) {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const text = editor.document.getText();
 
-            // matches all lines that contain either of the following:
-            // - WARN
-            // - Warn
-            // - War
-            // - <WARN>
-            const warnRegEx = /.*\sWARN\s.*|.*\sWarn\s.*|.*\sWar\s.*|.*<WARN>.*/g;
+                // matches all lines that contain either of the following:
+                // - ERROR
+                // - Err
+                // - <ERR>
+                const errorRegEx = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*/g;
 
-            const errorDecorationsArray: vscode.DecorationOptions[] = [];
-            const warnDecorationsArray: vscode.DecorationOptions[] = [];
+                // matches all lines that contain either of the following:
+                // - WARN
+                // - Warn
+                // - War
+                // - <WARN>
+                const warnRegEx = /.*\sWARN\s.*|.*\sWarn\s.*|.*\sWar\s.*|.*<WARN>.*/g;
 
-            let match;
-            while ((match = errorRegEx.exec(text))) {
-                const startPos = editor.document.positionAt(match.index);
-                const endPos = editor.document.positionAt(match.index + match[0].length);
+                const errorDecorationsArray: vscode.DecorationOptions[] = [];
+                const warnDecorationsArray: vscode.DecorationOptions[] = [];
 
-                const decoration = {
-                    range: new vscode.Range(startPos, endPos),
-                };
+                let match;
+                while ((match = errorRegEx.exec(text))) {
+                    const startPos = editor.document.positionAt(match.index);
+                    const endPos = editor.document.positionAt(match.index + match[0].length);
 
-                errorDecorationsArray.push(decoration);
+                    const decoration = {
+                        range: new vscode.Range(startPos, endPos),
+                    };
+
+                    errorDecorationsArray.push(decoration);
+                }
+
+                while ((match = warnRegEx.exec(text))) {
+                    const startPos = editor.document.positionAt(match.index);
+                    const endPos = editor.document.positionAt(match.index + match[0].length);
+
+                    const decoration = {
+                        range: new vscode.Range(startPos, endPos),
+                    };
+
+                    warnDecorationsArray.push(decoration);
+                }
+
+                editor.setDecorations(this.errorTextDecoration, errorDecorationsArray);
+                editor.setDecorations(this.warnTextDecoration, warnDecorationsArray);
+
+                this.isSeverityLevelHighlightingEnabled = true;
             }
-
-            while ((match = warnRegEx.exec(text))) {
-                const startPos = editor.document.positionAt(match.index);
-                const endPos = editor.document.positionAt(match.index + match[0].length);
-
-                const decoration = {
-                    range: new vscode.Range(startPos, endPos),
-                };
-
-                warnDecorationsArray.push(decoration);
-            }
-
-            editor.setDecorations(this.errorTextDecoration, errorDecorationsArray);
-            editor.setDecorations(this.warnTextDecoration, warnDecorationsArray);
-
-            this.isSeverityLevelHighlightingEnabled = !this.isSeverityLevelHighlightingEnabled;
         }
     }
 
@@ -112,35 +147,61 @@ export class TextDecorator {
                 return;
             }
 
-            const text = editor.document.getText();
-            const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
-            const decorationsArray: vscode.DecorationOptions[] = [];
+            this.applyReadableIsoDates(true);
+        }
+    }
 
-            let match;
-            while ((match = isoDateRegex.exec(text))) {
-                const date = new Date(match[0]);
-                const humanReadableDate = date.toLocaleString(); // Convert to a human-readable format
+    /**
+     * Applies the addition of human-readable dates in the logs viewer.
+     * @param wasTurnedOn Flag indicating whether the highlighting is being toggled. If true, the method will ignore the current state of the highlighting and apply it anyway. If `false`, the method will only apply the highlighting if it is already applied.
+     */
+    public applyReadableIsoDates(wasTurnedOn: boolean = false) {
+        if (this.isReadableIsoDatesEnabled || wasTurnedOn) {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const text = editor.document.getText();
+                const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
+                const decorationsArray: vscode.DecorationOptions[] = [];
 
-                const startPos = editor.document.positionAt(match.index);
-                const endPos = editor.document.positionAt(match.index + match[0].length);
+                let match;
+                while ((match = isoDateRegex.exec(text))) {
+                    const date = new Date(match[0]);
+                    const humanReadableDate = date.toLocaleString(); // Convert to a human-readable format
 
-                const decoration = {
-                    range: new vscode.Range(startPos, endPos),
-                    renderOptions: {
-                        after: {
-                            contentText: this.isReadableIsoDatesEnabled ? "" : ` [${humanReadableDate} UTC]`,
-                            color: "lightgrey", // You can adjust the color
-                            fontWeight: "bold",
-                            textDecoration: "none;",
+                    const startPos = editor.document.positionAt(match.index);
+                    const endPos = editor.document.positionAt(match.index + match[0].length);
+
+                    const decoration = {
+                        range: new vscode.Range(startPos, endPos),
+                        renderOptions: {
+                            after: {
+                                contentText: this.isReadableIsoDatesEnabled ? "" : ` [${humanReadableDate} UTC]`,
+                                color: "lightgrey", // You can adjust the color
+                                fontWeight: "bold",
+                                textDecoration: "none;",
+                            },
                         },
-                    },
-                };
+                    };
 
-                decorationsArray.push(decoration);
+                    decorationsArray.push(decoration);
+                }
+                editor.setDecorations(this.isoDateTextDecoration, decorationsArray);
+                this.isReadableIsoDatesEnabled = true;
             }
-            editor.setDecorations(this.isoDateTextDecoration, decorationsArray);
-            this.isReadableIsoDatesEnabled = !this.isReadableIsoDatesEnabled;
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
