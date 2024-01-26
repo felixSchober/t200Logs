@@ -83,9 +83,12 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(disposableDecoration);
 
     // Add a command to open the virtual document
-    let openLogViewerDisposable = vscode.commands.registerCommand("t200logs.openLogViewer", async () => {
+    const openLogsDocument = async () => {
         const doc = await vscode.workspace.openTextDocument(LogContentProvider.documentUri);
         await vscode.window.showTextDocument(doc, { preview: false });
+    };
+    let openLogViewerDisposable = vscode.commands.registerCommand("t200logs.openLogViewer", async () => {
+        await openLogsDocument();
     });
 
     context.subscriptions.push(openLogViewerDisposable);
@@ -96,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const panelDisposable = vscode.window.registerWebviewViewProvider(
         "t200logs",
-        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged, onDisplaySettingsChanged, getNumberOfActiveFilters)
+        new LogsWebviewViewProvider(context.extensionUri, onFilterChanged, onDisplaySettingsChanged, getNumberOfActiveFilters, openLogsDocument)
     );
     context.subscriptions.push(panelDisposable);
 }
@@ -187,13 +190,17 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
      * @param onFilterChanged The event emitter for when the filter changes.
      * @param onDisplaySettingsChanged The event emitter for when the display settings change.
      * @param getNumberOfActiveFilters A function that returns the number of active filters.
+     * @param openLogsDocument A function that opens the logs document.
      */
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly onFilterChanged: vscode.EventEmitter<FilterChangedEvent>,
         private readonly onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>,
-        private readonly getNumberOfActiveFilters: () => number
-    ) {}
+        private readonly getNumberOfActiveFilters: () => number,
+        private readonly openLogsDocument: () => Promise<void>
+    ) {
+        console.log("LogsWebviewViewProvider constructor");
+    }
 
     /**
      * Resolves and defines a webview view.
@@ -261,6 +268,12 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                         displayFileNames: null,
                         displayGuids: message.isChecked,
                     });
+                    break;
+                case "openLogsDocument":
+                    void this.openLogsDocument();
+                    break;
+                default:
+                    console.warn("unknown command", message);
                     break;
             }
 

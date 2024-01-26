@@ -103,6 +103,15 @@ function sendCheckboxStateChange(checkboxId) {
 }
 
 /**
+ * Sends a message to the extension to open the logs document.
+ */
+function openLogsDocument() {
+    vscode.postMessage({
+        command: "openLogsDocument",
+    });
+}
+
+/**
  * Adds a new checkbox filter to the DOM.
  * @param filter The filter to add.
  * @param addToList Whether to add the filter to the customFilters list.
@@ -167,6 +176,11 @@ function main() {
 
         // remove the text from the input field
         document.getElementById("filter_kw_add_input").value = "";
+    });
+
+    // adding a listener to the open_log_document button to send a message to the extension
+    document.getElementById("open_log_document").addEventListener("click", () => {
+        openLogsDocument();
     });
 
     // adding a listener on the filter_kw_add_input input field to update the disabled state of the "Add Filter" button
