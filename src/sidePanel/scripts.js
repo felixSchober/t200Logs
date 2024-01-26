@@ -14,15 +14,6 @@ provideVSCodeDesignSystem().register(allComponents);
 // or toolkit components
 window.addEventListener("load", main);
 
-// document.getElementById("applyFilters")?.addEventListener("click", () => {
-//     const timeFilter = document.getElementById("timeFilter")?.value;
-//     const keywordFilter = document.getElementById("keywordFilter")?.value;
-//     vscode.postMessage({
-//         command: "applyFilters",
-//         timeFilter: timeFilter,
-//         keywordFilter: keywordFilter,
-//     });
-// });
 let hasBeenLoaded = false;
 const customFilters = [
     {

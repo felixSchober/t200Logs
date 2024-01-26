@@ -35,38 +35,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     let disposableDecoration = vscode.commands.registerCommand("t200logs.toggleReadableIsoDates", () => {
         textDecorator.toggleReadableIsoDates();
-        // const editor = vscode.window.activeTextEditor;
-        // if (editor) {
-        //     const text = editor.document.getText();
-        //     const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/g;
-        //     const decorationsArray: vscode.DecorationOptions[] = [];
-
-        //     let match;
-        //     while ((match = isoDateRegex.exec(text))) {
-        //         const date = new Date(match[0]);
-        //         const humanReadableDate = date.toLocaleString(); // Convert to a human-readable format
-
-        //         const startPos = editor.document.positionAt(match.index);
-        //         const endPos = editor.document.positionAt(match.index + match[0].length);
-
-        //         const decoration = {
-        //             range: new vscode.Range(startPos, endPos),
-        //             renderOptions: {
-        //                 after: {
-        //                     contentText: ` [${humanReadableDate} UTC]`,
-        //                     color: "lightgrey", // You can adjust the color
-        //                     fontWeight: "bold",
-        //                     textDecoration: "none;",
-        //                 },
-        //             },
-        //         };
-
-        //         decorationsArray.push(decoration);
-        //     }
-
-        //     const decorationType = vscode.window.createTextEditorDecorationType({});
-        //     editor.setDecorations(decorationType, decorationsArray);
-        // }
     });
 
     let disposableDecorationHints = vscode.commands.registerCommand("t200logs.toggleVisualHints", () => {
@@ -336,6 +304,7 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
 
         return htmlContent;
     }
+
 
 
 }
