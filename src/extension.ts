@@ -185,6 +185,12 @@ class LogFoldingRangeProvider implements vscode.FoldingRangeProvider {
  */
 class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
     /**
+     * Whether the log viewer has been opened by the webview yet.
+     * It is possible that the logs viewer document has been opened by the user before the webview has been opened.
+     */
+    private hasLogsViewerBeenOpened = false;
+
+    /**
      * Creates a new instance of the view provider.
      * @param extensionUri The path to the extension.
      * @param onFilterChanged The event emitter for when the filter changes.
@@ -200,6 +206,18 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
         private readonly openLogsDocument: () => Promise<void>
     ) {
         console.log("LogsWebviewViewProvider constructor");
+
+        // try to open the logs document if it hasn't been opened yet
+        if (!this.hasLogsViewerBeenOpened) {
+            this.openLogsDocument()
+                .then(() => {
+                    this.hasLogsViewerBeenOpened = true;
+                    console.log("LogsWebviewViewProvider: opened logs document");
+                })
+                .catch(e => {
+                    console.error("Failed to open logs document", e);
+                });
+        }
     }
 
     /**
