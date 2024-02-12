@@ -92,6 +92,8 @@ type ServiceFiles = {
 
 const MAX_LOG_FILES_PER_SERVICE = 2;
 
+const MAX_LOG_FILES_RETURNED = 100;
+
 /**
  * A content provider that transforms the content of a log file.
  */
@@ -118,6 +120,17 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      */
     private keywordFilters: string[] = [];
 
+    /**
+     * A list of log files that are used to render the text content.
+     * This list will only be set on the first call to provideTextDocumentContent.
+     */
+    private logFileCache: vscode.Uri[] = [];
+
+    /**
+     * A list of lines from the log files generated at the start when the class is initialized.
+     */
+    private logEntryCache: LogEntry[] = [];
+
     public static readonly documentScheme = "log-viewer";
 
     public static readonly foldingRegionEndMarker = "======";
@@ -133,10 +146,13 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      * Strings to remove from the log entries.
      */
     private stringsToRemove = [
-        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}/,
-        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/,
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}(\+|-)\d{2}:\d{2}/, // 2023-11-28T15:16:31.758465+00:00
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, // 2023-11-29T10:21:49.895Z
+        /\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT(\+|-)\d{4} \(\D*\)/, // Sun Jan 07 2024 18:45:43 GMT-0800 (Pacific Standard Time)
+        /\s0x[0-9a-f]{8}/, //  0x00001f68 (ProcessIds) with two spaces before
         /\sInf\s/,
         /-logs\.txt/,
+        /<\d{5}>/,
     ];
 
     private readonly stringReplacementMap = [
@@ -261,28 +277,62 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         }
 
         console.log("Content requested for changeTrigger:", this.changeTrigger);
-
-        const logFiles = await vscode.workspace.findFiles("**/*.{log,txt}", "**/node_modules/**", 100);
+        if (this.logFileCache.length === 0) {
+            this.logFileCache = await vscode.workspace.findFiles("**/*.{log,txt}", "**/node_modules/**", MAX_LOG_FILES_RETURNED);
+            console.log(`Found ${this.logFileCache.length} log files.`);
+        } else {
+            console.log("Using cached log files.");
+        }
 
         // Group files by service and sort them by date
-        const serviceFiles = this.groupAndSortFiles(logFiles);
+        const serviceFiles = this.groupAndSortFiles(this.logFileCache);
+        console.log(`Grouped log files into ${serviceFiles.length} services.`);
+
+        // Read and parse all log files
+        const logEntries = await this.provideLogEntries(serviceFiles);
+        const filteredLogEntires = this.filterLogContent(logEntries);
+
+        // Generate content for the virtual document
+        return this.generateDocumentContent(filteredLogEntires);
+    }
+
+    /**
+     * Generates log entries from cache or by iterating over the service files.
+     * This will not include filtering logic.
+     * @param serviceFiles The service files to generate the log entries from.
+     * @returns A list of (unfiltered) log entries.
+     */
+    private async provideLogEntries(serviceFiles: ServiceFiles[]): Promise<Array<LogEntry>> {
+        if (this.logEntryCache.length > 0) {
+            console.log(`Skipping generation of log entries - Found ${this.logEntryCache.length} lines in cache`);
+            return this.logEntryCache;
+        }
+
+        console.log(
+            `Reading ${serviceFiles.length} log files types. Each service can contain up to ${MAX_LOG_FILES_PER_SERVICE} files to read.`
+        );
+        console.debug("Service files:", serviceFiles.map(s => s.serviceName).join(", "));
+        let filesRead = 0;
 
         // Read and parse all log files
         let logEntries: LogEntry[] = [];
         for (const filesForService of serviceFiles) {
             // Get the most recent two files for each service
             const recentFiles = filesForService.files.slice(0, MAX_LOG_FILES_PER_SERVICE);
+            console.log(`Reading ${recentFiles.length} log files for service ${filesForService.serviceName}.`);
             for (const file of recentFiles) {
+                filesRead++;
                 const content = await fs.readFile(file.fsPath, "utf8");
                 logEntries = logEntries.concat(this.parseLogContent(content, filesForService.serviceName));
             }
         }
+        console.log(`Read ${filesRead} log files. Found ${logEntries.length} log entries.`);
 
         // Sort log entries by date
         logEntries.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Generate content for the virtual document
-        return this.generateDocumentContent(logEntries);
+        this.logEntryCache = logEntries;
+        return this.logEntryCache;
     }
 
     /**
@@ -346,29 +396,43 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      * @param serviceName The name of the service that generated the log file.
      * @returns An array of log entries with their dates.
      */
-    parseLogContent(content: string, serviceName: string): Array<LogEntry> {
+    private parseLogContent(content: string, serviceName: string): Array<LogEntry> {
         // matches 2023-11-28T15:16:31.758465+00:00
-        const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}\+\d{2}:\d{2}/;
+        const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}(\+|-)\d{2}:\d{2}/;
 
         // matches 2023-11-29T10:21:49.895Z
         const webDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/;
+
+        // matches Sun Jan 07 2024 18:45:43 GMT-0800 (Pacific Standard Time)
+        const webDateRegexT1 = /\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT(\+|-)\d{4}/;
+
+        // matches 01/04/24 01:31:00.824 AM -08
+        const webDateRegexSkype = /\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}.\d{3} (AM|PM) (-|\+)\d{2}/;
 
         this.stringReplacementMap.forEach(replacement => {
             content = content.replaceAll(replacement.searchString, replacement.replacementString);
         });
 
-        return content
-            .split("\n")
-            .filter(entry => this.matchesKeywordFilter(entry))
-            .map(line => {
-                const match = line.match(isoDateRegex) || line.match(webDateRegex);
-                return {
-                    date: match ? new Date(match[0]) : new Date(0), // Default to epoch if no date found
-                    text: line,
-                    service: serviceName,
-                };
-            })
-            .filter(entry => this.matchesTimeFilter(entry));
+        return content.split("\n").map(line => {
+            const match =
+                line.match(isoDateRegex) || line.match(webDateRegex) || line.match(webDateRegexT1) || line.match(webDateRegexSkype);
+            return {
+                date: match ? new Date(match[0]) : new Date(0), // Default to epoch if no date found
+                text: line,
+                service: serviceName,
+            };
+        });
+    }
+
+    /**
+     * Filters out keywords and time ranges.
+     * @param logs The log entries to filter.
+     * @returns A filtered array of log entries.
+     */
+    private filterLogContent(logs: Array<LogEntry>): Array<LogEntry> {
+        return logs.filter(entry => {
+            return this.matchesTimeFilter(entry) && this.matchesKeywordFilter(entry.text);
+        });
     }
 
     /**
@@ -440,11 +504,26 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
         // replace the hex values at the beginning of each log line
         const hexRegex = /\s0x[0-9a-fA-F]{16}\s/g;
-        documentContent = documentContent.replace(hexRegex, "");
+        documentContent = documentContent.replaceAll(hexRegex, "");
 
         return documentContent;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -20,7 +20,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
     /**
      * Compute a list of {@link CodeLens lenses}. This call should return as fast as possible and if
      * computing the commands is expensive implementors should only return code lens objects with the
-     * range set and implement {@link FilterTimeRangeLensProvider.resolveCodeLens resolve}.
+     * range set and implement {@link resolveCodeLens resolve}.
      *
      * @param document The document in which the command was invoked.
      * @param __ A cancellation token.
@@ -31,6 +31,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         let lenses = [];
         const regex = /\/\/ \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g;
         const timeRangeInSec = FilterTimeRangeLensProvider.dateRangeTimeInMilliSeconds / 1000;
+        console.log(`Started providing code lenses for ${document.lineCount} lines.`);
         for (let i = 0; i < document.lineCount; i++) {
             let line = document.lineAt(i);
             if (line.text.match(regex)) {
@@ -52,6 +53,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
                 lenses.push(new CodeLens(range, resetFilterCommand));
             }
         }
+        console.log(`Finished providing code lenses for ${document.lineCount} lines. Created ${lenses.length} lenses.`);
         return lenses;
     }
 
@@ -106,4 +108,6 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
     }
 }
+
+
 
