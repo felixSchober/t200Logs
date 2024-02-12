@@ -91,7 +91,7 @@ export class TextDecorator {
                 // - ERROR
                 // - Err
                 // - <ERR>
-                const errorRegEx = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*/g;
+                const errorRegEx = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]/g;
 
                 // matches all lines that contain either of the following:
                 // - WARN
@@ -191,6 +191,7 @@ export class TextDecorator {
         }
     }
 }
+
 
 
 

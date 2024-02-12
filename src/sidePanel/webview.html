@@ -45,9 +45,11 @@
                     <vscode-checkbox checked
                                      id="filter_error">Error</vscode-checkbox>
                     <vscode-checkbox checked
-                                     id="filter_warn">Warning</vscode-checkbox>
+                                     id="filter_warning">Warning</vscode-checkbox>
                     <vscode-checkbox checked
-                                     id="filter_verbose">Verbose</vscode-checkbox>
+                                     id="filter_info">Info</vscode-checkbox>
+                    <vscode-checkbox checked
+                                     id="filter_debug">Debug</vscode-checkbox>
 
                     <vscode-divider role="separator"></vscode-divider>
 
@@ -58,6 +60,12 @@
                                        placeholder="YYYY-MM-DD HH:MM">From</vscode-text-field>
                     <vscode-text-field id="filter_date_till"
                                        placeholder="YYYY-MM-DD HH:MM">Till</vscode-text-field>
+
+                    <p>
+                        If we find a session id, you can filter based on it
+                        <vscode-checkbox disabled
+                                         id="filter_session_id">Start around session start</vscode-checkbox>
+                    </p>
 
                     <vscode-divider role="separator"></vscode-divider>
 
@@ -81,11 +89,24 @@
                                      checked>Display GUIDs</vscode-checkbox>
                     <vscode-checkbox id="display_visualHints">Display Visual Hints</vscode-checkbox>
                     <vscode-checkbox id="display_readableIsoDates">Readable ISO dates</vscode-checkbox>
+                    <vscode-checkbox id="display_inlineTime">Show inline time</vscode-checkbox>
                 </section>
 
 
             </vscode-panel-view>
-            <vscode-panel-view id="view-2"> Details </vscode-panel-view>
+            <vscode-panel-view id="view-2">
+                <section class="component-row">
+            
+                    <h2>Summary</h2>
+                    <section class="component-example">
+                        <p>Data from summary.txt</p>
+                        <vscode-data-grid id="summary-grid"
+                                          generate-header="none"
+                                          grid-template-columns="1fr 1fr"
+                                          aria-label="Summary txt values"></vscode-data-grid>
+                    </section>
+                </section>
+            </vscode-panel-view>
             <vscode-panel-view id="view-3">
                 <section class="component-row">
                     <section class="component-container">

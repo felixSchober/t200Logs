@@ -17,28 +17,33 @@ window.addEventListener("load", main);
 let hasBeenLoaded = false;
 const customFilters = [
     {
+        checkboxId: "filter_0_kw",
+        keyword: "auth_web",
+        isChecked: false,
+    },
+    {
         checkboxId: "filter_1_kw",
-        keyword: "Auth",
+        keyword: "Auth|auth",
         isChecked: false,
     },
     {
         checkboxId: "filter_2_kw",
-        keyword: "[error]",
+        keyword: "success",
         isChecked: false,
     },
     {
         checkboxId: "filter_3_kw",
-        keyword: "err",
+        keyword: "CDL|cdl",
         isChecked: false,
     },
     {
         checkboxId: "filter_4_kw",
-        keyword: "[success]",
+        keyword: "oneauth|OneAuth",
         isChecked: false,
     },
     {
         checkboxId: "filter_5_kw",
-        keyword: "CDL",
+        keyword: "AcquireToken|acquireToken",
         isChecked: false,
     },
     {
@@ -48,19 +53,28 @@ const customFilters = [
     }
 ];
 
+let summarySessionId = null;
+
 // getting messages from extension
 window.addEventListener("message", event => {
     const message = event.data;
     console.log("Received message from extension: ", message);
     switch (message.command) {
 
-        case "updateFilters":
-            document.getElementById("timeFilter")?.setAttribute("value", message.timeFilter);
-            document.getElementById("keywordFilter")?.setAttribute("value", message.keywordFilter);
-            break;
-        case "updateDataGrid":
-            const dataGrid = document.getElementById("default-grid");
-            dataGrid.rowsData = message.data;
+        case "timeFilterChange":
+
+            const timeFilterInputFrom = document.getElementById("filter_date_from");
+            const timeFilterInputTill = document.getElementById("filter_date_till");
+
+            if (message.timeFilter.fromDate) {
+                timeFilterInputFrom.value = message.timeFilter.fromDate;
+            }
+
+            if (message.timeFilter.tillDate) {
+                timeFilterInputTill.value = message.timeFilter.tillDate;
+            }
+
+
             break;
         case "updateNumberOfActiveFilters":
             if (message.numberOfActiveFilters === 0) {
@@ -70,6 +84,68 @@ window.addEventListener("message", event => {
                 document.getElementById("filter_rules_badge").innerText = message.numberOfActiveFilters;
             }
             break;
+        case "summaryInfo":
+            /**
+             * Format of summaryInfo:
+             * type SummaryInfo = {
+                sessionId: string | null;
+                deviceId: string | null;
+                hostVersion: string | null;
+                webVersion: string | null;
+                language: string | null;
+                ring: string | null;
+                users: {
+                    upn: string | null;
+                    name: string | null;
+                    tenantId: string | null;
+                    oid: string | null;
+                    userId: string | null;
+                }[];
+            };.
+             */
+            const summaryData = message.summaryInfo;
+            const rows = [
+                {
+                    column1: "Session ID",
+                    column2: summaryData.sessionId,
+                },
+                {
+                    column1: "Device ID",
+                    column2: summaryData.deviceId,
+                },
+                {
+                    column1: "Host Version",
+                    column2: summaryData.hostVersion,
+                },
+                {
+                    column1: "Web Version",
+                    column2: summaryData.webVersion,
+                },
+                {
+                    column1: "Language",
+                    column2: summaryData.language,
+                },
+                {
+                    column1: "Ring",
+                    column2: summaryData.ring,
+                }
+            ];
+            summaryData.users?.forEach((user, index) => {
+                rows.push({
+                    column1: `User ${index + 1}`,
+                    column2: user.upn,
+                });
+            });
+            document.getElementById("summary-grid").rowsData = rows;
+
+
+            // enable the checkbox filter_session_id if we have a session id
+            if (summaryData.sessionId) {
+                document.getElementById("filter_session_id").removeAttribute("disabled");
+                summarySessionId = summaryData.sessionId;
+            } else {
+                document.getElementById("filter_session_id").setAttribute("disabled", "true");
+            }
         default:
             break;
     }
@@ -133,6 +209,56 @@ function addNewCheckboxFilter(filter, addToList = true) {
 const DEFAULT_DEBOUNCE_TIME = 3000;
 
 /**
+ * Adds event listeners to the log level checkboxes.
+ */
+function addLogLevelEventListeners() {
+    document.getElementById("filter_error").addEventListener("click", () => {
+        vscode.postMessage({
+            command: "filterLogLevel",
+            logLevel: "error",
+            isChecked: document.getElementById("filter_error").checked,
+        });
+    });
+
+    document.getElementById("filter_warning").addEventListener("click", () => {
+        vscode.postMessage({
+            command: "filterLogLevel",
+            logLevel: "warning",
+            isChecked: document.getElementById("filter_warning").checked,
+        });
+    });
+
+    document.getElementById("filter_info").addEventListener("click", () => {
+        vscode.postMessage({
+            command: "filterLogLevel",
+            logLevel: "info",
+            isChecked: document.getElementById("filter_info").checked,
+        });
+    });
+
+    document.getElementById("filter_debug").addEventListener("click", () => {
+        vscode.postMessage({
+            command: "filterLogLevel",
+            logLevel: "debug",
+            isChecked: document.getElementById("filter_debug").checked,
+        });
+    });
+}
+
+/**
+ * Adds an event listener to the filter_session_id checkbox.
+ */
+function addSessionIdFilterCheckboxEventListener() {
+    document.getElementById("filter_session_id").addEventListener("click", () => {
+        vscode.postMessage({
+            command: "filterSessionIdCheckboxStateChange",
+            isChecked: document.getElementById("filter_session_id").checked,
+            sessionId: summarySessionId,
+        });
+    });
+}
+
+/**
  * Main entry point for the webview.
  */
 function main() {
@@ -148,6 +274,9 @@ function main() {
         // adding a checkbox to the DOM
         addNewCheckboxFilter(filter, false);
     }
+
+    addLogLevelEventListeners();
+    addSessionIdFilterCheckboxEventListener();
 
     // adding a listener to the "Add Filter" button to add a new filter
     document.getElementById("filter_kw_add_button").addEventListener("click", () => {
@@ -210,6 +339,14 @@ function main() {
         });
     });
 
+    // adding a listener to the display_inlineTime checkbox to send a message to the extension
+    document.getElementById("display_inlineTime").addEventListener("change", () => {
+        vscode.postMessage({
+            command: "displayTimeInlineCheckboxStateChange",
+            isChecked: document.getElementById("display_inlineTime").checked,
+        });
+    });
+
     // add a "debounced" listener to the timeFilter input field to send a message to the extension when the user stops typing
     const timeFilterInputFrom = document.getElementById("filter_date_from");
     let timeoutFrom = null;
@@ -242,6 +379,11 @@ function main() {
             command: "filterNoEventTimeCheckboxStateChange",
             isChecked: document.getElementById("filter_no_event_time").checked,
         });
+    });
+
+    // request the summary info from the extension
+    vscode.postMessage({
+        command: "getSummaryInfo",
     });
 
 

@@ -83,7 +83,8 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
      * @returns The date range.
      */
     private static getDateRange(dateLine: string): [Date, Date] {
-        const date = new Date(dateLine.replace(LogContentProvider.foldingRegionPrefix, ""));
+        const rawDateString = dateLine.replace(LogContentProvider.foldingRegionPrefix, "");
+        const date = new Date(rawDateString);
         const fromDate = new Date(date.getTime() - FilterTimeRangeLensProvider.dateRangeTimeInMilliSeconds);
         const tillDate = new Date(date.getTime() + FilterTimeRangeLensProvider.dateRangeTimeInMilliSeconds);
         return [fromDate, tillDate];
@@ -108,6 +109,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
     }
 }
+
 
 
 

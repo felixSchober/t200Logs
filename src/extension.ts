@@ -14,7 +14,9 @@ import {
     FilterChangedEvent,
     FilterKeywordChangedEvent,
     LogContentProvider,
+    TimeFilterChangedEvent,
 } from "./codeLensProvider/LogContentProvider";
+import { SummaryInfoProvider } from "./info/SummaryInfoProvider";
 import { TextDecorator } from "./textDecorations/TextDecorator";
 
 /**
@@ -24,9 +26,9 @@ import { TextDecorator } from "./textDecorations/TextDecorator";
 export function activate(context: vscode.ExtensionContext) {
     const onFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
     const onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
-    const provider = new LogContentProvider(onFilterChanged.event, onDisplaySettingsChanged.event);
+    const logContentProvider = new LogContentProvider(onFilterChanged.event, onDisplaySettingsChanged.event);
     const textDecorator = new TextDecorator(onFilterChanged.event, onDisplaySettingsChanged.event);
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, provider));
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, logContentProvider));
 
     let codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { scheme: LogContentProvider.documentScheme },
@@ -70,7 +72,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(inlineDateFilterDisposable);
 
     const getNumberOfActiveFilters = () => {
-        return provider.getNumberOfActiveFilters();
+        return logContentProvider.getNumberOfActiveFilters();
     };
     const panelDisposable = vscode.window.registerWebviewViewProvider(
         "t200logs",
@@ -79,7 +81,8 @@ export function activate(context: vscode.ExtensionContext) {
             onFilterChanged,
             onDisplaySettingsChanged,
             getNumberOfActiveFilters,
-            openLogsDocument
+            openLogsDocument,
+            logContentProvider.onTimeFilterChangeEvent.event
         )
     );
     context.subscriptions.push(panelDisposable);
@@ -157,6 +160,8 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
      */
     private hasLogsViewerBeenOpened = false;
 
+    private readonly summaryInfoProvider: SummaryInfoProvider;
+
     /**
      * Creates a new instance of the view provider.
      * @param extensionUri The path to the extension.
@@ -164,13 +169,15 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
      * @param onDisplaySettingsChanged The event emitter for when the display settings change.
      * @param getNumberOfActiveFilters A function that returns the number of active filters.
      * @param openLogsDocument A function that opens the logs document.
+     * @param timeChangeEvent The event for when the time filter changes.
      */
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly onFilterChanged: vscode.EventEmitter<FilterChangedEvent>,
         private readonly onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>,
         private readonly getNumberOfActiveFilters: () => number,
-        private readonly openLogsDocument: () => Promise<void>
+        private readonly openLogsDocument: () => Promise<void>,
+        private readonly timeChangeEvent: vscode.Event<TimeFilterChangedEvent>
     ) {
         console.log("LogsWebviewViewProvider constructor");
 
@@ -185,6 +192,8 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                     console.error("Failed to open logs document", e);
                 });
         }
+
+        this.summaryInfoProvider = new SummaryInfoProvider();
     }
 
     /**
@@ -205,10 +214,10 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
         webviewView.webview.onDidReceiveMessage(message => {
+            console.log("webviewView.onDidReceiveMessage", message);
             switch (message.command) {
                 case "filterCheckboxStateChange":
                     const filterDefinition = message.filterDefinition as FilterKeywordChangedEvent;
-                    console.log(message, filterDefinition);
 
                     if (filterDefinition.isChecked) {
                         this.onFilterChanged.fire({
@@ -221,49 +230,86 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                     }
                     break;
 
+                case "filterLogLevel":
+                    let event: FilterChangedEvent;
+                    if (message.isChecked) {
+                        event = {
+                            addLogLevel: message.logLevel,
+                        };
+                    } else {
+                        event = {
+                            removeLogLevel: message.logLevel,
+                        };
+                    }
+                    this.onFilterChanged.fire(event);
+                    break;
+
                 case "timeFilterInputFromChange":
-                    console.log(message);
                     this.onFilterChanged.fire({
                         fromDate: message.timeFilter,
                     });
                     break;
 
                 case "timeFilterInputTillChange":
-                    console.log(message);
                     this.onFilterChanged.fire({
                         tillDate: message.timeFilter,
                     });
                     break;
                 case "filterNoEventTimeCheckboxStateChange":
-                    console.log(message);
                     this.onFilterChanged.fire({
                         removeEntriesWithNoEventTime: message.isChecked,
                     });
                     break;
+                case "filterSessionIdCheckboxStateChange":
+                    let changeEvent: FilterChangedEvent;
+                    if (message.isChecked) {
+                        changeEvent = {
+                            setSessionIdFilter: message.sessionId,
+                        };
+                    } else {
+                        changeEvent = {
+                            removeSessionIdFilter: message.sessionId,
+                        };
+                    }
+                    this.onFilterChanged.fire(changeEvent);
+                    break;
                 case "displayFilenamesCheckboxStateChange":
-                    console.log(message);
                     this.onDisplaySettingsChanged.fire({
                         displayFileNames: message.isChecked,
                         displayGuids: null,
+                        displayDatesInLine: null,
                     });
                     break;
                 case "displayGuidsCheckboxStateChange":
-                    console.log(message);
                     this.onDisplaySettingsChanged.fire({
                         displayFileNames: null,
                         displayGuids: message.isChecked,
+                        displayDatesInLine: null,
+                    });
+                    break;
+                case "displayTimeInlineCheckboxStateChange":
+                    this.onDisplaySettingsChanged.fire({
+                        displayFileNames: null,
+                        displayGuids: null,
+                        displayDatesInLine: message.isChecked,
                     });
                     break;
                 case "displayVisualHintsCheckboxStateChange":
-                    console.log(message);
                     void vscode.commands.executeCommand("t200logs.toggleVisualHints");
                     break;
                 case "displayReadableIsoDatesCheckboxStateChange":
-                    console.log(message);
                     void vscode.commands.executeCommand("t200logs.toggleReadableIsoDates");
                     break;
                 case "openLogsDocument":
                     void this.openLogsDocument();
+                    break;
+                case "getSummaryInfo":
+                    void this.summaryInfoProvider.getSummaryInfo().then(summaryInfo => {
+                        void webviewView.webview.postMessage({
+                            command: "summaryInfo",
+                            summaryInfo,
+                        });
+                    });
                     break;
                 default:
                     console.warn("unknown command", message);
@@ -280,6 +326,14 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
                 });
             }
         }, undefined);
+
+        // Subscribe to the time filter change event
+        this.timeChangeEvent(timeFilter => {
+            void webviewView.webview.postMessage({
+                command: "timeFilterChange",
+                timeFilter,
+            });
+        });
     }
 
     /**
@@ -310,7 +364,5 @@ class LogsWebviewViewProvider implements vscode.WebviewViewProvider {
 
         return htmlContent;
     }
-
-
 
 }
