@@ -159,6 +159,7 @@ function setupFoldingRangeProvider(context: vscode.ExtensionContext) {
  * Deactivates the extension.
  */
 export function deactivate() {
+    void telemetryReporter.info("extension.deactivate().success");
     if (telemetryReporter) {
         void telemetryReporter.dispose();
     }
@@ -172,6 +173,8 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
+
 
 
 
