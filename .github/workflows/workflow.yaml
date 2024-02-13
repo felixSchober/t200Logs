@@ -74,15 +74,11 @@ jobs:
         with:
           cmd: vsce-package
 
-      - name: print vsix path
-        run: |
-          echo "VSIX Path: ${{ env.vsix_path }}"
-
       - name: upload vsix as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: t200-logs-${{steps.gitversion.outputs.majorMinorPatch}}.vsix
-          path: ${{github.workspace}}/t200-logs-${{steps.gitversion.outputs.majorMinorPatch}}.vsix
+          name: t200logs-${{steps.gitversion.outputs.majorMinorPatch}}.vsix
+          path: ${{github.workspace}}/out/t200logs.vsix
 
       - name: create a release
         if: github.ref == 'refs/heads/main'
