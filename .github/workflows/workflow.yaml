@@ -46,7 +46,7 @@ jobs:
           node-version: '18.x'
         
       - name: clean install dependencies
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: install
           args: --frozen-lockfile
@@ -68,7 +68,7 @@ jobs:
           VERSION: "${{ steps.gitversion.outputs.majorMinorPatch }}"
 
       - name: compile and create vsix
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: vsce-package
 
