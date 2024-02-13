@@ -30,9 +30,17 @@
             },
             {
                 "command": "t200logs.openLogViewer",
-                "title": "Open Log Viewer",
+                "title": "Open log viewer",
                 "category": "T200Logs",
-                "shortTitle": "Open Log Viewer"
+                "shortTitle": "Open Log Viewer",
+                "icon": "media/icon_filled.png"
+            },
+            {
+                "command": "t200logs.reset",
+                "title": "Reset all data and reopen log viewer",
+                "category": "T200Logs",
+                "shortTitle": "Reset Log Viewer",
+                "icon": "media/reset.png"
             },
             {
                 "command": "t200logs.toggleVisualHints",
@@ -60,7 +68,16 @@
                 {
                     "type": "webview",
                     "id": "t200logs",
-                    "name": "T200Logs"
+                    "name": "Teams Logs Viewer"
+                }
+            ]
+        },
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "t200logs.reset",
+                    "group": "navigation",
+                    "when": "resourceScheme == log-viewer"
                 }
             ]
         }
@@ -70,6 +87,7 @@
         "compile": "webpack",
         "watch": "webpack --watch",
         "package": "webpack --mode production --devtool hidden-source-map",
+        "package-local": "mkdirp out && vsce package -o out/t200logs.vsix --yarn",
         "compile-tests": "tsc -p . --outDir out",
         "watch-tests": "tsc -p . -w --outDir out",
         "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",

@@ -30,8 +30,9 @@
             <vscode-panel-tab id="tab-2">
                 INFO
             </vscode-panel-tab>
-            <vscode-panel-tab id="tab-3">
-                EXPERIMENT
+            <vscode-panel-tab id="tab-3"
+                              disabled>
+                UI/UX
             </vscode-panel-tab>
             <vscode-panel-view id="view-1">
                 <section class="component-example">
@@ -39,7 +40,7 @@
                                    style="align-self: center; margin: 4px;"
                                    appearance="primary">Open Logs Viewer</vscode-button>
                     <vscode-divider role="separator"></vscode-divider>
-                    <p>Filter based on log level</p>
+                    <h3>Filter based on log level</h3>
 
 
                     <vscode-checkbox checked
@@ -53,23 +54,26 @@
 
                     <vscode-divider role="separator"></vscode-divider>
 
-                    <p>Filter based on time</p>
+                    <h3>Filter based on time</h3>
                     <vscode-checkbox checked
                                      id="filter_no_event_time">Filter out entries that don't have a time</vscode-checkbox>
+                                    <p>
                     <vscode-text-field id="filter_date_from"
                                        placeholder="YYYY-MM-DD HH:MM">From</vscode-text-field>
                     <vscode-text-field id="filter_date_till"
                                        placeholder="YYYY-MM-DD HH:MM">Till</vscode-text-field>
+                                    </p>
 
+                                    <h4>Session Id</h4>
                     <p>
-                        If we find a session id, you can filter based on it
+                        If we find a session id in the summary.txt file, you can filter based on it </p>
                         <vscode-checkbox disabled
                                          id="filter_session_id">Start around session start</vscode-checkbox>
-                    </p>
+                
 
                     <vscode-divider role="separator"></vscode-divider>
 
-                    <p>Filter based on keyword</p>
+                    <h3>Filter based on keyword</h3>
                     <div id="filter_custom_kw"
                          style="flex-direction: column; flex: auto; display: flex;"></div>
                     <div style="margin-top: 8px; display: flex;">
@@ -82,7 +86,8 @@
 
                     <vscode-divider role="separator"></vscode-divider>
 
-                    <p>Display settings</p>
+                    <h3>Display settings</h3>
+                    <p>Please note that some of these settings might affect performance</p>
                     <vscode-checkbox id="display_filenames"
                                      checked>Display file names</vscode-checkbox>
                     <vscode-checkbox id="display_guids"

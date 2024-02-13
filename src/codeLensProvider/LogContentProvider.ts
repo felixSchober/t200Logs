@@ -6,7 +6,8 @@ import * as fs from "fs/promises";
 
 import * as vscode from "vscode";
 
-import { GUID_REGEX } from "../constants/regex";
+import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../constants/regex";
+import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 export type LogLevel = "info" | "debug" | "warning" | "error";
 /**
@@ -133,11 +134,16 @@ const MAX_LOG_FILES_PER_SERVICE = 3;
 const MAX_LOG_FILES_RETURNED = 400;
 
 const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
-    error: /<ERR>|error|Error/,
-    debug: /<DBG>/,
-    warning: /warning|Warning|<WAR>|War/,
+    error: ERROR_REGEX,
+    debug: /<DBG>|Ver/,
+    warning: WARN_REGEX,
     info: /(<INFO>)|Inf/,
 };
+
+/**
+ * The date of the epoch. Used for filtering out log entries that do not have a timestamp.
+ */
+const EPOCH_DATE = new Date(0);
 
 /**
  * A content provider that transforms the content of a log file.
@@ -286,6 +292,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     public onTimeFilterChangeEvent = new vscode.EventEmitter<TimeFilterChangedEvent>();
 
     /**
+     * Event that is fired when the text document generation is finished.
+     */
+    public onTextDocumentGenerationFinished = new vscode.EventEmitter<string>();
+
+    /**
      * Creates a new instance of the LogContentProvider class.
      * @param onFilterChangeEvent The event that is fired when the filter changes.
      * @param onDisplaySettingsChangedEvent The event that is fired when the display settings change.
@@ -324,6 +335,23 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         // set the "timeFilterFrom" to a second after timestamp 0.
         // This is done so that we ignore all events that do not have a timestamp.
         this.timeFilterFrom = this.minimumDate;
+    }
+
+    /**
+     * Resets the cache and filters causing the content provider to re-fetch the log files and re-generate the content.
+     */
+    public reset() {
+        console.log("[LogContentProvider] Resetting the content provider.");
+        this.logFileCache = [];
+        this.logEntryCache = [];
+        this.groupedLogEntries = new Map();
+        this.keywordFilters = [];
+        this.disabledLogLevels = [];
+        this.sessionId = null;
+        this.timeFilterFrom = this.minimumDate;
+        this.timeFilterTill = null;
+        this.changeTrigger++;
+        this._onDidChange.fire(LogContentProvider.documentUri);
     }
 
     /**
@@ -371,10 +399,16 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
         if (filterChangeEvent.setSessionIdFilter) {
             this.sessionId = filterChangeEvent.setSessionIdFilter;
-            const sessionIdLogEntry = this.findSessionIdInLogEntries();
+            const sessionIdLogEntry = this.findEarliestSessionIdInLogEntries();
             if (sessionIdLogEntry) {
-                console.log(`Setting time filter from session id: ${this.sessionId}`);
-                this.timeFilterFrom = sessionIdLogEntry.date.toISOString();
+                // subtract 1 second from the timestamp to make sure we include the log entry with the session id
+                const filterFrom = new Date(sessionIdLogEntry.date.getTime() - 1000).toISOString();
+                console.log(
+                    `Setting time filter from session id: ${
+                        this.sessionId
+                    }. Log Entry Timestamp: ${sessionIdLogEntry.date.toISOString()}. Filter from ${filterFrom}`
+                );
+                this.timeFilterFrom = filterFrom;
             } else {
                 console.log(`Could not find log entry with session id: ${this.sessionId}`);
             }
@@ -391,13 +425,15 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
     /**
      * Tries to find a log entry that contains the session id and returns the entry.
+     * There might be multiple log entries with the same session id, but we need to find the earliest one.
      * @returns The first log entry that contains the session id.
      */
-    private findSessionIdInLogEntries(): LogEntry | null {
+    private findEarliestSessionIdInLogEntries(): LogEntry | null {
         if (!this.sessionId) {
             return null;
         }
 
+        let foundEntry: LogEntry | null = null;
         for (const logEntry of this.logEntryCache) {
             if (logEntry.text.includes(this.sessionId)) {
                 // make sure it's not the summary.txt file
@@ -406,12 +442,38 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
                     continue;
                 }
 
-                console.log(`Found log entry with session id: ${logEntry.text}. Timestamp: ${logEntry.date.toISOString()}`);
-                return logEntry;
+                // make sure the entry has a timestamp (not the epoch date)
+                if (logEntry.date.getTime() === EPOCH_DATE.getTime()) {
+                    console.log(`Found log entry with session id: ${logEntry.text} but it has no timestamp.`);
+                    continue;
+                }
+
+                if (!foundEntry) {
+                    console.log(
+                        `Found first log entry with session id in ${logEntry.service}: ${
+                            logEntry.text
+                        }. Timestamp: ${logEntry.date.toISOString()}`
+                    );
+                    foundEntry = logEntry;
+                } else {
+                    // if we found another log entry with the same session id, check if it's earlier
+                    if (logEntry.date.getTime() < foundEntry.date.getTime()) {
+                        console.log(
+                            `Found another earlier log entry with session id in ${logEntry.service}: ${
+                                logEntry.text
+                            }. Timestamp: ${logEntry.date.toISOString()}`
+                        );
+                        foundEntry = logEntry;
+                    } else {
+                        console.log(
+                            `Found later log entry in ${logEntry.service}: ${logEntry.text}. Timestamp: ${logEntry.date.toISOString()}`
+                        );
+                    }
+                }
             }
         }
 
-        return null;
+        return foundEntry;
     }
 
     /**
@@ -433,6 +495,9 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      */
     public async provideTextDocumentContent(_: vscode.Uri): Promise<string> {
         if (!vscode.workspace.workspaceFolders) {
+            void vscode.window.showErrorMessage(
+                "No workspace folder found. Please open the folder containing the Teams Logs and try again."
+            );
             return "";
         }
 
@@ -445,8 +510,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
             },
             async (progress, token) => {
                 console.log("Content requested for changeTrigger:", this.changeTrigger);
-                progress.report({ increment: 0 });
-                if (this.logFileCache.length === 0) {
+                progress.report({ increment: 1 });
+                if (this.logEntryCache.length === 0) {
                     this.logFileCache = await vscode.workspace.findFiles(
                         "**/*.{log,txt}",
                         "**/node_modules/**",
@@ -458,53 +523,51 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
                     console.log("Using cached log files.");
                 }
 
-                this.throwIfCancellation(token);
+                throwIfCancellation(token);
                 progress.report({ increment: 10 });
 
                 // Group files by service and sort them by date
                 const serviceFiles = this.groupAndSortFiles(this.logFileCache, token);
                 console.log(`Grouped log files into ${serviceFiles.length} services.`);
-                progress.report({ increment: 10 });
+                progress.report({ increment: 25 });
 
-                this.throwIfCancellation(token);
+                throwIfCancellation(token);
 
                 // Read and parse all log files
                 const logEntries = await this.provideLogEntries(serviceFiles);
                 progress.report({ increment: 30 });
 
-                this.throwIfCancellation(token);
+                throwIfCancellation(token);
 
                 // Group log entries by second
-                const groupedLogEntries = this.groupLogEntriesBySecond(logEntries, token);
+                let groupedLogEntries: Map<number, LogEntry[]>;
+                try {
+                    groupedLogEntries = this.groupLogEntriesBySecond(logEntries, token);
+                } catch (error) {
+                    console.error("Error while grouping log entries:", error);
+                    void vscode.window.showErrorMessage("Error while grouping log entries. Please try again.");
+                    return JSON.stringify(error);
+                }
                 progress.report({ increment: 15 });
 
-                this.throwIfCancellation(token);
+                throwIfCancellation(token);
 
                 // Filter grouped log entries
                 const filteredLogEntires = this.filterLogContent(groupedLogEntries, token);
 
-                progress.report({ increment: 25 });
+                progress.report({ increment: 10 });
 
-                this.throwIfCancellation(token);
+                throwIfCancellation(token);
 
                 // Generate content for the virtual document
                 const content = this.generateDocumentContent(filteredLogEntires, token);
 
-                progress.report({ increment: 10 });
+                progress.report({ increment: 9 });
                 console.log(`Generated content for ${filteredLogEntires.size} log entry groups.`);
+                this.onTextDocumentGenerationFinished.fire(content);
                 return content;
             }
         );
-    }
-
-    /**
-     * Throws an error if the given token is cancelled.
-     * @param token The cancellation token.
-     */
-    private throwIfCancellation(token: vscode.CancellationToken) {
-        if (token.isCancellationRequested) {
-            throw new Error("Cancelled");
-        }
     }
 
     /**
@@ -562,10 +625,15 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     private groupAndSortFiles(files: vscode.Uri[], token: vscode.CancellationToken): ServiceFiles[] {
         const fileGroups: Record<string, ServiceFiles> = {};
 
+        if (this.logEntryCache.length > 0) {
+            console.log("Skipping grouping and sorting of log files - Using cache.");
+            return [];
+        }
+
         console.log(`Grouping ${files.length} log files by service and sorting them by date.`);
 
         for (const file of files) {
-            this.throwIfCancellation(token);
+            throwIfCancellation(token);
             const separatedFilepaths = file.path.split("/");
             let filename = separatedFilepaths.pop();
             const folder = separatedFilepaths.pop();
@@ -607,12 +675,12 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         // Sort files within each group by date
         const result: ServiceFiles[] = [];
         for (const serviceName in fileGroups) {
-            this.throwIfCancellation(token);
+            throwIfCancellation(token);
             // only sort files if there are more than 2 files
             if (fileGroups[serviceName].files.length >= MAX_LOG_FILES_PER_SERVICE) {
                 fileGroups[serviceName].files = fileGroups[serviceName].files.sort((a, b) => {
-                    const aTimestamp = this.extractTimestamp(a.path);
-                    const bTimestamp = this.extractTimestamp(b.path);
+                    const aTimestamp = this.extractTimestampFromFilePath(a.path);
+                    const bTimestamp = this.extractTimestampFromFilePath(b.path);
                     return bTimestamp - aTimestamp; // Sort in descending order
                 });
             }
@@ -629,7 +697,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      * @param filePath The file path to extract the timestamp from.
      * @returns The timestamp of the file.
      */
-    private extractTimestamp(filePath: string): number {
+    private extractTimestampFromFilePath(filePath: string): number {
         const regex = /_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/;
         const match = filePath.match(regex);
 
@@ -647,33 +715,56 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      * @returns An array of log entries with their dates.
      */
     private parseLogContent(content: string, serviceName: string, logEntriesRead: number): Array<LogEntry> {
-        // matches 2023-11-28T15:16:31.758465+00:00
-        // matches 2024-02-08T18:11:06.702420-08:00
-        const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}(\+|-)\d{2}:\d{2}/;
-
-        // matches 2023-11-29T10:21:49.895Z
-        const webDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/;
-
-        // matches Sun Jan 07 2024 18:45:43 GMT-0800 (Pacific Standard Time)
-        const webDateRegexT1 = /\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT(\+|-)\d{4}/;
-
-        // matches 01/04/24 01:31:00.824 AM -08
-        const webDateRegexSkype = /\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}.\d{3} (AM|PM) (-|\+)\d{2}/;
-
         this.stringReplacementMap.forEach(replacement => {
             content = content.replaceAll(replacement.searchString, replacement.replacementString);
         });
 
         return content.split("\n").map(line => {
-            const match =
-                line.match(isoDateRegex) || line.match(webDateRegex) || line.match(webDateRegexT1) || line.match(webDateRegexSkype);
+            const date = this.extractDateFromLogEntry(line);
             logEntriesRead++;
             return {
-                date: match ? new Date(match[0]) : new Date(0), // Default to epoch if no date found
+                date: date,
                 text: `[${this.padZero(logEntriesRead)}]${line}`,
                 service: serviceName,
             };
         });
+    }
+
+    /**
+     * Extracts a date from the given log entry.
+     * @param line The line to extract the date from.
+     * @param useDesktopTimezoneWorkaroundFix At the moment, desktop logs report the time in UTC but also include the timezone offset.
+     * If `true` we will ignore the timezone offset and pretend that the time is reported as UTC.
+     * Once the desktop team has fixed the logs, we can remove this workaround.
+     * @returns The date extracted from the log entry. If no date is found, the epoch date is returned.
+     */
+    private extractDateFromLogEntry(line: string, useDesktopTimezoneWorkaroundFix = true): Date {
+        // matches 2023-11-28T15:16:31.758465+00:00
+        // matches 2024-02-08T18:11:06.702420-08:00
+        // The date is in the first capture group
+        const isoDateRegex = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6})[\+|-]\d{2}:\d{2}/;
+
+        // matches Sun Jan 07 2024 18:45:43 GMT-0800 (Pacific Standard Time)
+        // The date is in the first capture group
+        const webDateRegexT1 = /(\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT[\+|-]\d{4})/;
+
+        // matches 01/04/24 01:31:00.824 AM -08
+        // matches 01/04/24 01:31:00.824 AM +08
+        // The date is in the first capture group
+        const webDateRegexSkype = /(\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}.\d{3} [A|P]M [-|\+]\d{2})/;
+
+        const isoDateMatch = line.match(isoDateRegex);
+        if (isoDateMatch) {
+            if (useDesktopTimezoneWorkaroundFix) {
+                // return the first capture group which is only the date without the timezone offset
+                return new Date(isoDateMatch[1]);
+            }
+            return new Date(isoDateMatch[0]);
+        }
+
+        const match = line.match(WEB_DATE_REGEX) || line.match(webDateRegexT1) || line.match(webDateRegexSkype);
+        const date = match ? new Date(match[1]) : EPOCH_DATE; // If no date is found, return the epoch date
+        return date;
     }
 
     /**
@@ -701,7 +792,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         console.log(`Remove any lines that match the log level regex: ${shouldRemoveLogLevels ? logLevelRegex.source : "-"}`);
         let totalLogLines = 0;
         for (const [timestamp, logs] of groupedLogs) {
-            this.throwIfCancellation(token);
+            throwIfCancellation(token);
             const shouldStay = this.matchesTimeFilter(timestamp);
             if (shouldStay) {
                 // Filter out log entries based on the keywords
@@ -816,7 +907,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         for (const entry of logEntries) {
             // Check if the entry is in a new second
             if (!currentSecond || entry.date.getSeconds() !== currentSecond.getSeconds()) {
-                this.throwIfCancellation(token);
+                throwIfCancellation(token);
                 if (currentSecond !== null) {
                     // Add a foldable region marker (this is a placeholder, actual folding is handled elsewhere)
                     const marker = `${LogContentProvider.foldingRegionPrefix}${LogContentProvider.foldingRegionEndMarker}\n`;
@@ -828,8 +919,14 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
                 }
 
                 currentSecond = entry.date;
-                const startMarker = `${LogContentProvider.foldingRegionPrefix}${currentSecond.toISOString()}\n`;
-                currentGroup.push({ date: currentSecond, text: startMarker, isMarker: true });
+                try {
+                    // Add a foldable region marker (this is a placeholder, actual folding is handled elsewhere)
+                    const startMarker = `${LogContentProvider.foldingRegionPrefix}${currentSecond.toISOString()}\n`;
+                    currentGroup.push({ date: currentSecond, text: startMarker, isMarker: true });
+                } catch (error) {
+                    console.error("Error while creating start marker:", error);
+                    throw error;
+                }
             }
 
             // removes all information that is not needed one by one
@@ -858,7 +955,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
 
         console.log(`Generating content for ${groupedEntries.size} log entry groups.`);
         groupedEntries.forEach(logEntries => {
-            this.throwIfCancellation(token);
+            throwIfCancellation(token);
             // skip if only two entries are present (start and end marker)
             if (logEntries.length > 2) {
                 logEntries.forEach(entry => {
@@ -894,6 +991,20 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         return prefix.length > 0 ? prefix + " " : "";
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

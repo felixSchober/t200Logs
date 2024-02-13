@@ -4,6 +4,8 @@
 
 import { CancellationToken, CodeLens, CodeLensProvider, Command, EventEmitter, Range, TextDocument } from "vscode";
 
+import { throwIfCancellation } from "../utils/throwIfCancellation";
+
 import { FilterChangedEvent, LogContentProvider } from "./LogContentProvider";
 
 export type DateRange = [Date | null, Date | null];
@@ -23,11 +25,11 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
      * range set and implement {@link resolveCodeLens resolve}.
      *
      * @param document The document in which the command was invoked.
-     * @param __ A cancellation token.
+     * @param token A cancellation token.
      * @returns An array of code lenses or a thenable that resolves to such. The lack of a result can be
      * signaled by returning `undefined`, `null`, or an empty array.
      */
-    provideCodeLenses(document: TextDocument, __: CancellationToken): CodeLens[] {
+    provideCodeLenses(document: TextDocument, token: CancellationToken): CodeLens[] {
         let lenses = [];
         const regex = /\/\/ \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g;
         const timeRangeInSec = FilterTimeRangeLensProvider.dateRangeTimeInMilliSeconds / 1000;
@@ -51,6 +53,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
                 };
                 lenses.push(new CodeLens(range, filterCommand));
                 lenses.push(new CodeLens(range, resetFilterCommand));
+                throwIfCancellation(token);
             }
         }
         console.log(`Finished providing code lenses for ${document.lineCount} lines. Created ${lenses.length} lenses.`);
@@ -109,6 +112,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
     }
 }
+
 
 
 

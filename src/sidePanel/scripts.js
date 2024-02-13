@@ -132,8 +132,8 @@ window.addEventListener("message", event => {
             ];
             summaryData.users?.forEach((user, index) => {
                 rows.push({
-                    column1: `User ${index + 1}`,
-                    column2: user.upn,
+                    column1: user.upn,
+                    column2: user.tenantId,
                 });
             });
             document.getElementById("summary-grid").rowsData = rows;
