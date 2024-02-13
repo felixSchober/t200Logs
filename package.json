@@ -2,7 +2,7 @@
     "name": "t200logs",
     "displayName": "T21 Logs Viewer",
     "description": "Extension to make diagnosing Teams logs much easier. Open this extension in a folder containing Teams logs and it will combine them into a single view with filtering and visual hints.",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": {
         "name": "Felix Schober",
         "email": "github@felix-schober.de"

@@ -214,21 +214,21 @@ export class WebviewPanelProvider implements WebviewViewProvider {
     private getHtmlForWebview(webview: Webview): string {
         webview.options = {
             enableScripts: true,
-            localResourceRoots: [VscodeUri.joinPath(this.extensionUri, "src", "sidePanel")],
+            localResourceRoots: [VscodeUri.joinPath(this.extensionUri, "media", "sidePanel")],
         };
-        const htmlPath = VscodeUri.joinPath(this.extensionUri, "src", "sidePanel", "webview.html").with({
+        const htmlPath = VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "webview.html").with({
             scheme: "vscode-resource",
         }).fsPath;
         // Path to the CSS file
-        const cssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "src", "sidePanel", "styles.css"));
+        const cssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "styles.css"));
 
-        const codionCssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "src", "sidePanel", "codion.css"));
+        const codionCssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codion.css"));
 
         // Path to the JS file
-        const jsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "src", "sidePanel", "scripts.js"));
+        const jsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "scripts.js"));
 
         // path to the toolkit.min.js file
-        const toolkitJsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "src", "sidePanel", "toolkit.min.js"));
+        const toolkitJsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "toolkit.min.js"));
 
         // Read HTML content
         let htmlContent = fs.readFileSync(htmlPath, "utf8");
@@ -241,4 +241,5 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
 
