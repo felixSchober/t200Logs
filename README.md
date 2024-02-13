@@ -27,3 +27,11 @@ See below for a list of release notes
 ### 0.0.1
 
 Initial release of extension
+
+### 0.0.2
+
+Included internal logger for extension
+
+### 0.0.3
+
+Automated build and release of the extension
