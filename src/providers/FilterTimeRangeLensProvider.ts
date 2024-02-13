@@ -4,6 +4,8 @@
 
 import { CancellationToken, CodeLens, CodeLensProvider, Command, EventEmitter, Range, TextDocument } from "vscode";
 
+import { ScopedILogger } from "../telemetry/ILogger";
+import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 import { FilterChangedEvent, LogContentProvider } from "./LogContentProvider";
@@ -19,6 +21,16 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
 
     public static readonly dateRangeTimeInMilliSeconds = 5000;
 
+    private readonly logger: ScopedILogger;
+
+    /**
+     * Initializes a new instance of the FilterTimeRangeLensProvider class.
+     * @param logger The logger.
+     */
+    constructor(logger: ITelemetryLogger) {
+        this.logger = logger.createLoggerScope("FilterTimeRangeLensProvider");
+    }
+
     /**
      * Compute a list of {@link CodeLens lenses}. This call should return as fast as possible and if
      * computing the commands is expensive implementors should only return code lens objects with the
@@ -33,7 +45,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         let lenses = [];
         const regex = /\/\/ \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g;
         const timeRangeInSec = FilterTimeRangeLensProvider.dateRangeTimeInMilliSeconds / 1000;
-        console.log(`Started providing code lenses for ${document.lineCount} lines.`);
+        this.logger.info("provideCodeLenses.start", undefined, { documentLineCount: "" + document.lineCount });
         for (let i = 0; i < document.lineCount; i++) {
             let line = document.lineAt(i);
             if (line.text.match(regex)) {
@@ -56,7 +68,10 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
                 throwIfCancellation(token);
             }
         }
-        console.log(`Finished providing code lenses for ${document.lineCount} lines. Created ${lenses.length} lenses.`);
+        this.logger.info("provideCodeLenses.end", undefined, {
+            documentLineCount: "" + document.lineCount,
+            createdLenses: "" + lenses.length,
+        });
         return lenses;
     }
 
@@ -112,6 +127,8 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
     }
 }
+
+
 
 
 

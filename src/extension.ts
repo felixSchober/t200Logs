@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
         onWebviewFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
         onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
 
-        logContentProvider = new LogContentProvider(onWebviewFilterChanged.event, onDisplaySettingsChanged.event);
+        logContentProvider = new LogContentProvider(onWebviewFilterChanged.event, onDisplaySettingsChanged.event, telemetryReporter);
     }
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, logContentProvider));
@@ -64,7 +64,8 @@ export function activate(context: vscode.ExtensionContext) {
             onDisplaySettingsChanged,
             getNumberOfActiveFilters,
             openLogsDocument,
-            logContentProvider.onTimeFilterChangeEvent.event
+            logContentProvider.onTimeFilterChangeEvent.event,
+            telemetryReporter
         ),
         {
             webviewOptions: {
@@ -105,7 +106,7 @@ function setupLogging(context: vscode.ExtensionContext) {
 function setupCodeLensProvider(context: vscode.ExtensionContext, onWebviewFilterChanged: vscode.EventEmitter<FilterChangedEvent>) {
     let codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { scheme: LogContentProvider.documentScheme },
-        new FilterTimeRangeLensProvider()
+        new FilterTimeRangeLensProvider(telemetryReporter)
     );
     context.subscriptions.push(codeLensDisposable);
 
@@ -127,7 +128,11 @@ function setupTextDecorator(
     logContentProvider: Readonly<LogContentProvider>,
     onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>
 ) {
-    const textDecorator = new TextDecorator(onDisplaySettingsChanged.event, logContentProvider.onTextDocumentGenerationFinished.event);
+    const textDecorator = new TextDecorator(
+        onDisplaySettingsChanged.event,
+        logContentProvider.onTextDocumentGenerationFinished.event,
+        telemetryReporter
+    );
     let disposableDecoration = vscode.commands.registerCommand(`${EXTENSION_ID}.toggleReadableIsoDates`, () => {
         textDecorator.toggleReadableIsoDates();
     });
@@ -144,7 +149,7 @@ function setupTextDecorator(
  * @param context The vscode context.
  */
 function setupFoldingRangeProvider(context: vscode.ExtensionContext) {
-    const foldingProvider = new LogFoldingRangeProvider();
+    const foldingProvider = new LogFoldingRangeProvider(telemetryReporter);
     context.subscriptions.push(
         vscode.languages.registerFoldingRangeProvider({ scheme: LogContentProvider.documentScheme, language: "log" }, foldingProvider)
     );
@@ -167,6 +172,7 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
 
 
 

@@ -17,6 +17,8 @@ import {
 } from "vscode";
 
 import { SummaryInfoProvider } from "../info/SummaryInfoProvider";
+import { ScopedILogger } from "../telemetry/ILogger";
+import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 
 import { DisplaySettingsChangedEvent, FilterChangedEvent, FilterKeywordChangedEvent, TimeFilterChangedEvent } from "./LogContentProvider";
 
@@ -32,6 +34,8 @@ export class WebviewPanelProvider implements WebviewViewProvider {
 
     private readonly summaryInfoProvider: SummaryInfoProvider;
 
+    private readonly logger: ScopedILogger;
+
     /**
      * Creates a new instance of the view provider.
      * @param extensionUri The path to the extension.
@@ -40,6 +44,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
      * @param getNumberOfActiveFilters A function that returns the number of active filters.
      * @param openLogsDocument A function that opens the logs document.
      * @param timeChangeEvent The event for when the time filter changes through the LogContentProvider.
+     * @param logger The logger.
      */
     constructor(
         private readonly extensionUri: VscodeUri,
@@ -47,7 +52,8 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         private readonly onWebviewDisplaySettingsChanged: EventEmitter<DisplaySettingsChangedEvent>,
         private readonly getNumberOfActiveFilters: () => number,
         private readonly openLogsDocument: () => Promise<void>,
-        private readonly timeChangeEvent: VscodeEvent<TimeFilterChangedEvent>
+        private readonly timeChangeEvent: VscodeEvent<TimeFilterChangedEvent>,
+        logger: ITelemetryLogger
     ) {
         console.log("LogsWebviewViewProvider constructor");
 
@@ -63,7 +69,8 @@ export class WebviewPanelProvider implements WebviewViewProvider {
                 });
         }
 
-        this.summaryInfoProvider = new SummaryInfoProvider();
+        this.summaryInfoProvider = new SummaryInfoProvider(logger);
+        this.logger = logger.createLoggerScope("WebviewPanelProvider");
     }
 
     /**
@@ -77,14 +84,13 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         _: WebviewViewResolveContext<unknown>,
         __: CancellationToken
     ): void | Thenable<void> {
-        webviewView.webview.options = {
-            enableScripts: true,
-        };
+        this.logger.info("resolveWebviewView", "Resolving webview view");
 
         webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
         webviewView.webview.onDidReceiveMessage(message => {
-            console.log("webviewView.onDidReceiveMessage", message);
+            this.logger.info("webviewView.onDidReceiveMessage", undefined, message);
+
             switch (message.command) {
                 case "filterCheckboxStateChange":
                     const filterDefinition = message.filterDefinition as FilterKeywordChangedEvent;
@@ -182,14 +188,16 @@ export class WebviewPanelProvider implements WebviewViewProvider {
                     });
                     break;
                 default:
-                    console.warn("unknown command", message);
+                    this.logger.info("webviewView.onDidReceiveMessage.unknownCommand", "Unknown command", { command: message.command });
                     break;
             }
 
             // if command was a filter command - send message back with currently active filters
             if (message.command.startsWith("filter")) {
                 const numberOfActiveFilters = this.getNumberOfActiveFilters();
-                console.log("numberOfActiveFilters", numberOfActiveFilters);
+                this.logger.info("webviewView.onDidReceiveMessage.filterNumberUpdate", "Sending number of active filters", {
+                    numberOfActiveFilters: "" + numberOfActiveFilters,
+                });
                 void webviewView.webview.postMessage({
                     command: "updateNumberOfActiveFilters",
                     numberOfActiveFilters,
@@ -219,6 +227,9 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         const htmlPath = VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "webview.html").with({
             scheme: "vscode-resource",
         }).fsPath;
+
+        this.logger.info("getHtmlForWebview", "Reading HTML content", { htmlPath });
+
         // Path to the CSS file
         const cssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "styles.css"));
 
@@ -238,8 +249,13 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         htmlContent = htmlContent.replace("%%TOOLKIT_JS_PATH%%", toolkitJsPath.toString());
         htmlContent = htmlContent.replace("%%CODION_CSS_PATH%%", codionCssPath.toString());
 
+        this.logger.info("getHtmlForWebview.end", undefined, { htmlContentLength: "" + htmlContent.length });
+
         return htmlContent;
     }
 }
+
+
+
 
 

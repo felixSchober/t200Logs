@@ -7,6 +7,8 @@ import * as fs from "fs/promises";
 import * as vscode from "vscode";
 
 import { GUID_REGEX } from "../constants/regex";
+import { ScopedILogger } from "../telemetry/ILogger";
+import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 
 type SummaryInfoUser = {
     /**
@@ -103,10 +105,15 @@ const userRegex = /(\S+@\S+)\s+(\S+)\s+(\S+)\s+TId:([0-9a-f-]+)\s+OId:([0-9a-f-]
  * SummaryInfoProvider is a class that provides the ability to get summary information from teh summary.txt file.
  */
 export class SummaryInfoProvider {
+    private readonly logger: ScopedILogger;
+
     /**
      * Initializes a new instance of the SummaryInfoProvider class.
+     * @param logger The logger.
      */
-    constructor() {}
+    constructor(logger: ITelemetryLogger) {
+        this.logger = logger.createLoggerScope("SummaryInfoProvider");
+    }
 
     /**
      * Gets the summary information from the summary.txt file.
@@ -134,6 +141,15 @@ export class SummaryInfoProvider {
         const ring = this.getValueFromContent(ringRegex, summaryFileContent);
         const users = this.getUsers(summaryFileContent);
 
+        void this.logger.info("getSummaryInfo", "Got summary info", {
+            sessionId: sessionId ?? "",
+            deviceId: deviceId ?? "",
+            hostVersion: hostVersion ?? "",
+            webVersion: webVersion ?? "",
+            language: language ?? "",
+            ring: ring ?? "",
+        });
+
         return {
             sessionId,
             deviceId,
@@ -154,7 +170,12 @@ export class SummaryInfoProvider {
         if (fileUris.length === 0) {
             return "";
         } else if (fileUris.length > 1) {
-            void vscode.window.showErrorMessage("Multiple summary.txt files found. Please open the correct folder.");
+            void this.logger.logException(
+                "getSummaryFileContent",
+                new Error("Multiple summary files found"),
+                "Multiple summary files found",
+                { numberOfFiles: "" + fileUris.length }
+            );
             return "";
         }
 
@@ -194,4 +215,8 @@ export class SummaryInfoProvider {
         return users;
     }
 }
+
+
+
+
 

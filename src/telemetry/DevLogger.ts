@@ -176,6 +176,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
 
     /**
      * Creates a scoped logger that contains the same logging methods as {@link ILogger} but without having to pass the class name each time.
+     * Furthermore, these methods will be fire and forget.
      * @param className The name of the class.
      * @returns The scoped logger that contains the same logging methods as {@link ILogger} but without having to pass the class name each time.
      */
@@ -189,7 +190,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
                 infoTitle?: string,
                 measurements?: TelemetryEventMeasurements
             ) => {
-                return this.info(`${className}.${method}`, message, properties, showDialog, infoTitle, measurements);
+                void this.info(`${className}.${method}`, message, properties, showDialog, infoTitle, measurements);
             },
             logException: (
                 method: string,
@@ -199,7 +200,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
                 showDialog?: boolean,
                 errorTitle?: string
             ) => {
-                return this.logException(`${className}.${method}`, exception, exceptionMessage, properties, showDialog, errorTitle);
+                void this.logException(`${className}.${method}`, exception, exceptionMessage, properties, showDialog, errorTitle);
             },
         };
     }
@@ -212,7 +213,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
      * @returns The constructed telemetry event info string.
      */
     private getEventString(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): string {
-        return `> [${eventName}] ${properties ? JSON.stringify(properties) : ""} ${measurements ? JSON.stringify(measurements) : ""}\n`;
+        return `> [${eventName}] ${properties ? JSON.stringify(properties) : ""} ${measurements ? JSON.stringify(measurements) : ""}`;
     }
 
     /**
@@ -243,4 +244,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         return Promise.resolve();
     }
 }
+
+
+
 

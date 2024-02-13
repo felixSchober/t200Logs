@@ -6,6 +6,8 @@ import * as vscode from "vscode";
 
 import { ERROR_REGEX, WARN_REGEX, WEB_DATE_REGEX_GLOBAL } from "../constants/regex";
 import { DisplaySettingsChangedEvent } from "../providers/LogContentProvider";
+import { ScopedILogger } from "../telemetry/ILogger";
+import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 
 /**
  * TextDecorator is a class that provides the ability to decorate in the logs viewer.
@@ -27,14 +29,18 @@ export class TextDecorator {
 
     private readonly isoDateTextDecoration: vscode.TextEditorDecorationType;
 
+    private readonly logger: ScopedILogger;
+
     /**
      * Initializes a new instance of the TextDecorator class.
      * @param onWebviewDisplaySettingsChangedEvent The event that is fired when the display settings change through the webview.
      * @param onTextDocumentGenerationFinishedEvent The event that is fired when the text document generation is finished and we can apply the decorations.
+     * @param logger The logger.
      */
     constructor(
         onWebviewDisplaySettingsChangedEvent: vscode.Event<DisplaySettingsChangedEvent>,
-        onTextDocumentGenerationFinishedEvent: vscode.Event<string>
+        onTextDocumentGenerationFinishedEvent: vscode.Event<string>,
+        logger: ITelemetryLogger
     ) {
         this.errorTextDecoration = vscode.window.createTextEditorDecorationType({
             backgroundColor: "rgba(255, 0, 0, 0.2)",
@@ -45,6 +51,7 @@ export class TextDecorator {
         this.isoDateTextDecoration = vscode.window.createTextEditorDecorationType({});
 
         onTextDocumentGenerationFinishedEvent((newContent: string) => {
+            this.logger.info("onTextDocumentGenerationFinishedEvent", undefined, { newContentLength: "" + newContent.length });
             // we have to wait for vscode to be ready before we can apply the decorations
             setTimeout(() => {
                 this.applySeverityLevelHighlighting(newContent);
@@ -53,9 +60,12 @@ export class TextDecorator {
         });
 
         onWebviewDisplaySettingsChangedEvent(() => {
+            this.logger.info("onWebviewDisplaySettingsChangedEvent");
             this.applySeverityLevelHighlighting(null);
             this.applyReadableIsoDates(null);
         });
+
+        this.logger = logger.createLoggerScope("TextDecorator");
     }
 
     /**
@@ -64,6 +74,7 @@ export class TextDecorator {
     public toggleSeverityLevelHighlighting() {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
+            this.logger.info("toggleSeverityLevelHighlighting");
             // we don't need to search for matches if we're disabling the highlighting
             if (this.isSeverityLevelHighlightingEnabled) {
                 editor.setDecorations(this.errorTextDecoration, []);
@@ -73,6 +84,15 @@ export class TextDecorator {
             }
 
             this.applySeverityLevelHighlighting(null, true);
+        } else {
+            this.logger.logException(
+                "toggleSeverityLevelHighlighting",
+                new Error("No active text editor"),
+                "No active text editor",
+                undefined,
+                true,
+                "Severity level highlighting"
+            );
         }
     }
 
@@ -88,17 +108,15 @@ export class TextDecorator {
         // - the highlighting has not been applied before. Called by the internal toggle method.
         // - the highlighting has been applied before. We need to re-apply it because the filter has been changed.
 
-        console.log(
-            "[TextDecorator] Applying severity level highlighting. Was turned on:",
-            wasTurnedOn,
-            "Current state:",
-            this.isSeverityLevelHighlightingEnabled
-        );
+        this.logger.info("applySeverityLevelHighlighting", undefined, {
+            wasTurnedOn: "" + wasTurnedOn,
+            currentState: "" + this.isSeverityLevelHighlightingEnabled,
+        });
         if (this.isSeverityLevelHighlightingEnabled || wasTurnedOn) {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
                 const text = content ?? editor.document.getText();
-                console.log("[TextDecorator] Applying severity level highlighting to the entire document. Document length:", text.length);
+                this.logger.info("applySeverityLevelHighlighting.apply.start", undefined, { documentLength: "" + text.length });
 
                 const errorDecorationsArray: vscode.DecorationOptions[] = [];
                 const warnDecorationsArray: vscode.DecorationOptions[] = [];
@@ -121,6 +139,9 @@ export class TextDecorator {
 
                                 errorDecorationsArray.push(decoration);
                             }
+                            this.logger.info("applySeverityLevelHighlighting.apply.errorDecorationPromise", undefined, {
+                                errorDecorationsArrayLength: "" + errorDecorationsArray.length,
+                            });
                             resolve(errorDecorationsArray);
                         });
 
@@ -136,6 +157,9 @@ export class TextDecorator {
 
                                 warnDecorationsArray.push(decoration);
                             }
+                            this.logger.info("applySeverityLevelHighlighting.apply.warnDecorationPromise", undefined, {
+                                warnDecorationsArrayLength: "" + warnDecorationsArray.length,
+                            });
                             resolve(warnDecorationsArray);
                         });
 
@@ -145,13 +169,21 @@ export class TextDecorator {
                         editor.setDecorations(this.warnTextDecoration, warnings);
 
                         this.isSeverityLevelHighlightingEnabled = true;
-                        console.log(
-                            `[TextDecorator] Finished applying severity level highlighting. Found ${errors.length} errors and ${warnings.length} warnings.`
-                        );
+                        this.logger.info("applySeverityLevelHighlighting.apply.end", undefined, {
+                            errorsLength: "" + errors.length,
+                            warningsLength: "" + warnings.length,
+                        });
                     }
                 );
             } else {
-                console.error("[TextDecorator] No active text editor for text decoration.");
+                this.logger.logException(
+                    "applySeverityLevelHighlighting",
+                    new Error("No active text editor"),
+                    "No active text editor",
+                    undefined,
+                    true,
+                    "Severity level highlighting"
+                );
             }
         }
     }
@@ -179,12 +211,10 @@ export class TextDecorator {
      * @param wasTurnedOn Flag indicating whether the highlighting is being toggled. If true, the method will ignore the current state of the highlighting and apply it anyway. If `false`, the method will only apply the highlighting if it is already applied.
      */
     public applyReadableIsoDates(content: string | null, wasTurnedOn: boolean = false) {
-        console.log(
-            "[TextDecorator] Applying readable ISO dates. Was turned on:",
-            wasTurnedOn,
-            "Current state:",
-            this.isReadableIsoDatesEnabled
-        );
+        this.logger.info("applyReadableIsoDates", undefined, {
+            wasTurnedOn: "" + wasTurnedOn,
+            currentState: "" + this.isReadableIsoDatesEnabled,
+        });
         if (this.isReadableIsoDatesEnabled || wasTurnedOn) {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
@@ -216,11 +246,20 @@ export class TextDecorator {
                 editor.setDecorations(this.isoDateTextDecoration, decorationsArray);
                 this.isReadableIsoDatesEnabled = true;
             } else {
-                console.error("[TextDecorator] No active text editor for text decoration.");
+                this.logger.logException(
+                    "applyReadableIsoDates",
+                    new Error("No active text editor"),
+                    "No active text editor",
+                    undefined,
+                    true,
+                    "Readable ISO dates"
+                );
             }
         }
     }
 }
+
+
 
 
 
