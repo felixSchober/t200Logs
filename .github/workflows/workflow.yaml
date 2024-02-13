@@ -7,7 +7,6 @@ on:
       - main
     paths-ignore: # don't run when changes made to these folders 
       - '.vscode/**'
-      - '.github/**'
       - 'GitVersion.yml'
       - '.eslintrc.json'
       - 'test/**'
@@ -26,7 +25,7 @@ jobs:
       - name: install gitversion tool
         uses: gittools/actions/gitversion/setup@v0.11.0
         with:
-            versionSpec: '5.1.x'
+            versionSpec: '5.x'
       
       - name: execute gitversion
         id: gitversion # step id used as reference for output values
