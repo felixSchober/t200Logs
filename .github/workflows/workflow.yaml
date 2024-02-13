@@ -66,6 +66,9 @@ jobs:
         env:
           VERSION: "${{ steps.gitversion.outputs.majorMinorPatch }}"
 
+      - name: install vsce
+        run: npm install -g vsce
+
       - name: compile and create vsix
         uses: borales/actions-yarn@v5.0.0
         with:
