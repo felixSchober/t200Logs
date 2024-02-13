@@ -11,10 +11,13 @@
         "noUnusedLocals": true,
         "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
         "noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
-        "noUnusedParameters": true /* Report errors on unused parameters. */
+        "noUnusedParameters": true /* Report errors on unused parameters. */,
+        "resolveJsonModule": true
     },
-    "exclude": ["src/webview/", "node_modules", ".vscode-test"]
+    "exclude": ["media/webview/", "node_modules", ".vscode-test", "dist"]
 }
+
+
 
 
 

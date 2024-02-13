@@ -8,67 +8,56 @@ import { DateRange, FilterTimeRangeLensProvider } from "./codeLensProvider/Filte
 import { DisplaySettingsChangedEvent, FilterChangedEvent, LogContentProvider } from "./codeLensProvider/LogContentProvider";
 import { LogFoldingRangeProvider } from "./codeLensProvider/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./codeLensProvider/WebviewPanelProvider";
+import { EXTENSION_ID } from "./constants/constants";
+import { DevLogger } from "./telemetry";
+import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
 import { TextDecorator } from "./textDecorations/TextDecorator";
+
+let telemetryReporter: Readonly<ITelemetryLogger>;
+let logContentProvider: Readonly<LogContentProvider>;
+let onWebviewFilterChanged: vscode.EventEmitter<FilterChangedEvent>;
+let onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>;
 
 /**
  * Activate the extension.
  * @param context The extension context.
  */
 export function activate(context: vscode.ExtensionContext) {
-    const onWebviewFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
-    const onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
-    const logContentProvider = new LogContentProvider(onWebviewFilterChanged.event, onDisplaySettingsChanged.event);
-    const textDecorator = new TextDecorator(onDisplaySettingsChanged.event, logContentProvider.onTextDocumentGenerationFinished.event);
+    setupLogging(context);
+    setupFoldingRangeProvider(context);
+
+    if (!logContentProvider) {
+        onWebviewFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
+        onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
+
+        logContentProvider = new LogContentProvider(onWebviewFilterChanged.event, onDisplaySettingsChanged.event);
+    }
+
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, logContentProvider));
-
-    let codeLensDisposable = vscode.languages.registerCodeLensProvider(
-        { scheme: LogContentProvider.documentScheme },
-        new FilterTimeRangeLensProvider()
-    );
-
-    let disposableDecoration = vscode.commands.registerCommand("t200logs.toggleReadableIsoDates", () => {
-        textDecorator.toggleReadableIsoDates();
-    });
-
-    let disposableDecorationHints = vscode.commands.registerCommand("t200logs.toggleVisualHints", () => {
-        textDecorator.toggleSeverityLevelHighlighting();
-    });
-
-    const foldingProvider = new LogFoldingRangeProvider();
-    context.subscriptions.push(
-        vscode.languages.registerFoldingRangeProvider({ scheme: LogContentProvider.documentScheme, language: "log" }, foldingProvider)
-    );
-
-    context.subscriptions.push(codeLensDisposable);
-    context.subscriptions.push(disposableDecoration);
-    context.subscriptions.push(disposableDecorationHints);
 
     // Add a command to open the virtual document
     const openLogsDocument = async () => {
         const doc = await vscode.workspace.openTextDocument(LogContentProvider.documentUri);
         await vscode.window.showTextDocument(doc, { preview: false });
     };
-    let openLogViewerDisposable = vscode.commands.registerCommand("t200logs.openLogViewer", async () => {
+    let openLogViewerDisposable = vscode.commands.registerCommand(`${EXTENSION_ID}.openLogViewer`, async () => {
         await openLogsDocument();
     });
+    context.subscriptions.push(openLogViewerDisposable);
 
-    let resetLogViewerDisposable = vscode.commands.registerCommand("t200logs.reset", () => {
+    let resetLogViewerDisposable = vscode.commands.registerCommand(`${EXTENSION_ID}.reset`, () => {
         logContentProvider.reset();
     });
-
-    const inlineDateFilterDisposable = vscode.commands.registerCommand(FilterTimeRangeLensProvider.commandId, (dateRange: DateRange) => {
-        FilterTimeRangeLensProvider.executeCommand(dateRange, onWebviewFilterChanged);
-    });
-
-    context.subscriptions.push(openLogViewerDisposable);
-    context.subscriptions.push(inlineDateFilterDisposable);
     context.subscriptions.push(resetLogViewerDisposable);
+
+    setupCodeLensProvider(context, onWebviewFilterChanged);
+    setupTextDecorator(context, logContentProvider, onDisplaySettingsChanged);
 
     const getNumberOfActiveFilters = () => {
         return logContentProvider.getNumberOfActiveFilters();
     };
     const panelDisposable = vscode.window.registerWebviewViewProvider(
-        "t200logs",
+        EXTENSION_ID,
         new WebviewPanelProvider(
             context.extensionUri,
             onWebviewFilterChanged,
@@ -85,12 +74,104 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(panelDisposable);
 
-    console.log("T200Logs extension activated");
+    void telemetryReporter.info("extension.activate().success");
+}
+
+/**
+ * Set up logging for the extension.
+ * @param context The vscode context.
+ */
+function setupLogging(context: vscode.ExtensionContext) {
+    if (!telemetryReporter) {
+        telemetryReporter = createTelemetryReporter(context);
+    }
+
+    void telemetryReporter.info("extension.setupLogging", undefined, { logUri: context.logUri.path });
+
+    // setup logging commands
+    context.subscriptions.push(vscode.commands.registerCommand(EXTENSION_ID + ".openLog", () => void telemetryReporter.openLogFile()));
+    context.subscriptions.push(
+        vscode.commands.registerCommand(EXTENSION_ID + ".provideFeedback", () => void telemetryReporter.provideFeedback())
+    );
+
+    telemetryReporter.startLogging();
+}
+
+/**
+ * Set up the code lens provider for the extension.
+ * @param context The vscode context.
+ * @param onWebviewFilterChanged The event emitter for filter changes.
+ */
+function setupCodeLensProvider(context: vscode.ExtensionContext, onWebviewFilterChanged: vscode.EventEmitter<FilterChangedEvent>) {
+    let codeLensDisposable = vscode.languages.registerCodeLensProvider(
+        { scheme: LogContentProvider.documentScheme },
+        new FilterTimeRangeLensProvider()
+    );
+    context.subscriptions.push(codeLensDisposable);
+
+    // This is the command that is executed when the user clicks on the code lens.
+    const inlineDateFilterDisposable = vscode.commands.registerCommand(FilterTimeRangeLensProvider.commandId, (dateRange: DateRange) => {
+        FilterTimeRangeLensProvider.executeCommand(dateRange, onWebviewFilterChanged);
+    });
+    context.subscriptions.push(inlineDateFilterDisposable);
+}
+
+/**
+ * Set up the text decorator for the extension.
+ * @param context The vscode context.
+ * @param logContentProvider The log content provider for the virtual document.
+ * @param onDisplaySettingsChanged The event emitter for display settings changes.
+ */
+function setupTextDecorator(
+    context: vscode.ExtensionContext,
+    logContentProvider: Readonly<LogContentProvider>,
+    onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>
+) {
+    const textDecorator = new TextDecorator(onDisplaySettingsChanged.event, logContentProvider.onTextDocumentGenerationFinished.event);
+    let disposableDecoration = vscode.commands.registerCommand(`${EXTENSION_ID}.toggleReadableIsoDates`, () => {
+        textDecorator.toggleReadableIsoDates();
+    });
+
+    let disposableDecorationHints = vscode.commands.registerCommand(`${EXTENSION_ID}.toggleVisualHints`, () => {
+        textDecorator.toggleSeverityLevelHighlighting();
+    });
+    context.subscriptions.push(disposableDecoration);
+    context.subscriptions.push(disposableDecorationHints);
+}
+
+/**
+ * Set up the folding range provider for the extension.
+ * @param context The vscode context.
+ */
+function setupFoldingRangeProvider(context: vscode.ExtensionContext) {
+    const foldingProvider = new LogFoldingRangeProvider();
+    context.subscriptions.push(
+        vscode.languages.registerFoldingRangeProvider({ scheme: LogContentProvider.documentScheme, language: "log" }, foldingProvider)
+    );
 }
 
 /**
  * Deactivates the extension.
  */
-export function deactivate() {}
+export function deactivate() {
+    if (telemetryReporter) {
+        void telemetryReporter.dispose();
+    }
+}
+
+/**
+ * Create a telemetry reporter that can be used for this extension.
+ * @param context The vscode context.
+ * @returns The debug telemetry reporter.
+ */
+export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
+    return new DevLogger(context.logUri);
+}
+
+
+
+
+
+
 
 

@@ -1,4 +1,5 @@
 {
+    "private": true,
     "name": "t200logs",
     "displayName": "T21 Logs Viewer",
     "description": "Extension to make diagnosing Teams logs much easier. Open this extension in a folder containing Teams logs and it will combine them into a single view with filtering and visual hints.",
@@ -22,6 +23,18 @@
     "main": "./dist/extension.js",
     "contributes": {
         "commands": [
+            {
+                "command": "t200logs.openLog",
+                "title": "Opens the extension log file",
+                "category": "T200Logs",
+                "shortTitle": "Show Logs"
+            },
+            {
+                "command": "t200logs.provideFeedback",
+                "title": "Provide quick feedback",
+                "category": "T200Logs",
+                "shortTitle": "Feedback"
+            },
             {
                 "command": "t200logs.toggleReadableIsoDates",
                 "title": "Toggles readable dates to log viewer",
@@ -95,6 +108,7 @@
         "test": "node ./out/test/runTest.js"
     },
     "dependencies": {
+        "@vscode/extension-telemetry": "^0.9.2"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.3",
