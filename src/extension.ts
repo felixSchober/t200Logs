@@ -4,11 +4,11 @@
 
 import * as vscode from "vscode";
 
-import { DateRange, FilterTimeRangeLensProvider } from "./codeLensProvider/FilterTimeRangeLensProvider";
-import { DisplaySettingsChangedEvent, FilterChangedEvent, LogContentProvider } from "./codeLensProvider/LogContentProvider";
-import { LogFoldingRangeProvider } from "./codeLensProvider/LogFoldingRangeProvider";
-import { WebviewPanelProvider } from "./codeLensProvider/WebviewPanelProvider";
 import { EXTENSION_ID } from "./constants/constants";
+import { DateRange, FilterTimeRangeLensProvider } from "./providers/FilterTimeRangeLensProvider";
+import { DisplaySettingsChangedEvent, FilterChangedEvent, LogContentProvider } from "./providers/LogContentProvider";
+import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
+import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
 import { DevLogger } from "./telemetry";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
 import { TextDecorator } from "./textDecorations/TextDecorator";
@@ -167,6 +167,7 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
 
 
 

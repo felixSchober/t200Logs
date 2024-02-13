@@ -4,8 +4,8 @@
 
 import * as vscode from "vscode";
 
-import { DisplaySettingsChangedEvent } from "../codeLensProvider/LogContentProvider";
 import { ERROR_REGEX, WARN_REGEX, WEB_DATE_REGEX_GLOBAL } from "../constants/regex";
+import { DisplaySettingsChangedEvent } from "../providers/LogContentProvider";
 
 /**
  * TextDecorator is a class that provides the ability to decorate in the logs viewer.
@@ -221,6 +221,8 @@ export class TextDecorator {
         }
     }
 }
+
+
 
 
 
