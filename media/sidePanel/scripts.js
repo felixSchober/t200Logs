@@ -2,6 +2,8 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+"use strict";
+
 const vscode = acquireVsCodeApi();
 
 // In order to use all the Webview UI Toolkit web components they
@@ -50,6 +52,15 @@ const customFilters = [
         checkboxId: "filter_6_kw",
         keyword: "auth-login-page",
         isChecked: false,
+    }
+];
+
+const customHighlights = [
+    {
+        checkboxId: "highlight_0_kw",
+        keyword: "auth|Auth",
+        isChecked: false,
+        color: "#ff0000" // red
     }
 ];
 
@@ -155,7 +166,7 @@ window.addEventListener("message", event => {
  * Sends a message to the extension when a checkbox state changes.
  * @param checkboxId The id of the checkbox that changed.
  */
-function sendCheckboxStateChange(checkboxId) {
+function sendFilterCheckboxStateChange(checkboxId) {
     const checkboxElement = document.getElementById(checkboxId);
     const filterDefinition = customFilters.find(filter => filter.checkboxId === checkboxId);
 
@@ -165,6 +176,27 @@ function sendCheckboxStateChange(checkboxId) {
     vscode.postMessage({
         command: "filterCheckboxStateChange",
         filterDefinition,
+    });
+}
+
+/**
+ * Sends a message to the extension when a highlight checkbox state changes.
+ * @param checkboxId The id of the checkbox that changed.
+ */
+function sendHighlightCheckboxStateChange(checkboxId) {
+    const checkboxElement = document.getElementById(checkboxId);
+    const highlight = customHighlights.find(filter => filter.checkboxId === checkboxId);
+
+    // update filter definition
+    highlight.isChecked = checkboxElement.checked;
+    console.log("Sending message to extension: ", highlight);
+    vscode.postMessage({
+        command: "keywordHighlightCheckboxStateChange",
+        isChecked: highlight.isChecked,
+        highlightDefinition: {
+            keyword: highlight.keyword,
+            color: highlight.color,
+        },
     });
 }
 
@@ -193,7 +225,7 @@ function addNewCheckboxFilter(filter, addToList = true) {
 
     // adding a listener to the checkbox
     checkbox.addEventListener("change", () => {
-        sendCheckboxStateChange(checkbox.id);
+        sendFilterCheckboxStateChange(checkbox.id);
     });
 
     filtersContainer.appendChild(checkbox);
@@ -202,7 +234,53 @@ function addNewCheckboxFilter(filter, addToList = true) {
         customFilters.push(filter);
     }
 
-    sendCheckboxStateChange(checkbox.id);
+    sendFilterCheckboxStateChange(checkbox.id);
+}
+
+/**
+ * Adds a new keyword highlight to the DOM.
+ * @param keyword Adds a new keyword highlight to the DOM.
+ * @param addToList Whether to add the filter to the customFilters list.
+ */
+function addNewKeywordHighlight(keyword, addToList = true) {
+    console.log("Adding new highlight: ", keyword);
+    const highlightDivContainer = document.getElementById("highlight_custom_kw");
+
+    const checkboxAndColorContainer = document.createElement("div");
+    checkboxAndColorContainer.style.display = "flex";
+    const checkbox = document.createElement("vscode-checkbox");
+    checkbox.id = keyword.checkboxId;
+    checkbox.label = keyword.keyword;
+    checkbox.checked = keyword.isChecked;
+    checkbox.innerText = keyword.keyword;
+    checkboxAndColorContainer.appendChild(checkbox);
+
+    const colorPreview = document.createElement("div");
+    colorPreview.style.backgroundColor = keyword.color;
+    colorPreview.style.width = "20px";
+    colorPreview.style.height = "20px";
+    colorPreview.style.border = "1px solid black";
+    colorPreview.style.marginLeft = "auto";
+    checkboxAndColorContainer.appendChild(colorPreview);
+
+
+    // adding a listener to the checkbox
+    checkbox.addEventListener("change", () => {
+        sendHighlightCheckboxStateChange(checkbox.id);
+    });
+
+    highlightDivContainer.appendChild(checkboxAndColorContainer);
+
+    if (addToList) {
+        customHighlights.push({
+            checkboxId: checkbox.id,
+            keyword: keyword.keyword,
+            isChecked: keyword.isChecked,
+            color: keyword.color,
+        });
+    }
+
+    sendHighlightCheckboxStateChange(checkbox.id);
 }
 
 const DEFAULT_DEBOUNCE_TIME = 3000;
@@ -258,6 +336,40 @@ function addSessionIdFilterCheckboxEventListener() {
 }
 
 /**
+ * Sets up the highlight elements in the DOM.
+ */
+function setupHighlightElements() {
+    // add custom highlights
+    for (const highlight of customHighlights) {
+        // adding a checkbox to the DOM
+        addNewKeywordHighlight(highlight, false);
+    }
+
+    // adding a listener to the "Add Highlight" button to add a new highlight
+    document.getElementById("highlight_kw_add_button").addEventListener("click", () => {
+        const keywordValue = document.getElementById("highlight_kw_add_input").value;
+
+        if (keywordValue.length === 0) {
+            return;
+        }
+
+        // use the keyword value as a hash to generate a random color
+
+        const randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+        const newHighlight = {
+            checkboxId: `highlight_${customHighlights.length + 1}_kw`,
+            keyword: keywordValue,
+            isChecked: true,
+            color: randomColor,
+        };
+        addNewKeywordHighlight(newHighlight, true);
+
+        // remove the text from the input field
+        document.getElementById("highlight_kw_add_input").value = "";
+    });
+
+}
+/**
  * Main entry point for the webview.
  */
 function main() {
@@ -274,6 +386,7 @@ function main() {
         addNewCheckboxFilter(filter, false);
     }
 
+    setupHighlightElements();
     addLogLevelEventListeners();
     addSessionIdFilterCheckboxEventListener();
 
@@ -289,6 +402,8 @@ function main() {
         // remove the text from the input field
         document.getElementById("filter_kw_add_input").value = "";
     });
+
+
 
     // adding a listener to the open_log_document button to send a message to the extension
     document.getElementById("open_log_document").addEventListener("click", () => {

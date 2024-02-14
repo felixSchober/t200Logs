@@ -19,6 +19,7 @@ import {
 import { SummaryInfoProvider } from "../info/SummaryInfoProvider";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
+import { KeywordHighlight, KeywordHighlightChangeEvent } from "../textDecorations/KeywordHighlightDecorator";
 
 import { DisplaySettingsChangedEvent, FilterChangedEvent, FilterKeywordChangedEvent, TimeFilterChangedEvent } from "./LogContentProvider";
 
@@ -44,6 +45,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
      * @param getNumberOfActiveFilters A function that returns the number of active filters.
      * @param openLogsDocument A function that opens the logs document.
      * @param timeChangeEvent The event for when the time filter changes through the LogContentProvider.
+     * @param keywordChangeEventEmitter The event emitter for when the user changes a keyword highlight through the webview.
      * @param logger The logger.
      */
     constructor(
@@ -53,6 +55,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         private readonly getNumberOfActiveFilters: () => number,
         private readonly openLogsDocument: () => Promise<void>,
         private readonly timeChangeEvent: VscodeEvent<TimeFilterChangedEvent>,
+        private readonly keywordChangeEventEmitter: EventEmitter<KeywordHighlightChangeEvent>,
         logger: ITelemetryLogger
     ) {
         console.log("LogsWebviewViewProvider constructor");
@@ -92,6 +95,21 @@ export class WebviewPanelProvider implements WebviewViewProvider {
             this.logger.info("webviewView.onDidReceiveMessage", undefined, message);
 
             switch (message.command) {
+                case "keywordHighlightCheckboxStateChange":
+                    let keywordChangeEvent: KeywordHighlightChangeEvent;
+                    const highlightDefinition = message.highlightDefinition as KeywordHighlight;
+
+                    if (message.isChecked) {
+                        keywordChangeEvent = {
+                            addKeyword: highlightDefinition,
+                        };
+                    } else {
+                        keywordChangeEvent = {
+                            removeKeyword: highlightDefinition.keyword,
+                        };
+                    }
+                    this.keywordChangeEventEmitter.fire(keywordChangeEvent);
+                    break;
                 case "filterCheckboxStateChange":
                     const filterDefinition = message.filterDefinition as FilterKeywordChangedEvent;
 
@@ -260,6 +278,10 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
+
+
+
 
 
 

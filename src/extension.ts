@@ -11,6 +11,7 @@ import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
 import { DevLogger } from "./telemetry";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
+import { KeywordHighlightChangeEvent, KeywordHighlightDecorator } from "./textDecorations/KeywordHighlightDecorator";
 import { TextDecorator } from "./textDecorations/TextDecorator";
 
 let telemetryReporter: Readonly<ITelemetryLogger>;
@@ -53,6 +54,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     setupCodeLensProvider(context, onWebviewFilterChanged);
     setupTextDecorator(context, logContentProvider, onDisplaySettingsChanged);
+    const { onKeywordHighlightChange } = setupKeywordHighlighter(logContentProvider);
 
     const getNumberOfActiveFilters = () => {
         return logContentProvider.getNumberOfActiveFilters();
@@ -66,6 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
             getNumberOfActiveFilters,
             openLogsDocument,
             logContentProvider.onTimeFilterChangeEvent.event,
+            onKeywordHighlightChange,
             telemetryReporter
         ),
         {
@@ -148,6 +151,26 @@ function setupTextDecorator(
 }
 
 /**
+ * Set up the keyword highlighter for the extension.
+ * @param logContentProvider The log content provider for the virtual document.
+ * @returns The keyword highlighter and the event emitter for keyword highlight changes.
+ */
+function setupKeywordHighlighter(logContentProvider: Readonly<LogContentProvider>) {
+    const onKeywordHighlightChange = new vscode.EventEmitter<KeywordHighlightChangeEvent>();
+
+    const keywordHighlighter = new KeywordHighlightDecorator(
+        onKeywordHighlightChange.event,
+        logContentProvider.onTextDocumentGenerationFinished.event,
+        telemetryReporter
+    );
+
+    return {
+        onKeywordHighlightChange,
+        keywordHighlighter,
+    };
+}
+
+/**
  * Set up the folding range provider for the extension.
  * @param context The vscode context.
  */
@@ -177,6 +200,7 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
 
 
 

@@ -35,3 +35,7 @@ Included internal logger for extension
 ### 0.0.3
 
 Automated build and release of the extension
+
+### 0.2.0
+
+- Adds custom keyword highlighting
