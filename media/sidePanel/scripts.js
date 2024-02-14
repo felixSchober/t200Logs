@@ -162,7 +162,6 @@ function sendCheckboxStateChange(checkboxId) {
     // update filter definition
     filterDefinition.isChecked = checkboxElement.checked;
     console.log("Sending message to extension: ", filterDefinition);
-    debugger;
     vscode.postMessage({
         command: "filterCheckboxStateChange",
         filterDefinition,

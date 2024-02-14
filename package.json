@@ -23,7 +23,7 @@
         "Other"
     ],
     "activationEvents": [
-        "onFileSystem:scheme:**/desktop/**"
+        "onFileSystem:scheme:log-viewer"
     ],
     "main": "./dist/extension.js",
     "contributes": {

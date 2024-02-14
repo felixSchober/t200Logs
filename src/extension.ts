@@ -22,11 +22,12 @@ let onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>;
  * Activate the extension.
  * @param context The extension context.
  */
-export function activate(context: vscode.ExtensionContext) {
-    setupLogging(context);
+export async function activate(context: vscode.ExtensionContext) {
+    console.log("Extension activated");
+    await setupLogging(context);
     setupFoldingRangeProvider(context);
 
-    if (!logContentProvider) {
+    if (!logContentProvider || !onWebviewFilterChanged || !onDisplaySettingsChanged) {
         onWebviewFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
         onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
 
@@ -75,24 +76,26 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(panelDisposable);
 
-    void telemetryReporter.info("extension.activate().success");
+    await telemetryReporter.info("extension.activate().success");
 }
 
 /**
  * Set up logging for the extension.
  * @param context The vscode context.
  */
-function setupLogging(context: vscode.ExtensionContext) {
+async function setupLogging(context: vscode.ExtensionContext) {
     if (!telemetryReporter) {
         telemetryReporter = createTelemetryReporter(context);
     }
 
-    void telemetryReporter.info("extension.setupLogging", undefined, { logUri: context.logUri.path });
+    await telemetryReporter.info("extension.setupLogging", undefined, { logUri: context.logUri.path });
 
     // setup logging commands
-    context.subscriptions.push(vscode.commands.registerCommand(EXTENSION_ID + ".openLog", () => void telemetryReporter.openLogFile()));
     context.subscriptions.push(
-        vscode.commands.registerCommand(EXTENSION_ID + ".provideFeedback", () => void telemetryReporter.provideFeedback())
+        vscode.commands.registerCommand(EXTENSION_ID + ".openLog", async () => await telemetryReporter.openLogFile())
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand(EXTENSION_ID + ".provideFeedback", async () => await telemetryReporter.provideFeedback())
     );
 
     telemetryReporter.startLogging();
@@ -159,7 +162,8 @@ function setupFoldingRangeProvider(context: vscode.ExtensionContext) {
  * Deactivates the extension.
  */
 export function deactivate() {
-    void telemetryReporter.info("extension.deactivate().success");
+    void telemetryReporter.info("extension.deactivate");
+    logContentProvider.dispose();
     if (telemetryReporter) {
         void telemetryReporter.dispose();
     }
@@ -173,6 +177,7 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
 
 
 

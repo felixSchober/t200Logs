@@ -150,7 +150,7 @@ const EPOCH_DATE = new Date(0);
 /**
  * A content provider that transforms the content of a log file.
  */
-export class LogContentProvider implements vscode.TextDocumentContentProvider {
+export class LogContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
     /**
      * Filter out log entries that are before this date.
      * This field is the string representation of a date.
@@ -300,6 +300,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
      */
     public onTextDocumentGenerationFinished = new vscode.EventEmitter<string>();
 
+    private readonly watcher: vscode.FileSystemWatcher;
+
     /**
      * Creates a new instance of the LogContentProvider class.
      * @param onFilterChangeEvent The event that is fired when the filter changes.
@@ -342,6 +344,32 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         // This is done so that we ignore all events that do not have a timestamp.
         this.timeFilterFrom = this.minimumDate;
         this.logger = logger.createLoggerScope("LogContentProvider");
+        this.watcher = vscode.workspace.createFileSystemWatcher("**/*.{log,txt}", false, false, false);
+        this.registerFileWatcherEvents();
+    }
+    /**
+     * Disposes of the LogContentProvider.
+     */
+    dispose() {
+        this.watcher.dispose();
+    }
+
+    /**
+     * Registers a file watcher for the log files in the workspace so that we can re-fetch the log files and re-generate the content.
+     */
+    private registerFileWatcherEvents() {
+        this.watcher.onDidChange(uri => {
+            this.logger.info("registerFileWatcher.onDidChange", undefined, { uri: uri.fsPath });
+            this.reset();
+        });
+        this.watcher.onDidCreate(uri => {
+            this.logger.info("registerFileWatcher.onDidCreate", undefined, { uri: uri.fsPath });
+            this.reset();
+        });
+        this.watcher.onDidDelete(uri => {
+            this.logger.info("registerFileWatcher.onDidDelete", undefined, { uri: uri.fsPath });
+            this.reset();
+        });
     }
 
     /**
@@ -770,14 +798,30 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         });
 
         return content.split("\n").map(line => {
-            const date = this.extractDateFromLogEntry(line);
+            const truncatedLine = this.truncateLongLines(line);
+            const date = this.extractDateFromLogEntry(truncatedLine);
             logEntriesRead++;
             return {
                 date: date,
-                text: `[${this.padZero(logEntriesRead)}]${line}`,
+                text: `[${this.padZero(logEntriesRead)}]${truncatedLine}`,
                 service: serviceName,
             };
         });
+    }
+
+    /**
+     * Makes sure we don't have really long lines in the log entries.
+     * This can be a problem when the Teams logger spews null-character filled lines eventually crashing vscode task host.
+     *
+     * In reality, we should never have lines longer than 2000 characters, but we'll truncate them just in case.
+     * @param line The line to truncate.
+     * @returns The truncated line.
+     */
+    private truncateLongLines(line: string): string {
+        if (line.length > 2000) {
+            return line.substring(0, 2000) + " ...";
+        }
+        return line;
     }
 
     /**
@@ -1046,102 +1090,5 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         }
         return prefix.length > 0 ? prefix + " " : "";
     }
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
