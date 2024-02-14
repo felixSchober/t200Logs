@@ -137,7 +137,7 @@ const MAX_LOG_FILES_RETURNED = 400;
 
 const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
     error: ERROR_REGEX,
-    debug: /<DBG>|Ver/,
+    debug: /<DBG>|<DIAG>|Ver/,
     warning: WARN_REGEX,
     info: /(<INFO>)|Inf/,
 };
@@ -1047,6 +1047,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         return prefix.length > 0 ? prefix + " " : "";
     }
 }
+
 
 
 
