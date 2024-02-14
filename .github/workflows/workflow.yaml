@@ -56,8 +56,8 @@ jobs:
           files: '${{github.workspace}}/package.json'
           patch-syntax: |
             = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
-            = /displayName => "PowerApps Portal Local Development"
-            = /description => "Local source control for Power Apps portals code for web files like images or style sheets, web templates and content snippets."
+            = /displayName => "Teams Logs Viewer"
+            = /description => "Extension to make diagnosing Teams logs much easier. Open this extension in a folder containing Teams logs and it will combine them into a single view with filtering and visual hints."
       
       - name: add version in CHANGELOG.md
         uses: cschleiden/replace-tokens@v1
