@@ -101,7 +101,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
     ): Promise<void> {
         properties = { ...properties, message: message || "" };
         this.sendTelemetryEvent(eventName, properties, measurements);
-        await this.logFileWriter?.appendLine(this.getEventString(eventName, properties, measurements));
+        this.logFileWriter?.appendLine(this.getEventString(eventName, properties, measurements));
 
         if (showDialog) {
             await DialogReporter.showInformationDialog(infoTitle, message);
@@ -135,7 +135,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
             errorMessage += "" + JSON.stringify(exception);
         }
         this.sendTelemetryErrorEvent(eventName, properties, undefined, errorProps);
-        await this.logFileWriter?.appendLine(this.getErrorEventString(eventName, properties, undefined, errorProps));
+        this.logFileWriter?.appendLine(this.getErrorEventString(eventName, properties, undefined, errorProps));
 
         if (showDialog) {
             await DialogReporter.showErrorDialog(errorTitle, errorMessage);
@@ -241,9 +241,11 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
      */
     dispose(): Promise<void> {
         this.outputChannel.dispose();
+        this.logFileWriter?.dispose();
         return Promise.resolve();
     }
 }
+
 
 
 

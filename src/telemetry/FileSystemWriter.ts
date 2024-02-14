@@ -8,11 +8,24 @@ import * as pckg from "../../package.json";
 
 import { ILogger } from "./ILogger";
 
+type LogEntry = {
+    /**
+     * The message to write to the log file.
+     */
+    message: string;
+    /**
+     * The date of the log entry.
+     */
+    date: Date;
+};
+
+const FLUSH_INTERVAL = 1000;
+
 /**
  *
  */
-export class FileSystemWriter {
-    public readonly logFileName = "log.txt";
+export class FileSystemWriter implements vscode.Disposable {
+    public readonly logFileName = "t200Logs.log";
 
     /**
      * Header of log file.
@@ -31,6 +44,16 @@ export class FileSystemWriter {
     public get logFileUri(): vscode.Uri {
         return vscode.Uri.joinPath(this.logUri, this.logFileName);
     }
+
+    /**
+     * The queue of data to be appended to the log file between the write operations.
+     */
+    private appendQueue: LogEntry[] = [];
+
+    /**
+     * The interval ID for the write operation.
+     */
+    private setIntervalId: NodeJS.Timeout | undefined;
 
     /**
      * Common telemetry properties for the logger.
@@ -59,6 +82,21 @@ export class FileSystemWriter {
         } - App Root: ${vscode.env.appRoot} - Extension version: ${pckg.version}`;
         void this.initializeLogFolder();
     }
+    /**
+     * Dispose of the FileSystemWriter.
+     */
+    public dispose() {
+        if (this.setIntervalId) {
+            clearInterval(this.setIntervalId);
+        }
+
+        // make sure to write any remaining data to the log file
+        if (this.appendQueue.length > 0) {
+            void this.appendLine(this.appendQueue.join("\n"));
+        }
+
+        this.isReady = false;
+    }
 
     /**
      * Initialize the log folder and create log file.
@@ -70,6 +108,11 @@ export class FileSystemWriter {
         } catch (error) {
             await this.logger.logException("FileSystemWriter.createLogFolder", error, "Failed to create log folder");
         }
+
+        this.setIntervalId = setInterval(() => {
+            void this.flushQueue();
+        }, FLUSH_INTERVAL);
+
         this.isReady = true;
         await this.logger.info("FileSystemWriter.createLogFolder.success");
     }
@@ -89,16 +132,23 @@ export class FileSystemWriter {
      * Append data to the log file.
      * @param line The data to be appended to the log file.
      */
-    public async appendLine(line: string): Promise<void> {
-        if (!this.isReady) {
-            return;
-        }
+    public appendLine(line: string): void {
+        this.appendQueue.push({ message: line, date: new Date() });
+    }
 
+    /**
+     * Flush the queue of data to be appended to the log file.
+     */
+    private async flushQueue(): Promise<void> {
         try {
-            const existingData = await this.readFile();
-            await this.writeString(`${existingData}\n${line}`);
+            if (this.appendQueue.length > 0) {
+                const existingData = await this.readFile();
+                const dataFromQueueToWrite = this.appendQueue.map(entry => `${entry.date.toISOString()} ${entry.message}`).join("\n");
+                this.appendQueue = [];
+                await this.writeString(`${existingData}\n${dataFromQueueToWrite}`);
+            }
         } catch (error) {
-            // swallow ;/
+            console.error("Failed to append to log file", error);
         }
     }
 
@@ -130,4 +180,11 @@ export class FileSystemWriter {
         }
     }
 }
+
+
+
+
+
+
+
 
