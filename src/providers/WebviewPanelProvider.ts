@@ -233,7 +233,13 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         // Path to the CSS file
         const cssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "styles.css"));
 
-        const codionCssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codion.css"));
+        const codiconCssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.css"));
+        const codiconFontPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.ttf"));
+
+        // replace the font path in the codiconCssPath CSS file
+        let cssContent = fs.readFileSync(codiconCssPath.fsPath, "utf8");
+        cssContent = cssContent.replace("%%CODICON_FONT_PATH%%", codiconFontPath.toString());
+        fs.writeFileSync(codiconCssPath.fsPath, cssContent);
 
         // Path to the JS file
         const jsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "scripts.js"));
@@ -247,13 +253,16 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         htmlContent = htmlContent.replace("%%CSS_PATH%%", cssPath.toString());
         htmlContent = htmlContent.replace("%%JS_PATH%%", jsPath.toString());
         htmlContent = htmlContent.replace("%%TOOLKIT_JS_PATH%%", toolkitJsPath.toString());
-        htmlContent = htmlContent.replace("%%CODION_CSS_PATH%%", codionCssPath.toString());
+        htmlContent = htmlContent.replace("%%CODICON_CSS_PATH%%", codiconCssPath.toString());
 
         this.logger.info("getHtmlForWebview.end", undefined, { htmlContentLength: "" + htmlContent.length });
 
         return htmlContent;
     }
 }
+
+
+
 
 
 
