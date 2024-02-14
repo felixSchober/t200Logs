@@ -95,6 +95,22 @@ export class WebviewPanelProvider implements WebviewViewProvider {
             this.logger.info("webviewView.onDidReceiveMessage", undefined, message);
 
             switch (message.command) {
+                case "keywordHighlightCheckboxStateChange":
+                    let keywordChangeEvent: KeywordHighlightChangeEvent;
+                    if (message.isChecked) {
+                        keywordChangeEvent = {
+                            addKeyword: {
+                                keyword: message.keyword,
+                                color: message.keywordColor,
+                            },
+                        };
+                    } else {
+                        keywordChangeEvent = {
+                            removeKeyword: message.keyword,
+                        };
+                    }
+                    this.keywordChangeEventEmitter.fire(keywordChangeEvent);
+                    break;
                 case "filterCheckboxStateChange":
                     const filterDefinition = message.filterDefinition as FilterKeywordChangedEvent;
 
@@ -263,6 +279,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
 
 
 
