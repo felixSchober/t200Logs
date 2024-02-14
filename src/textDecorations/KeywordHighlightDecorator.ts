@@ -90,7 +90,7 @@ export class KeywordHighlightDecorator {
             this.handleKeywordHighlightChange(event);
         });
 
-        this.logger = logger.createLoggerScope("TextDecorator");
+        this.logger = logger.createLoggerScope("KeywordHighlightDecorator");
     }
 
     /**
@@ -248,4 +248,5 @@ export class KeywordHighlightDecorator {
         this.logger.info(`applyKeywordDecoration.setDecorations.${keyword.keyword}.success`);
     }
 }
+
 

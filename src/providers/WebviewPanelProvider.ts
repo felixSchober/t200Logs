@@ -19,7 +19,7 @@ import {
 import { SummaryInfoProvider } from "../info/SummaryInfoProvider";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { KeywordHighlightChangeEvent } from "../textDecorations/KeywordHighlightDecorator";
+import { KeywordHighlight, KeywordHighlightChangeEvent } from "../textDecorations/KeywordHighlightDecorator";
 
 import { DisplaySettingsChangedEvent, FilterChangedEvent, FilterKeywordChangedEvent, TimeFilterChangedEvent } from "./LogContentProvider";
 
@@ -97,16 +97,15 @@ export class WebviewPanelProvider implements WebviewViewProvider {
             switch (message.command) {
                 case "keywordHighlightCheckboxStateChange":
                     let keywordChangeEvent: KeywordHighlightChangeEvent;
+                    const highlightDefinition = message.highlightDefinition as KeywordHighlight;
+
                     if (message.isChecked) {
                         keywordChangeEvent = {
-                            addKeyword: {
-                                keyword: message.keyword,
-                                color: message.keywordColor,
-                            },
+                            addKeyword: highlightDefinition,
                         };
                     } else {
                         keywordChangeEvent = {
-                            removeKeyword: message.keyword,
+                            removeKeyword: highlightDefinition.keyword,
                         };
                     }
                     this.keywordChangeEventEmitter.fire(keywordChangeEvent);
@@ -279,6 +278,8 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
+
 
 
 
