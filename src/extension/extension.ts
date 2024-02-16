@@ -201,16 +201,3 @@ export function createTelemetryReporter(context: vscode.ExtensionContext): Reado
     return new DevLogger(context.logUri);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -249,4 +249,3 @@ export class KeywordHighlightDecorator {
     }
 }
 
-

@@ -1,9 +1,6 @@
 {
     "private": true,
-    "name": "t200logs",
-    "workspaces": [
-        "src/*"
-    ],
+    "name": "t200logs-extension",
     "displayName": "Teams Logs Viewer",
     "description": "Extension to make diagnosing Teams logs much easier. Open this extension in a folder containing Teams logs and it will combine them into a single view with filtering and visual hints.",
     "repository": {
@@ -118,8 +115,7 @@
         "installWithPublicRegistry": "install --registry=https://registry.yarnpkg.com"
     },
     "dependencies": {
-        "@vscode/extension-telemetry": "^0.9.2",
-        "tslib": "^2.6.2"
+        "@vscode/extension-telemetry": "^0.9.2"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.3",

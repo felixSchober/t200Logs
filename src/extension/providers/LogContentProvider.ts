@@ -1090,5 +1090,5 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         }
         return prefix.length > 0 ? prefix + " " : "";
     }
-
 }
+

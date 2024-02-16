@@ -128,9 +128,3 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
     }
 }
 
-
-
-
-
-
-

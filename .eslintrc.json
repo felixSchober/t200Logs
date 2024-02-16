@@ -1,5 +1,5 @@
 {
-    "extends": ["prettier"],
+    "extends": ["eslint:recommended", "prettier"],
     "ignorePatterns": ["out", "dist", "**/*.d.ts", "**/*.min.js"],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -7,10 +7,10 @@
         "sourceType": "module",
         "project": "./tsconfig.eslint.json"
     },
-    "plugins": ["@typescript-eslint", "header", "import", "jsdoc"],
+    "plugins": ["@typescript-eslint", "header", "import", "jsdoc", "react", "react-hooks", "promise", "security"],
     "root": true,
     "rules": {
-        "@typescript-eslint/naming-convention": "error",
+        "@typescript-eslint/naming-convention": "off",
         "@typescript-eslint/semi": "error",
         "@typescript-eslint/require-await": "error",
         "@typescript-eslint/no-floating-promises": "error",
@@ -34,6 +34,8 @@
                 "newlines-between": "always"
             }
         ],
+        "react/no-children-prop": "off",
+        "react/react-in-jsx-scope": "off",
         "import/no-default-export": "error",
         "import/no-duplicates": "error",
         "curly": "warn",
@@ -104,6 +106,14 @@
             }
         ]
     },
+    "overrides": [
+        {
+            "files": ["*.ts", "*.js"],
+            "rules": {
+                "@typescript-eslint/naming-convention": "error"
+            }
+        }
+    ],
     "settings": {
         "import/resolver": {
             "node": {
@@ -114,9 +124,15 @@
             "tagNamePreference": {
                 "auguments": "extends"
             }
+        },
+        "react": {
+            "version": "detect"
         }
     }
 }
+
+
+
 
 
 

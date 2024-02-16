@@ -4,7 +4,7 @@
 
 import * as vscode from "vscode";
 
-import * as pckg from "../../package.json";
+import * as pckg from "../../../package.json";
 
 import { ILogger } from "./ILogger";
 
@@ -180,11 +180,4 @@ export class FileSystemWriter implements vscode.Disposable {
         }
     }
 }
-
-
-
-
-
-
-
 
