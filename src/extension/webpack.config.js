@@ -19,7 +19,7 @@ module.exports = (env) => {
     const uiDistPath = path.resolve(__dirname, "..", "ui", "dist");
     console.log("T200 EXTENSION uiDistPath", uiDistPath);
 
-    const mediaPath = path.resolve(__dirname, "..", "..", "media", "sidePanelReact");
+    const mediaPath = path.resolve(__dirname, "media", "sidePanelReact");
     console.log("T200 EXTENSION mediaPath", mediaPath);
     return {
         plugins: [

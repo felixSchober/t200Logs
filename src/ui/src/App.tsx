@@ -4,8 +4,15 @@
 
 import * as React from "react";
 
-export const App: React.FC = () => (
-  <div>
-    <h1>Hello, React!</h1>
-  </div>
-);
+export const App: React.FC = () => {
+
+    const [counter, setCounter] = React.useState(0);
+    const increment = () => setCounter(counter + 1);
+    return (
+        <div>
+          <h1>Hello, React!</h1>
+            <p>Counter: {counter}</p>
+          <button onClick={increment}>Increment</button>
+        </div>
+      )
+};

@@ -18,5 +18,86 @@
     "engines": {
         "vscode": "^1.84.0"
     },
-    "main": "./dist/extension.js"
+    "main": "./dist/extension.js",
+    "icon": "media/ext_icon.png",
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onFileSystem:scheme:log-viewer"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "t200logs.openLog",
+                "title": "Opens the extension log file",
+                "category": "T200Logs",
+                "shortTitle": "Show Logs"
+            },
+            {
+                "command": "t200logs.provideFeedback",
+                "title": "Provide quick feedback",
+                "category": "T200Logs",
+                "shortTitle": "Feedback"
+            },
+            {
+                "command": "t200logs.toggleReadableIsoDates",
+                "title": "Toggles readable dates to log viewer",
+                "category": "T200Logs",
+                "shortTitle": "Toggle readable dates"
+            },
+            {
+                "command": "t200logs.openLogViewer",
+                "title": "Open log viewer",
+                "category": "T200Logs",
+                "shortTitle": "Open Log Viewer",
+                "icon": "media/icon_filled.png"
+            },
+            {
+                "command": "t200logs.reset",
+                "title": "Reset all data and reopen log viewer",
+                "category": "T200Logs",
+                "shortTitle": "Reset Log Viewer",
+                "icon": "media/reset.png"
+            },
+            {
+                "command": "t200logs.toggleVisualHints",
+                "title": "Toggles visual hints in log viewer",
+                "category": "T200Logs",
+                "shortTitle": "Toggle visual hints"
+            },
+            {
+                "command": "t200logs.inlineDateFilter",
+                "title": "Inline date filter",
+                "category": "T200Logs"
+            }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "t200logs",
+                    "title": "T200Logs",
+                    "icon": "media/icon_outline.png"
+                }
+            ]
+        },
+        "views": {
+            "t200logs": [
+                {
+                    "type": "webview",
+                    "id": "t200logs",
+                    "name": "Teams Logs Viewer"
+                }
+            ]
+        },
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "t200logs.reset",
+                    "group": "navigation",
+                    "when": "resourceScheme == log-viewer"
+                }
+            ]
+        }
+    }
 }

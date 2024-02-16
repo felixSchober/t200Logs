@@ -89,7 +89,11 @@ export class WebviewPanelProvider implements WebviewViewProvider {
     ): void | Thenable<void> {
         this.logger.info("resolveWebviewView", "Resolving webview view");
 
-        webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
+        try {
+            webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
+        } catch (e) {
+            this.logger.logException("resolveWebviewView", e, "Failed to set HTML content for webview", undefined, true, "Side Panel");
+        }
 
         webviewView.webview.onDidReceiveMessage(message => {
             this.logger.info("webviewView.onDidReceiveMessage", undefined, message);
@@ -240,42 +244,45 @@ export class WebviewPanelProvider implements WebviewViewProvider {
     private getHtmlForWebview(webview: Webview): string {
         webview.options = {
             enableScripts: true,
-            localResourceRoots: [VscodeUri.joinPath(this.extensionUri, "media", "sidePanel")],
+            localResourceRoots: [VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact")],
         };
-        const htmlPath = VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "webview.html").with({
+        const htmlPath = VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact", "index.html").with({
             scheme: "vscode-resource",
         }).fsPath;
 
         this.logger.info("getHtmlForWebview", "Reading HTML content", { htmlPath });
 
         // Path to the CSS file
-        const cssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "styles.css"));
+        // const cssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "styles.css"));
 
-        const codiconCssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.css"));
-        const codiconFontPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.ttf"));
+        // const codiconCssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.css"));
+        // const codiconFontPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.ttf"));
 
         // replace the font path in the codiconCssPath CSS file
-        let cssContent = fs.readFileSync(codiconCssPath.fsPath, "utf8");
-        cssContent = cssContent.replace("%%CODICON_FONT_PATH%%", codiconFontPath.toString());
-        fs.writeFileSync(codiconCssPath.fsPath, cssContent);
+        // let cssContent = fs.readFileSync(codiconCssPath.fsPath, "utf8");
+        // cssContent = cssContent.replace("%%CODICON_FONT_PATH%%", codiconFontPath.toString());
+        // fs.writeFileSync(codiconCssPath.fsPath, cssContent);
 
         // Path to the JS file
-        const jsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "scripts.js"));
+        const jsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact", "main.js"));
 
         // path to the toolkit.min.js file
-        const toolkitJsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "toolkit.min.js"));
+        // const toolkitJsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "toolkit.min.js"));
 
         // Read HTML content
         let htmlContent = fs.readFileSync(htmlPath, "utf8");
 
-        htmlContent = htmlContent.replace("%%CSS_PATH%%", cssPath.toString());
-        htmlContent = htmlContent.replace("%%JS_PATH%%", jsPath.toString());
-        htmlContent = htmlContent.replace("%%TOOLKIT_JS_PATH%%", toolkitJsPath.toString());
-        htmlContent = htmlContent.replace("%%CODICON_CSS_PATH%%", codiconCssPath.toString());
+        // htmlContent = htmlContent.replace("%%CSS_PATH%%", cssPath.toString());
+        htmlContent = htmlContent.replace("/main.js", jsPath.toString());
+        // htmlContent = htmlContent.replace("%%TOOLKIT_JS_PATH%%", toolkitJsPath.toString());
+        // htmlContent = htmlContent.replace("%%CODICON_CSS_PATH%%", codiconCssPath.toString());
 
         this.logger.info("getHtmlForWebview.end", undefined, { htmlContentLength: "" + htmlContent.length });
 
         return htmlContent;
     }
 }
+
+
+
 
