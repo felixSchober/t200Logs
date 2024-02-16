@@ -1732,6 +1732,46 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@microsoft/fast-element@npm:^1.12.0":
+  version: 1.12.0
+  resolution: "@microsoft/fast-element@npm:1.12.0"
+  checksum: bbff4e9c83106d1d74f3eeedc87bf84832429e78fee59c6a4ae8164ee4f42667503f586896bea72341b4d2c76c244a3cb0d4fd0d5d3732755f00357714dd609e
+  languageName: node
+  linkType: hard
+
+"@microsoft/fast-foundation@npm:^2.49.4, @microsoft/fast-foundation@npm:^2.49.5":
+  version: 2.49.5
+  resolution: "@microsoft/fast-foundation@npm:2.49.5"
+  dependencies:
+    "@microsoft/fast-element": ^1.12.0
+    "@microsoft/fast-web-utilities": ^5.4.1
+    tabbable: ^5.2.0
+    tslib: ^1.13.0
+  checksum: 8a4729e8193ee93f780dc88fac26561b42f2636e3f0a8e89bb1dfe256f50a01a21ed1d8e4d31ce40678807dc833e25f31ba735cb5d3c247b65219aeb2560c82c
+  languageName: node
+  linkType: hard
+
+"@microsoft/fast-react-wrapper@npm:^0.3.22":
+  version: 0.3.23
+  resolution: "@microsoft/fast-react-wrapper@npm:0.3.23"
+  dependencies:
+    "@microsoft/fast-element": ^1.12.0
+    "@microsoft/fast-foundation": ^2.49.5
+  peerDependencies:
+    react: ">=16.9.0"
+  checksum: 45885e1868916d2aa9059e99c341c97da434331d9340a57128d4218081df68b5e1107031c608db9a550d6d1c3b010d516ed4f8dc5a8a2470058da6750dcd204a
+  languageName: node
+  linkType: hard
+
+"@microsoft/fast-web-utilities@npm:^5.4.1":
+  version: 5.4.1
+  resolution: "@microsoft/fast-web-utilities@npm:5.4.1"
+  dependencies:
+    exenv-es6: ^1.1.1
+  checksum: 303e87847f962944f474e3716c3eb305668243916ca9e0719e26bb9a32346144bc958d915c103776b3e552cea0f0f6233f839fad66adfdf96a8436b947288ca7
+  languageName: node
+  linkType: hard
+
 "@nevware21/ts-async@npm:>= 0.3.0 < 2.x":
   version: 0.4.0
   resolution: "@nevware21/ts-async@npm:0.4.0"
@@ -2279,6 +2319,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vscode/codicons@npm:^0.0.35":
+  version: 0.0.35
+  resolution: "@vscode/codicons@npm:0.0.35"
+  checksum: 7527ef7c1c56d53f931af4984640101bb4ddb7be5761ca5de3d1e5ae1d3ce56cdefb0fbe446d5cb84e6d45f6d9655a32bbc1e1c9e7e30aa78128bd8dcbd88858
+  languageName: node
+  linkType: hard
+
 "@vscode/extension-telemetry@npm:^0.9.2":
   version: 0.9.2
   resolution: "@vscode/extension-telemetry@npm:0.9.2"
@@ -2299,6 +2346,20 @@ __metadata:
     jszip: ^3.10.1
     semver: ^7.5.2
   checksum: 76877419ab54a199a627fbad80a7188376db0fcfa04fb70d472c3512dd20e1a1256345684895f2daff4cc68eb0f207b6de0a4c67171d97183008b4f398128355
+  languageName: node
+  linkType: hard
+
+"@vscode/webview-ui-toolkit@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "@vscode/webview-ui-toolkit@npm:1.4.0"
+  dependencies:
+    "@microsoft/fast-element": ^1.12.0
+    "@microsoft/fast-foundation": ^2.49.4
+    "@microsoft/fast-react-wrapper": ^0.3.22
+    tslib: ^2.6.2
+  peerDependencies:
+    react: ">=16.9.0"
+  checksum: d6555018749339be6c4d4baf2b3f3154f193c760f32905004f2a96dc1a09e980b7c7d209391b91b5f215ae288d4c19a1796e939616e3409cd6ccda2ae8f81837
   languageName: node
   linkType: hard
 
@@ -4362,6 +4423,13 @@ __metadata:
     signal-exit: ^3.0.3
     strip-final-newline: ^2.0.0
   checksum: fba9022c8c8c15ed862847e94c252b3d946036d7547af310e344a527e59021fd8b6bb0723883ea87044dc4f0201f949046993124a42ccb0855cae5bf8c786343
+  languageName: node
+  linkType: hard
+
+"exenv-es6@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "exenv-es6@npm:1.1.1"
+  checksum: 7f2aa12025e6f06c48dc286f380cf3183bb19c6017b36d91695034a3e5124a7235c4f8ff24ca2eb88ae801322f0f99605cedfcfd996a5fcbba7669320e2a448e
   languageName: node
   linkType: hard
 
@@ -8060,7 +8128,9 @@ __metadata:
     "@types/react-dom": ^18.2.18
     "@typescript-eslint/eslint-plugin": ^7.0.0-alpha.0
     "@typescript-eslint/parser": ^7.0.0-alpha.0
+    "@vscode/codicons": ^0.0.35
     "@vscode/test-electron": ^2.3.6
+    "@vscode/webview-ui-toolkit": ^1.4.0
     babel-loader: ^9.1.3
     copy-webpack-plugin: ^12.0.2
     css-loader: ^6.10.0
@@ -8126,8 +8196,16 @@ __metadata:
     typescript: ^5.2.2
     webpack: ^5.89.0
     webpack-cli: ^5.1.4
+    webpack-watch-files-plugin: ^1.2.1
   languageName: unknown
   linkType: soft
+
+"tabbable@npm:^5.2.0":
+  version: 5.3.3
+  resolution: "tabbable@npm:5.3.3"
+  checksum: 1aa56e1bb617cc10616c407f4e756f0607f3e2d30f9803664d70b85db037ca27e75918ed1c71443f3dc902e21dc9f991ce4b52d63a538c9b69b3218d3babcd70
+  languageName: node
+  linkType: hard
 
 "tapable@npm:^2.0.0, tapable@npm:^2.1.1, tapable@npm:^2.2.0":
   version: 2.2.1
@@ -8297,6 +8375,13 @@ __metadata:
     minimist: ^1.2.6
     strip-bom: ^3.0.0
   checksum: 59f35407a390d9482b320451f52a411a256a130ff0e7543d18c6f20afab29ac19fbe55c360a93d6476213cc335a4d76ce90f67df54c4e9037f7d240920832201
+  languageName: node
+  linkType: hard
+
+"tslib@npm:^1.13.0":
+  version: 1.14.1
+  resolution: "tslib@npm:1.14.1"
+  checksum: dbe628ef87f66691d5d2959b3e41b9ca0045c3ee3c7c7b906cc1e328b39f199bb1ad9e671c39025bd56122ac57dfbf7385a94843b1cc07c60a4db74795829acd
   languageName: node
   linkType: hard
 
@@ -8738,6 +8823,18 @@ __metadata:
   version: 3.2.3
   resolution: "webpack-sources@npm:3.2.3"
   checksum: 989e401b9fe3536529e2a99dac8c1bdc50e3a0a2c8669cbafad31271eadd994bc9405f88a3039cd2e29db5e6d9d0926ceb7a1a4e7409ece021fe79c37d9c4607
+  languageName: node
+  linkType: hard
+
+"webpack-watch-files-plugin@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "webpack-watch-files-plugin@npm:1.2.1"
+  dependencies:
+    glob: ^7.2.0
+    lodash: ^4.17.21
+  peerDependencies:
+    webpack: ^3 || ^4 || ^5
+  checksum: b93ef5021b25d5a870b8937ba554a84ee76978f644aac356b36f33e6fa1c3cf44f7a8947ed6ee121f7f3434e979855428fd867590106eda9e347236d2954969c
   languageName: node
   linkType: hard
 

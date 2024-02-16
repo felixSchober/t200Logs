@@ -3,6 +3,7 @@
  */
 
 import * as React from "react";
+import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 
 export const App: React.FC = () => {
 
@@ -13,6 +14,10 @@ export const App: React.FC = () => {
           <h1>Hello, React!</h1>
             <p>Counter: {counter}</p>
           <button onClick={increment}>Increment</button>
+          <VSCodeButton>
+            Test Button
+            <span slot="start" className="codicon codicon-save"></span>
+          </VSCodeButton>
         </div>
       )
 };

@@ -6,7 +6,7 @@
 
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
-
+const WatchExternalFilesPlugin = require('webpack-watch-files-plugin').default;
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 
@@ -21,11 +21,18 @@ module.exports = (env) => {
 
     const mediaPath = path.resolve(__dirname, "media", "sidePanelReact");
     console.log("T200 EXTENSION mediaPath", mediaPath);
+    // console.log("TEST", WatchExternalFilesPlugin.default);
     return {
         plugins: [
             new CopyPlugin({
                 patterns: [
                     { from: uiDistPath, to: mediaPath },
+                ]
+            }),
+            new WatchExternalFilesPlugin({
+                verbose: true,
+                files: [
+                    `${uiDistPath}/**/*.js`,
                 ]
             })
         ],

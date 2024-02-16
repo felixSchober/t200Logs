@@ -244,11 +244,18 @@ export class WebviewPanelProvider implements WebviewViewProvider {
     private getHtmlForWebview(webview: Webview): string {
         webview.options = {
             enableScripts: true,
-            localResourceRoots: [VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact")],
+            localResourceRoots: [
+                VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact"),
+                VscodeUri.joinPath(this.extensionUri, "..", "..", "node_modules", "@vscode", "codicons", "dist"),
+            ],
         };
         const htmlPath = VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact", "index.html").with({
             scheme: "vscode-resource",
         }).fsPath;
+
+        const codiconCssPath = webview.asWebviewUri(
+            VscodeUri.joinPath(this.extensionUri, "..", "..", "node_modules", "@vscode", "codicons", "dist", "codicon.css")
+        );
 
         this.logger.info("getHtmlForWebview", "Reading HTML content", { htmlPath });
 
@@ -275,13 +282,15 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         // htmlContent = htmlContent.replace("%%CSS_PATH%%", cssPath.toString());
         htmlContent = htmlContent.replace("/main.js", jsPath.toString());
         // htmlContent = htmlContent.replace("%%TOOLKIT_JS_PATH%%", toolkitJsPath.toString());
-        // htmlContent = htmlContent.replace("%%CODICON_CSS_PATH%%", codiconCssPath.toString());
+        htmlContent = htmlContent.replace("%%CODICON_CSS_PATH%%", codiconCssPath.toString());
 
         this.logger.info("getHtmlForWebview.end", undefined, { htmlContentLength: "" + htmlContent.length });
 
         return htmlContent;
     }
 }
+
+
 
 
 
