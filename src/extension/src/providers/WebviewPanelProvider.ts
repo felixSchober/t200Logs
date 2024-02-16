@@ -19,9 +19,14 @@ import {
 import { SummaryInfoProvider } from "../info/SummaryInfoProvider";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { KeywordHighlight, KeywordHighlightChangeEvent } from "../textDecorations/KeywordHighlightDecorator";
-
-import { DisplaySettingsChangedEvent, FilterChangedEvent, FilterKeywordChangedEvent, TimeFilterChangedEvent } from "./LogContentProvider";
+import type {
+    DisplaySettingsChangedEvent,
+    FilterChangedEvent,
+    FilterKeywordChangedEvent,
+    KeywordHighlight,
+    KeywordHighlightChangeEvent,
+    TimeFilterChangedEvent,
+} from "@t200logs/common";
 
 /**
  * The webview view provider for the logs viewer in the side panel.
@@ -289,6 +294,8 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
+
 
 
 

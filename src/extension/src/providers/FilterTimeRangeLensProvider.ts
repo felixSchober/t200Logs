@@ -8,7 +8,8 @@ import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 
-import { FilterChangedEvent, LogContentProvider } from "./LogContentProvider";
+import { LogContentProvider } from "./LogContentProvider";
+import { FilterChangedEvent } from "@t200logs/common";
 
 export type DateRange = [Date | null, Date | null];
 
@@ -127,4 +128,5 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
     }
 }
+
 

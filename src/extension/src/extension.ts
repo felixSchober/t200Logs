@@ -6,13 +6,14 @@ import * as vscode from "vscode";
 
 import { EXTENSION_ID } from "./constants/constants";
 import { DateRange, FilterTimeRangeLensProvider } from "./providers/FilterTimeRangeLensProvider";
-import { DisplaySettingsChangedEvent, FilterChangedEvent, LogContentProvider } from "./providers/LogContentProvider";
+import { LogContentProvider } from "./providers/LogContentProvider";
 import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
 import { DevLogger } from "./telemetry";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
-import { KeywordHighlightChangeEvent, KeywordHighlightDecorator } from "./textDecorations/KeywordHighlightDecorator";
+import { KeywordHighlightDecorator } from "./textDecorations/KeywordHighlightDecorator";
 import { TextDecorator } from "./textDecorations/TextDecorator";
+import type { DisplaySettingsChangedEvent, FilterChangedEvent, KeywordHighlightChangeEvent } from "@t200logs/common";
 
 let telemetryReporter: Readonly<ITelemetryLogger>;
 let logContentProvider: Readonly<LogContentProvider>;
@@ -200,4 +201,6 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
+
 

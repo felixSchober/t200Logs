@@ -1,0 +1,8 @@
+{
+    "private": true,
+    "version": "1.0.0",
+    "name": "@t200logs/common",
+    "devDependencies": {
+        "typescript": "5.3.3"
+    }
+}

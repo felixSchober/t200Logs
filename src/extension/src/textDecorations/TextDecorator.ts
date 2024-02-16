@@ -5,9 +5,9 @@
 import * as vscode from "vscode";
 
 import { ERROR_REGEX, WARN_REGEX, WEB_DATE_REGEX_GLOBAL } from "../constants/regex";
-import { DisplaySettingsChangedEvent } from "../providers/LogContentProvider";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
+import { DisplaySettingsChangedEvent } from "@t200logs/common";
 
 /**
  * TextDecorator is a class that provides the ability to decorate in the logs viewer.
@@ -258,4 +258,5 @@ export class TextDecorator {
         }
     }
 }
+
 

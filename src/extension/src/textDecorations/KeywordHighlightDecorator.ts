@@ -7,18 +7,7 @@ import * as vscode from "vscode";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
-
-export type KeywordHighlight = {
-    /**
-     * The keyword to highlight.
-     */
-    keyword: string;
-
-    /**
-     * The color to use for highlighting.
-     */
-    color: string;
-};
+import { KeywordHighlight, KeywordHighlightChangeEvent } from "@t200logs/common";
 
 /**
  * Internal representation of a keyword to highlight with a regular expression.
@@ -28,21 +17,6 @@ type KeywordHighlightWithRegex = KeywordHighlight & {
      * The regular expression to use for highlighting.
      */
     regex: RegExp;
-};
-
-/**
- * Event that is fired the user adds or removes a keyword to highlight.
- */
-export type KeywordHighlightChangeEvent = {
-    /**
-     * Adds a keyword to the list of keywords to highlight.
-     */
-    addKeyword?: KeywordHighlight;
-
-    /**
-     * Removes a keyword from the list of keywords to highlight.
-     */
-    removeKeyword?: string;
 };
 
 /**
@@ -248,4 +222,5 @@ export class KeywordHighlightDecorator {
         this.logger.info(`applyKeywordDecoration.setDecorations.${keyword.keyword}.success`);
     }
 }
+
 
