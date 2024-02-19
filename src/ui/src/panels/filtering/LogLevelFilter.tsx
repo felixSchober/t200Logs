@@ -8,37 +8,40 @@ export const LogLevelFilter: React.FC = () => {
     const [warningFilterEnabled, setWarningFilterEnabled] = React.useState(true);
     const [infoFilterEnabled, setInfoFilterEnabled] = React.useState(true);
     const [debugFilterEnabled, setDebugFilterEnabled] = React.useState(true);
-    const { send } = useSendAndReceive("filterLogLevel", "updateNumberOfActiveFilters", -1, true);
+    const { send } = useSendAndReceive("filterLogLevel", "updateNumberOfActiveFilters");
 
-    const onCheckboxChange = React.useCallback((event: Event | React.FormEvent<HTMLElement>) => {
-        const target = event.target as HTMLInputElement;
-        const value = target.checked;
-        const name = target.name;
+    const onCheckboxChange = React.useCallback(
+        (event: Event | React.FormEvent<HTMLElement>) => {
+            const target = event.target as HTMLInputElement;
+            const value = target.checked;
+            const name = target.name;
 
-        switch (name) {
-            case "error":
-                setErrorFilterEnabled(value);
-                send({ isChecked: value, logLevel: "error" });
-                break;
-            case "warning":
-                setWarningFilterEnabled(value);
-                send({ isChecked: value, logLevel: "warning" });
-                break;
-            case "info":
-                setInfoFilterEnabled(value);
-                send({ isChecked: value, logLevel: "info" });
-                break;
-            case "debug":
-                setDebugFilterEnabled(value);
-                send({ isChecked: value, logLevel: "debug" });
-                break;
-            default:
-                break;
-        }
-    }, []);
+            switch (name) {
+                case "error":
+                    setErrorFilterEnabled(value);
+                    send({ isChecked: value, logLevel: "error" });
+                    break;
+                case "warning":
+                    setWarningFilterEnabled(value);
+                    send({ isChecked: value, logLevel: "warning" });
+                    break;
+                case "info":
+                    setInfoFilterEnabled(value);
+                    send({ isChecked: value, logLevel: "info" });
+                    break;
+                case "debug":
+                    setDebugFilterEnabled(value);
+                    send({ isChecked: value, logLevel: "debug" });
+                    break;
+                default:
+                    break;
+            }
+        },
+        [send]
+    );
 
     return (
-        <Flex direction="row" wrap="wrap" justifyContent="space-evenly">
+        <Flex direction="row" wrap="wrap" justifyContent="space-between">
             <VSCodeCheckbox checked={errorFilterEnabled} name="error" onChange={onCheckboxChange}>
                 Error
             </VSCodeCheckbox>
@@ -54,4 +57,6 @@ export const LogLevelFilter: React.FC = () => {
         </Flex>
     );
 };
+
+
 

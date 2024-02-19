@@ -24,6 +24,10 @@
             "label": "Build UI (dev)",
             "problemMatcher": "$ts-webpack-watch",
             "isBackground": true,
+            "presentation": {
+                "reveal": "silent",
+                "group": "watchers"
+            },
             "group": {
                 "kind": "build"
             }
@@ -46,6 +50,7 @@
         }
     ]
 }
+
 
 
 

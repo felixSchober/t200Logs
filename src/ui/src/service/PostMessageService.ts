@@ -74,6 +74,42 @@ export class PostMessageService<TState = unknown> {
             commandSchema: MessageSchemaMap.updateNumberOfActiveFilters,
             eventListeners: [],
         },
+        displaySettingsChanged: {
+            commandSchema: MessageSchemaMap.displaySettingsChanged,
+            eventListeners: [],
+        },
+        filterLogLevel: {
+            commandSchema: MessageSchemaMap.filterLogLevel,
+            eventListeners: [],
+        },
+        filterNoEventTime: {
+            commandSchema: MessageSchemaMap.filterNoEventTime,
+            eventListeners: [],
+        },
+        filterSessionId: {
+            commandSchema: MessageSchemaMap.filterSessionId,
+            eventListeners: [],
+        },
+        filterTime: {
+            commandSchema: MessageSchemaMap.filterTime,
+            eventListeners: [],
+        },
+        keywordHighlightStateChange: {
+            commandSchema: MessageSchemaMap.keywordHighlightStateChange,
+            eventListeners: [],
+        },
+        openLogsDocument: {
+            commandSchema: MessageSchemaMap.openLogsDocument,
+            eventListeners: [],
+        },
+        updateTimeFilters: {
+            commandSchema: MessageSchemaMap.updateTimeFilters,
+            eventListeners: [],
+        },
+        messageAck: {
+            commandSchema: MessageSchemaMap.messageAck,
+            eventListeners: [],
+        },
     };
 
     constructor(private readonly vscodeApi: WebviewApi<TState>) {
@@ -144,11 +180,16 @@ export class PostMessageService<TState = unknown> {
      * Registers a handler for a specific command.
      * @param commandId The command to register a handler for
      * @param handler The handler to call when the command is received
+     * @returns A function to unregister the handler
      */
     public registerMessageHandler<T extends MessageCommand>(commandId: T["command"], handler: HandleEvent<T["data"]>) {
         this.sendLogMessage("PostMessageService.registerMessageHandler", `Registering message handler for command: ${commandId}`);
         const eventListeners = this.eventListeners[commandId].eventListeners;
         eventListeners.push(handler);
+
+        return () => {
+            this.unregisterMessageHandler(commandId, handler);
+        };
     }
 
     /**
@@ -261,4 +302,7 @@ export class PostMessageService<TState = unknown> {
         });
     }
 }
+
+
+
 

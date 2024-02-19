@@ -40,6 +40,11 @@ type FlexProps = {
      * The children
      */
     children: React.ReactNode;
+
+    /**
+     * Optional style
+     */
+    style?: React.CSSProperties;
 };
 
 /**
@@ -57,9 +62,11 @@ export const Flex: React.FC<FlexProps> = props => {
         alignItems: props.alignItems,
         justifyContent: props.justifyContent,
         width: props.hFill ? "100%" : undefined,
+        ...props.style,
     };
 
     return <div style={style}>{props.children}</div>;
 };
+
 
 

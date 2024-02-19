@@ -18,6 +18,7 @@ export const CommandIdSchema = z.union([
     z.literal("openLogsDocument"),
     z.literal("keywordHighlightStateChange"),
     z.literal("updateTimeFilters"),
+    z.literal("messageAck"),
 ]);
 
 /**
@@ -49,6 +50,7 @@ export const PostMessageSchema = z.object({
  * The schema for the message that is sent between the webview and the extension with unknown data.
  */
 export type PostMessageWithUnknownData = z.TypeOf<typeof PostMessageSchema>;
+
 
 
 

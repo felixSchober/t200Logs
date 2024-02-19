@@ -17,7 +17,7 @@ export type GetCommandById<T extends CommandId> = {
  * - `filterTime` - A command to filter the time
  * - `filterSessionId` - A command to filter the session id
  * - `filterNoEventTime` - A command to turn off/on hiding events without a time
- * - `UpdateNumberOfActiveFiltersCommand` - A command to update the number of active filters (Response of `FilterCheckboxStateChangeCommand`)
+ * - `UpdateNumberOfActiveFilters` - A command to update the number of active filters (Response of `FilterCheckboxStateChangeCommand`)
  * - `LogMessage` - A command to log a message from webview to the extension
  * - `LogErrorMessage` - A command to log a error message from webview to the extension
  * - `GetSummary` - A command to get the summary of the data
@@ -50,6 +50,7 @@ export type PostMessageCommand<TId extends CommandId> = GetCommandById<TId> & {
  * Utility type that takes a command id and returns the type of the data that is sent with the command.
  */
 export type CommandIdToData<T extends CommandId> = z.TypeOf<(typeof MessageSchemaMap)[T]>;
+
 
 
 

@@ -239,7 +239,7 @@ export class ExtensionPostMessageService implements Disposable {
     private respondToFilterCommand(messageId: string) {
         // respond with the number of active filters
         const numberOfActiveFilters = this.getNumberOfActiveFilters();
-        this.replyToMessage({ command: "updateNumberOfActiveFilters", data: { numberOfActiveFilters } }, messageId);
+        this.replyToMessage({ command: "updateNumberOfActiveFilters", data: numberOfActiveFilters }, messageId);
     }
 
     /**
@@ -346,6 +346,7 @@ export class ExtensionPostMessageService implements Disposable {
         }
 
         this.onWebviewDisplaySettingsChanged.fire(parsedPayload);
+        this.acknowledgeMessage(message.id);
     }
 
     /**
@@ -368,13 +369,13 @@ export class ExtensionPostMessageService implements Disposable {
                 removeKeyword: parsedPayload.keywordDefinition.keyword,
             });
         }
+        this.acknowledgeMessage(message.id);
     }
 
     private async handleOpenLogsDocument(message: PostMessageWithUnknownData) {
         await this.openLogsDocument();
         await this.replyToMessage({ command: "openLogsDocument", data: undefined }, message.id);
     }
-
 
     /**
      *
@@ -422,7 +423,18 @@ export class ExtensionPostMessageService implements Disposable {
     private async replyToMessage(command: MessageCommand, requestId: string) {
         await this.sendMessage(command, requestId);
     }
+
+    /**
+     * Acknowledges a message by sending a messageAck command to the webview.
+     * @param id The id of the message to acknowledge
+     */
+    public async acknowledgeMessage(id: string) {
+        this.logger.info("acknowledgeMessage", undefined, { id });
+        await this.sendMessage({ command: "messageAck", data: undefined }, id);
+    }
 }
+
+
 
 
 

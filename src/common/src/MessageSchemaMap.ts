@@ -84,12 +84,7 @@ export const MessageSchemaMap = {
          */
         removeEntriesWithNoEventTime: z.boolean(),
     }),
-    updateNumberOfActiveFilters: z.object({
-        /**
-         * The number of active filters
-         */
-        numberOfActiveFilters: z.number().positive(),
-    }),
+    updateNumberOfActiveFilters: z.number().positive(),
     getSummary: z.object({}),
     getSummaryResponse: z.object({
         /**
@@ -146,7 +141,13 @@ export const MessageSchemaMap = {
          */
         tillDate: z.string().nullable().optional(),
     }),
+    /**
+     * Acknowledges a message
+     */
+    messageAck: z.undefined(),
 } as const;
+
+
 
 
 

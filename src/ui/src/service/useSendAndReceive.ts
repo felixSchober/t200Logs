@@ -35,15 +35,11 @@ type HookReturn<T extends CommandId, TResponse> = {
 export const useSendAndReceive = <TMessageId extends CommandId, TResponseId extends CommandId>(
     messageId: TMessageId,
     responseId: TResponseId,
-    timeout: number = -1,
-    resetSend: boolean = false
+    timeout: number = -1
 ): HookReturn<TMessageId, CommandIdToData<TResponseId>> => {
     const { messageService } = useVSCodeApi();
     const [isPending, setIsPending] = React.useState(false);
     const [response, setResponse] = React.useState<CommandIdToData<TResponseId> | null>(null);
-
-    // prevent sending data twice
-    const allowBlocked = isPending || (response && !resetSend);
 
     const send: SendMethod<TMessageId> = React.useCallback(
         (data: CommandIdToData<TMessageId>) => {
@@ -57,9 +53,9 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
                 setIsPending(false);
                 setResponse(response);
             };
-            if (!allowBlocked) sendAndWait();
+            sendAndWait();
         },
-        [messageService, allowBlocked]
+        [messageService]
     );
 
     return React.useMemo(() => {
@@ -70,6 +66,7 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
         };
     }, [send, isPending, response]);
 };
+
 
 
 
