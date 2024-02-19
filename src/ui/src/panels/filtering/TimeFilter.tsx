@@ -60,13 +60,18 @@ export const TimeFilter: React.FC = () => {
             <VSCodeCheckbox checked={filterOutElementsWithoutTime} name="error" onChange={onCheckboxChange}>
                 Filter out entries that don't have a time
             </VSCodeCheckbox>
-            <VSCodeTextField placeholder="YYYY-MM-DD HH:MM" name="from" value={timeFilter.from} onChange={onTextFieldChange}>
-                From
-            </VSCodeTextField>
-            <VSCodeTextField placeholder="YYYY-MM-DD HH:MM" name="till" value={timeFilter.till} onChange={onTextFieldChange}>
-                Till
-            </VSCodeTextField>
+            <Flex direction="row" wrap="wrap" hFill justifyContent="space-between" style={{ marginTop: "1rem" }}>
+                <VSCodeTextField placeholder="YYYY-MM-DD HH:MM" name="from" value={timeFilter.from} onChange={onTextFieldChange}>
+                    From
+                </VSCodeTextField>
+                <VSCodeTextField placeholder="YYYY-MM-DD HH:MM" name="till" value={timeFilter.till} onChange={onTextFieldChange}>
+                    Till
+                </VSCodeTextField>
+            </Flex>
         </Flex>
     );
 };
+
+
+
 

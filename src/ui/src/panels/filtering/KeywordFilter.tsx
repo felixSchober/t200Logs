@@ -142,7 +142,10 @@ export const KeywordFilter: React.FC = () => {
                     onKeyDown={onTextFieldKeyDown}>
                     Add a new keyword
                 </VSCodeTextField>
-                <VSCodeButton onClick={onAddKeyword} disabled={isPending} style={{ marginLeft: "auto" }}>
+                <VSCodeButton
+                    onClick={onAddKeyword}
+                    disabled={isPending}
+                    style={{ marginLeft: "auto", maxHeight: "26px", alignSelf: "flex-end" }}>
                     Add
                     <span slot="start" className="codicon codicon-add"></span>
                 </VSCodeButton>
@@ -150,4 +153,6 @@ export const KeywordFilter: React.FC = () => {
         </Flex>
     );
 };
+
+
 
