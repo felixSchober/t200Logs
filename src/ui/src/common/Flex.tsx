@@ -32,6 +32,11 @@ type FlexProps = {
     justifyContent?: "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly";
 
     /**
+     * When true, the flex container will fill the horizontal space
+     */
+    hFill?: boolean;
+
+    /**
      * The children
      */
     children: React.ReactNode;
@@ -51,8 +56,10 @@ export const Flex: React.FC<FlexProps> = props => {
         flexWrap: props.wrap,
         alignItems: props.alignItems,
         justifyContent: props.justifyContent,
+        width: props.hFill ? "100%" : undefined,
     };
 
     return <div style={style}>{props.children}</div>;
 };
+
 

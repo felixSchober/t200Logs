@@ -29,19 +29,21 @@ type HookReturn<T extends CommandId, TResponse> = {
  * @param messageId The id of the message to send
  * @param responseId The id of the message to receive.
  * @param timeout The time in milliseconds to wait for a response. If -1, then it will wait indefinitely.
+ * @param resetSend If true, send can be called again. If false, send will not be called again until the response is received.
  * @returns A hook that sends a message to the webview and waits for a response.
  */
 export const useSendAndReceive = <TMessageId extends CommandId, TResponseId extends CommandId>(
     messageId: TMessageId,
     responseId: TResponseId,
-    timeout: number = -1
+    timeout: number = -1,
+    resetSend: boolean = false
 ): HookReturn<TMessageId, CommandIdToData<TResponseId>> => {
     const { messageService } = useVSCodeApi();
     const [isPending, setIsPending] = React.useState(false);
     const [response, setResponse] = React.useState<CommandIdToData<TResponseId> | null>(null);
 
     // prevent sending data twice
-    const allowSend = !isPending && response === null;
+    const allowBlocked = isPending || (response && !resetSend);
 
     const send: SendMethod<TMessageId> = React.useCallback(
         (data: CommandIdToData<TMessageId>) => {
@@ -55,9 +57,9 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
                 setIsPending(false);
                 setResponse(response);
             };
-            if (allowSend) sendAndWait();
+            if (!allowBlocked) sendAndWait();
         },
-        [messageService, allowSend]
+        [messageService, allowBlocked]
     );
 
     return React.useMemo(() => {
@@ -68,4 +70,9 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
         };
     }, [send, isPending, response]);
 };
+
+
+
+
+
 

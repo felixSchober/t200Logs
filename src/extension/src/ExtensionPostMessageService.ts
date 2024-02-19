@@ -142,7 +142,7 @@ export class ExtensionPostMessageService implements Disposable {
                 break;
 
             case "openLogsDocument":
-                this.openLogsDocument();
+                this.handleOpenLogsDocument(parsedMessage);
                 break;
             default:
                 this.logger.info("handleMessageReceived.unknownCommand", "Unknown command", {
@@ -369,6 +369,12 @@ export class ExtensionPostMessageService implements Disposable {
             });
         }
     }
+
+    private async handleOpenLogsDocument(message: PostMessageWithUnknownData) {
+        await this.openLogsDocument();
+        await this.replyToMessage({ command: "openLogsDocument", data: undefined }, message.id);
+    }
+
 
     /**
      *

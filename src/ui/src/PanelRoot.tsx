@@ -4,7 +4,7 @@
 
 import * as React from "react";
 import { VSCodePanels } from "@vscode/webview-ui-toolkit/react";
-import { FilteringPanelView } from "./panels/FilteringPanelView";
+import { FilteringPanelView } from "./panels/filtering/FilteringPanelView";
 import { InfoPanelView } from "./panels/info/InfoPanelView";
 
 export const PanelRoot: React.FC = () => {
@@ -15,4 +15,5 @@ export const PanelRoot: React.FC = () => {
         </VSCodePanels>
     );
 };
+
 
