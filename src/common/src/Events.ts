@@ -1,4 +1,6 @@
-export type LogLevel = "info" | "debug" | "warning" | "error";
+import { z } from "zod";
+export const LogLevelSchema = z.union([z.literal("info"), z.literal("debug"), z.literal("warning"), z.literal("error")]);
+export type LogLevel = z.TypeOf<typeof LogLevelSchema>;
 
 export type DisplaySettingsChangedEvent = {
     /**
@@ -86,3 +88,4 @@ export type FilterChangedEvent = {
  * The event that is fired when the filter changes.
  */
 export type TimeFilterChangedEvent = Pick<FilterChangedEvent, "fromDate" | "tillDate">;
+

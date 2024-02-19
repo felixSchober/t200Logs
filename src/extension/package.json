@@ -101,6 +101,12 @@
         }
     },
     "dependencies": {
-        "@t200logs/common": "^workspace:*"
+        "@t200logs/common": "^workspace:*",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/node": "^16.11.1",
+        "@types/uuid": "9.0.8",
+        "typescript": "^4.4.4"
     }
 }

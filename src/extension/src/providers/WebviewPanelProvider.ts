@@ -43,12 +43,6 @@ export class WebviewPanelProvider implements WebviewViewProvider {
     private readonly postMessageService: ExtensionPostMessageService;
 
     /**
-     * Unscoped version of the logger.
-     * For usage within this class, use {@link logger}.
-     */
-    private readonly _telemetryLogger: ITelemetryLogger;
-
-    /**
      * Creates a new instance of the view provider.
      * @param extensionUri The path to the extension.
      * @param onWebviewFilterChanged The event emitter for when the user changes a filter through the webview.
@@ -57,23 +51,23 @@ export class WebviewPanelProvider implements WebviewViewProvider {
      * @param openLogsDocument A function that opens the logs document.
      * @param timeChangeEvent The event for when the time filter changes through the LogContentProvider.
      * @param keywordChangeEventEmitter The event emitter for when the user changes a keyword highlight through the webview.
-     * @param _telemetryLogger The logger
+     * @param logger The logger
      */
     constructor(
         private readonly extensionUri: VscodeUri,
-        private readonly onWebviewFilterChanged: EventEmitter<FilterChangedEvent>,
-        private readonly onWebviewDisplaySettingsChanged: EventEmitter<DisplaySettingsChangedEvent>,
-        private readonly getNumberOfActiveFilters: () => number,
-        private readonly openLogsDocument: () => Promise<void>,
-        private readonly timeChangeEvent: VscodeEvent<TimeFilterChangedEvent>,
-        private readonly keywordChangeEventEmitter: EventEmitter<KeywordHighlightChangeEvent>,
+        onWebviewFilterChanged: EventEmitter<FilterChangedEvent>,
+        onWebviewDisplaySettingsChanged: EventEmitter<DisplaySettingsChangedEvent>,
+        getNumberOfActiveFilters: () => number,
+        openLogsDocument: () => Promise<void>,
+        timeChangeEvent: VscodeEvent<TimeFilterChangedEvent>,
+        keywordChangeEventEmitter: EventEmitter<KeywordHighlightChangeEvent>,
         logger: ITelemetryLogger
     ) {
         console.log("LogsWebviewViewProvider constructor");
 
         // try to open the logs document if it hasn't been opened yet
         if (!this.hasLogsViewerBeenOpened) {
-            this.openLogsDocument()
+            openLogsDocument()
                 .then(() => {
                     this.hasLogsViewerBeenOpened = true;
                     console.log("LogsWebviewViewProvider: opened logs document");
@@ -88,11 +82,11 @@ export class WebviewPanelProvider implements WebviewViewProvider {
             onWebviewDisplaySettingsChanged,
             getNumberOfActiveFilters,
             timeChangeEvent,
+            openLogsDocument,
             keywordChangeEventEmitter,
             logger
         );
         this.logger = logger.createLoggerScope("WebviewPanelProvider");
-        this._telemetryLogger = logger;
     }
 
     /**
@@ -115,14 +109,6 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         }
 
         this.postMessageService.registerWebview(webviewView.webview);
-
-        // Subscribe to the time filter change event
-        this.timeChangeEvent(timeFilter => {
-            void webviewView.webview.postMessage({
-                command: "timeFilterChange",
-                timeFilter,
-            });
-        });
     }
 
     /**
@@ -178,6 +164,8 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
+
 
 
 

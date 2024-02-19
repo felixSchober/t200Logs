@@ -99,7 +99,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         infoTitle?: string,
         measurements?: TelemetryEventMeasurements
     ): Promise<void> {
-        properties = { ...properties, message: message || "" };
+        properties = message ? { ...properties, message } : properties;
         this.sendTelemetryEvent(eventName, properties, measurements);
         this.logFileWriter?.appendLine(this.getEventString(eventName, properties, measurements));
 
@@ -245,6 +245,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         return Promise.resolve();
     }
 }
+
 
 
 

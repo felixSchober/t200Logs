@@ -13,11 +13,18 @@ export type GetCommandById<T extends CommandId> = {
 /**
  * A union type of all the message commands that can be sent to the webview
  * - `FilterCheckboxStateChangeCommand` - A command to change the state of a filter checkbox
+ * - `filterLogLevel` - A command to filter the log level
+ * - `filterTime` - A command to filter the time
+ * - `filterSessionId` - A command to filter the session id
+ * - `filterNoEventTime` - A command to turn off/on hiding events without a time
  * - `UpdateNumberOfActiveFiltersCommand` - A command to update the number of active filters (Response of `FilterCheckboxStateChangeCommand`)
- * - `LogMessageCommand` - A command to log a message from webview to the extension
- * - `LogErrorMessageCommand` - A command to log a error message from webview to the extension
- * - `GetSummaryCommand` - A command to get the summary of the data
- * - `GetSummaryResponseCommand` - A command to send the summary of the data
+ * - `LogMessage` - A command to log a message from webview to the extension
+ * - `LogErrorMessage` - A command to log a error message from webview to the extension
+ * - `GetSummary` - A command to get the summary of the data
+ * - `GetSummaryResponse` - A command to send the summary of the data
+ * - `DisplaySettingsChanged` - A command to notify the extension that the display settings have changed
+ * - `OpenLogsDocument` - A command to open the logs document
+ * - `updateTimeFilters` - A command to update the time filters in the webview. This is usually sent when the time filter was programmatically changed in the LogContentProvider.
  *
  * @example
  *
@@ -43,4 +50,6 @@ export type PostMessageCommand<TId extends CommandId> = GetCommandById<TId> & {
  * Utility type that takes a command id and returns the type of the data that is sent with the command.
  */
 export type CommandIdToData<T extends CommandId> = z.TypeOf<(typeof MessageSchemaMap)[T]>;
+
+
 

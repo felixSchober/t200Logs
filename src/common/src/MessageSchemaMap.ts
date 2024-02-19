@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { SummaryInfoSchema } from "./model";
+import { LogLevelSchema } from "./Events";
+import { KeywordHighlightSchema } from "./Keywords";
 
 /**
  * Maps a command id to a schema for the data that is sent with the command.
@@ -43,6 +45,45 @@ export const MessageSchemaMap = {
          */
         isChecked: z.boolean(),
     }),
+    filterLogLevel: z.object({
+        /**
+         * The log level to filter
+         */
+        logLevel: LogLevelSchema,
+
+        /**
+         * The state of the log level filter
+         */
+        isChecked: z.boolean(),
+    }),
+    filterTime: z.object({
+        /**
+         * The time filter
+         */
+        fromDate: z.string().nullable().optional(),
+
+        /**
+         * The time filter
+         */
+        tillDate: z.string().nullable().optional(),
+    }),
+    filterSessionId: z.object({
+        /**
+         * The session id to filter
+         */
+        sessionId: z.string(),
+
+        /**
+         * The state of the session id filter
+         */
+        isChecked: z.boolean(),
+    }),
+    filterNoEventTime: z.object({
+        /**
+         * When true, removes all entries that do not have an event time.
+         */
+        removeEntriesWithNoEventTime: z.boolean(),
+    }),
     updateNumberOfActiveFilters: z.object({
         /**
          * The number of active filters
@@ -56,5 +97,60 @@ export const MessageSchemaMap = {
          */
         summary: SummaryInfoSchema,
     }),
+    displaySettingsChanged: z.object({
+        /**
+         * When true, we will display the guids
+         */
+        displayGuids: z.boolean().nullable(),
+
+        /**
+         * When true, we will display the file names, when `null` the setting is not changed
+         */
+        displayFileNames: z.boolean().nullable(),
+
+        /**
+         * When true, we will display the dates in line, when `null` the setting is not changed
+         */
+        displayDatesInLine: z.boolean().nullable(),
+
+        /**
+         * When true, we will display the log levels in the log, when `null` the setting is not changed
+         */
+        displayLogLevels: z.boolean().nullable(),
+
+        /**
+         * When true, we will display the readable dates, when `null` the setting is not changed
+         */
+        displayReadableDates: z.boolean().nullable(),
+    }),
+    openLogsDocument: z.undefined(),
+    keywordHighlightStateChange: z.object({
+        /**
+         * The keyword to highlight
+         */
+        keywordDefinition: KeywordHighlightSchema,
+
+        /**
+         * The state of the keyword highlight
+         */
+        isChecked: z.boolean(),
+    }),
+    updateTimeFilters: z.object({
+        /**
+         * The time filter
+         */
+        fromDate: z.string().nullable().optional(),
+
+        /**
+         * The time filter
+         */
+        tillDate: z.string().nullable().optional(),
+    }),
 } as const;
+
+
+
+
+
+
 
