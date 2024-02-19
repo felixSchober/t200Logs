@@ -7,7 +7,6 @@ import * as fs from "fs";
 import {
     CancellationToken,
     EventEmitter,
-    commands as VscodeCommands,
     Event as VscodeEvent,
     Uri as VscodeUri,
     Webview,
@@ -16,17 +15,15 @@ import {
     WebviewViewResolveContext,
 } from "vscode";
 
-import { SummaryInfoProvider } from "../info/SummaryInfoProvider";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import type {
-    DisplaySettingsChangedEvent,
-    FilterChangedEvent,
-    FilterKeywordChangedEvent,
-    KeywordHighlight,
-    KeywordHighlightChangeEvent,
-    TimeFilterChangedEvent,
+import {
+    type DisplaySettingsChangedEvent,
+    type FilterChangedEvent,
+    type KeywordHighlightChangeEvent,
+    type TimeFilterChangedEvent,
 } from "@t200logs/common";
+import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
 
 /**
  * The webview view provider for the logs viewer in the side panel.
@@ -38,9 +35,18 @@ export class WebviewPanelProvider implements WebviewViewProvider {
      */
     private hasLogsViewerBeenOpened = false;
 
-    private readonly summaryInfoProvider: SummaryInfoProvider;
-
     private readonly logger: ScopedILogger;
+
+    /**
+     * The post message service for the webview.
+     */
+    private readonly postMessageService: ExtensionPostMessageService;
+
+    /**
+     * Unscoped version of the logger.
+     * For usage within this class, use {@link logger}.
+     */
+    private readonly _telemetryLogger: ITelemetryLogger;
 
     /**
      * Creates a new instance of the view provider.
@@ -51,7 +57,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
      * @param openLogsDocument A function that opens the logs document.
      * @param timeChangeEvent The event for when the time filter changes through the LogContentProvider.
      * @param keywordChangeEventEmitter The event emitter for when the user changes a keyword highlight through the webview.
-     * @param logger The logger.
+     * @param _telemetryLogger The logger
      */
     constructor(
         private readonly extensionUri: VscodeUri,
@@ -77,8 +83,16 @@ export class WebviewPanelProvider implements WebviewViewProvider {
                 });
         }
 
-        this.summaryInfoProvider = new SummaryInfoProvider(logger);
+        this.postMessageService = new ExtensionPostMessageService(
+            onWebviewFilterChanged,
+            onWebviewDisplaySettingsChanged,
+            getNumberOfActiveFilters,
+            timeChangeEvent,
+            keywordChangeEventEmitter,
+            logger
+        );
         this.logger = logger.createLoggerScope("WebviewPanelProvider");
+        this._telemetryLogger = logger;
     }
 
     /**
@@ -100,137 +114,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
             this.logger.logException("resolveWebviewView", e, "Failed to set HTML content for webview", undefined, true, "Side Panel");
         }
 
-        webviewView.webview.onDidReceiveMessage(message => {
-            this.logger.info("webviewView.onDidReceiveMessage", undefined, message);
-
-            switch (message.command) {
-                case "keywordHighlightCheckboxStateChange":
-                    let keywordChangeEvent: KeywordHighlightChangeEvent;
-                    const highlightDefinition = message.highlightDefinition as KeywordHighlight;
-
-                    if (message.isChecked) {
-                        keywordChangeEvent = {
-                            addKeyword: highlightDefinition,
-                        };
-                    } else {
-                        keywordChangeEvent = {
-                            removeKeyword: highlightDefinition.keyword,
-                        };
-                    }
-                    this.keywordChangeEventEmitter.fire(keywordChangeEvent);
-                    break;
-                case "filterCheckboxStateChange":
-                    const filterDefinition = message.filterDefinition as FilterKeywordChangedEvent;
-
-                    if (filterDefinition.isChecked) {
-                        this.onWebviewFilterChanged.fire({
-                            addKeywordFilter: filterDefinition.keyword,
-                        });
-                    } else {
-                        this.onWebviewFilterChanged.fire({
-                            removeKeywordFilter: filterDefinition.keyword,
-                        });
-                    }
-                    break;
-
-                case "filterLogLevel":
-                    let event: FilterChangedEvent;
-                    if (message.isChecked) {
-                        event = {
-                            addLogLevel: message.logLevel,
-                        };
-                    } else {
-                        event = {
-                            removeLogLevel: message.logLevel,
-                        };
-                    }
-                    this.onWebviewFilterChanged.fire(event);
-                    break;
-
-                case "timeFilterInputFromChange":
-                    this.onWebviewFilterChanged.fire({
-                        fromDate: message.timeFilter,
-                    });
-                    break;
-
-                case "timeFilterInputTillChange":
-                    this.onWebviewFilterChanged.fire({
-                        tillDate: message.timeFilter,
-                    });
-                    break;
-                case "filterNoEventTimeCheckboxStateChange":
-                    this.onWebviewFilterChanged.fire({
-                        removeEntriesWithNoEventTime: message.isChecked,
-                    });
-                    break;
-                case "filterSessionIdCheckboxStateChange":
-                    let changeEvent: FilterChangedEvent;
-                    if (message.isChecked) {
-                        changeEvent = {
-                            setSessionIdFilter: message.sessionId,
-                        };
-                    } else {
-                        changeEvent = {
-                            removeSessionIdFilter: message.sessionId,
-                        };
-                    }
-                    this.onWebviewFilterChanged.fire(changeEvent);
-                    break;
-                case "displayFilenamesCheckboxStateChange":
-                    this.onWebviewDisplaySettingsChanged.fire({
-                        displayFileNames: message.isChecked,
-                        displayGuids: null,
-                        displayDatesInLine: null,
-                    });
-                    break;
-                case "displayGuidsCheckboxStateChange":
-                    this.onWebviewDisplaySettingsChanged.fire({
-                        displayFileNames: null,
-                        displayGuids: message.isChecked,
-                        displayDatesInLine: null,
-                    });
-                    break;
-                case "displayTimeInlineCheckboxStateChange":
-                    this.onWebviewDisplaySettingsChanged.fire({
-                        displayFileNames: null,
-                        displayGuids: null,
-                        displayDatesInLine: message.isChecked,
-                    });
-                    break;
-                case "displayVisualHintsCheckboxStateChange":
-                    void VscodeCommands.executeCommand("t200logs.toggleVisualHints");
-                    break;
-                case "displayReadableIsoDatesCheckboxStateChange":
-                    void VscodeCommands.executeCommand("t200logs.toggleReadableIsoDates");
-                    break;
-                case "openLogsDocument":
-                    void this.openLogsDocument();
-                    break;
-                case "getSummaryInfo":
-                    void this.summaryInfoProvider.getSummaryInfo().then(summaryInfo => {
-                        void webviewView.webview.postMessage({
-                            command: "summaryInfo",
-                            summaryInfo,
-                        });
-                    });
-                    break;
-                default:
-                    this.logger.info("webviewView.onDidReceiveMessage.unknownCommand", "Unknown command", { command: message.command });
-                    break;
-            }
-
-            // if command was a filter command - send message back with currently active filters
-            if (message.command.startsWith("filter")) {
-                const numberOfActiveFilters = this.getNumberOfActiveFilters();
-                this.logger.info("webviewView.onDidReceiveMessage.filterNumberUpdate", "Sending number of active filters", {
-                    numberOfActiveFilters: "" + numberOfActiveFilters,
-                });
-                void webviewView.webview.postMessage({
-                    command: "updateNumberOfActiveFilters",
-                    numberOfActiveFilters,
-                });
-            }
-        }, undefined);
+        this.postMessageService.registerWebview(webviewView.webview);
 
         // Subscribe to the time filter change event
         this.timeChangeEvent(timeFilter => {
@@ -294,6 +178,9 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
+
+
 
 
 

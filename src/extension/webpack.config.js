@@ -21,7 +21,6 @@ module.exports = (env) => {
 
     const mediaPath = path.resolve(__dirname, "media", "sidePanelReact");
     console.log("T200 EXTENSION mediaPath", mediaPath);
-    // console.log("TEST", WatchExternalFilesPlugin.default);
     return {
         plugins: [
             new CopyPlugin({
@@ -33,6 +32,7 @@ module.exports = (env) => {
                 verbose: true,
                 files: [
                     `${uiDistPath}/**/*.js`,
+                    `${uiDistPath}/**/*.html`,
                 ]
             })
         ],

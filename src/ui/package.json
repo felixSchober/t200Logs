@@ -24,7 +24,9 @@
         "@vscode/webview-ui-toolkit": "^1.4.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "tslib": "^2.6.2"
+        "tslib": "^2.6.2",
+        "uuid": "^9.0.1",
+        "zod": "^3.22.4"
     },
     "devDependencies": {
         "@babel/cli": "^7.23.9",
@@ -35,6 +37,8 @@
         "@types/node": "18.x",
         "@types/react": "^18.2.14",
         "@types/react-dom": "^18.2.18",
+        "@types/uuid": "^9.0.7",
+        "@types/vscode-webview": "^1.57.5",
         "@typescript-eslint/eslint-plugin": "^7.0.0-alpha.0",
         "@typescript-eslint/parser": "^7.0.0-alpha.0",
         "@vscode/test-electron": "^2.3.6",
@@ -49,6 +53,7 @@
         "eslint-plugin-jsx-a11y": "^6.8.0",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-prefer-arrow": "^1.2.3",
+        "eslint-plugin-react": "^7.33.2",
         "eslint-plugin-security": "^1.7.1",
         "glob": "^10.3.10",
         "html-webpack-plugin": "^5.5.4",

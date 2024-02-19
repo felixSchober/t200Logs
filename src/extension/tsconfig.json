@@ -4,7 +4,7 @@
         "target": "ES2022",
         "lib": ["ES2022", "DOM"],
         "sourceMap": true,
-        "rootDir": "src",
+        // "rootDir": "src",
         "strict": true /* enable all strict type-checking options */,
         /* Additional Checks */
         "noImplicitAny": true,
@@ -16,4 +16,5 @@
     },
     "exclude": ["media/webview/", "node_modules", ".vscode-test", "dist", "../ui"]
 }
+
 

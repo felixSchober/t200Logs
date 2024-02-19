@@ -13,7 +13,7 @@ const container = document.getElementById("root") as HTMLElement;
 const startApp = () => {
     return ReactDOM.createRoot(container).render(
         <React.StrictMode>
-                    <App />
+            <App />
         </React.StrictMode>
     );
 };

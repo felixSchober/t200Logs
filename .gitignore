@@ -71,3 +71,6 @@ coverage/
 resources/favicons/*
 !resources/favicons/.gitkeep
 .DS_Store
+
+# compiled files in the media directory
+src/extension/media/sidePanelReact/

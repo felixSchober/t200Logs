@@ -9,61 +9,7 @@ import * as vscode from "vscode";
 import { GUID_REGEX } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-
-type SummaryInfoUser = {
-    /**
-     * The user principal name.
-     * E.g "feschobe@microsoft.com".
-     */
-    upn: string | null;
-    /**
-     * The user display name.
-     */
-    name: string | null;
-    /**
-     * The user tenant id.
-     */
-    tenantId: string | null;
-    /**
-     * The user object id.
-     */
-    oid: string | null;
-    /**
-     * The user id.
-     */
-    userId: string | null;
-};
-
-type SummaryInfo = {
-    /**
-     * The session id.
-     */
-    sessionId: string | null;
-    /**
-     * The device id.
-     */
-    deviceId: string | null;
-    /**
-     * The host version.
-     */
-    hostVersion: string | null;
-    /**
-     * The web version.
-     */
-    webVersion: string | null;
-    /**
-     * The users language.
-     */
-    language: string | null;
-    /**
-     * The users ring.
-     */
-    ring: string | null;
-    /**
-     * The logged in users.
-     */
-    users: SummaryInfoUser[];
-};
+import { SummaryInfo, SummaryInfoUser } from "@t200logs/common";
 
 /**
  * Matches "SessionId:	18bf77c6-e99f-4d46-95ec-3b43100c3861".
@@ -215,4 +161,6 @@ export class SummaryInfoProvider {
         return users;
     }
 }
+
+
 

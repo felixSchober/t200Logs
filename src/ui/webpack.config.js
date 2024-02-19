@@ -7,7 +7,8 @@ const CopyPlugin = require("copy-webpack-plugin");
 const path = require("path");
 
 module.exports = (env) => {
-
+    console.log("T200 UI", env);
+    console.log("T200 UI cwd", __dirname);
     const plugins = [
         new HtmlWebpackPlugin({
             template: path.join(__dirname, "src", "index.html"),
@@ -58,7 +59,7 @@ module.exports = (env) => {
             rules: [
                 {
                     test: /\.(ts|tsx)$/,
-                    include: path.resolve(__dirname, "src"),
+                    include: [path.resolve(__dirname, "src"), path.resolve(__dirname, "..", "common")],
                     exclude: /node_modules/,
                     use: [
                         {
