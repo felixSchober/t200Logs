@@ -29,7 +29,8 @@ module.exports = (env) => {
         output: {
             path: path.resolve(__dirname, "dist"),
             publicPath: "/",
-            filename: "[name].js"
+            filename: "[name].js",
+            clean: true
         },
         devServer: {
             static: {

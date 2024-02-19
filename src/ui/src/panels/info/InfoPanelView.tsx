@@ -1,6 +1,7 @@
 import * as React from "react";
 import { VSCodePanelTab, VSCodePanelView } from "@vscode/webview-ui-toolkit/react";
 import { useSendAndReceive } from "../../service/useSendAndReceive";
+import { SummaryGrid } from "./SummaryGrid";
 
 export const InfoPanelView: React.FC = () => {
     const { send, isPending, response } = useSendAndReceive("getSummary", "getSummaryResponse");
@@ -13,10 +14,11 @@ export const InfoPanelView: React.FC = () => {
         <>
             <VSCodePanelTab id="tab-2">Info</VSCodePanelTab>
             <VSCodePanelView id="view-2">
-                {isPending && "Loading..."}
-                {JSON.stringify(response, null, 2)}
+                <SummaryGrid info={response?.summary} isPending={isPending} />
             </VSCodePanelView>
         </>
     );
 };
+
+
 

@@ -79,6 +79,15 @@ export class SummaryInfoProvider {
             };
         }
 
+        // reset the regexes
+        sessionIdRegex.lastIndex = 0;
+        deviceIdRegex.lastIndex = 0;
+        hostVersionRegex.lastIndex = 0;
+        webVersionRegex.lastIndex = 0;
+        languageRegex.lastIndex = 0;
+        ringRegex.lastIndex = 0;
+        userRegex.lastIndex = 0;
+
         const sessionId = this.getValueFromContent(sessionIdRegex, summaryFileContent);
         const deviceId = this.getValueFromContent(deviceIdRegex, summaryFileContent);
         const hostVersion = this.getValueFromContent(hostVersionRegex, summaryFileContent);
@@ -87,7 +96,8 @@ export class SummaryInfoProvider {
         const ring = this.getValueFromContent(ringRegex, summaryFileContent);
         const users = this.getUsers(summaryFileContent);
 
-        void this.logger.info("getSummaryInfo", "Got summary info", {
+        this.logger.info("getSummaryInfo", "Got summary info", {
+            fileContentSubstring: summaryFileContent.substring(0, 100),
             sessionId: sessionId ?? "",
             deviceId: deviceId ?? "",
             hostVersion: hostVersion ?? "",
@@ -114,6 +124,7 @@ export class SummaryInfoProvider {
     private async getSummaryFileContent(): Promise<string> {
         const fileUris = await vscode.workspace.findFiles("**/summary.txt");
         if (fileUris.length === 0) {
+            this.logger.info("getSummaryFileContent.noFile");
             return "";
         } else if (fileUris.length > 1) {
             void this.logger.logException(
@@ -127,6 +138,12 @@ export class SummaryInfoProvider {
 
         const fileUri = fileUris[0];
         const fileContent = await fs.readFile(fileUri.fsPath, "utf8");
+        if (fileContent.length < 10) {
+            this.logger.info("getSummaryFileContent.small", undefined, {
+                fileUri: fileUri.fsPath,
+                fileContent: fileContent,
+            });
+        }
         return fileContent;
     }
 
@@ -138,6 +155,14 @@ export class SummaryInfoProvider {
      */
     private getValueFromContent(regex: RegExp, content: string): string | null {
         const match = regex.exec(content);
+
+        this.logger.info("getValueFromContent", undefined, {
+            regex: regex.source,
+            content: content.substring(0, 30),
+            match0: match?.[0] ?? "-",
+            match1: match?.[1] ?? "-",
+        });
+
         return match ? match[1] : null;
     }
 
@@ -161,6 +186,20 @@ export class SummaryInfoProvider {
         return users;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
