@@ -169,16 +169,24 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
 
     /**
      * Strings to remove from the log entries.
+     * This is a static list of strings that are removed from the log entries and the result is cached.
      */
-    private stringsToRemove = [
-        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}(\+|-)\d{2}:\d{2}/, // 2023-11-28T15:16:31.758465+00:00
-        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/, // 2023-11-29T10:21:49.895Z
-        /\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT(\+|-)\d{4} \(\D*\)/, // Sun Jan 07 2024 18:45:43 GMT-0800 (Pacific Standard Time)
-        /\s0x[0-9a-f]{8}/, //  0x00001f68 (ProcessIds) with two spaces before
-        /-logs\.txt/,
-        /<\d{5}>/,
+    private staticStringsToRemove = [
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}(\+|-)\d{2}:\d{2}/g, // 2023-11-28T15:16:31.758465+00:00
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, // 2023-11-29T10:21:49.895Z
+        /\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT(\+|-)\d{4} \(\D*\)/g, // Sun Jan 07 2024 18:45:43 GMT-0800 (Pacific Standard Time)
+        /\s0x[0-9a-f]{8}/g, //  0x00001f68 (ProcessIds) with two spaces before
+        /-logs\.txt/g,
+        /<\d{5}>/g,
         /\s0x[0-9a-fA-F]{16}\s/g, // 0x0000000000000000 with spaces before and after
-    ];
+        /[0-9a-f]{8}\s/g // d93f9c40 with a space after (process ids)
+    ] as const;
+
+    /**
+     * Strings to remove from the log entries.
+     * This is a dynamic list of strings that are removed from the log entries and the result is not cached cached.
+     */
+    private additionalStringsToRemove: RegExp[] = [];
 
     private readonly stringReplacementMap = [
         {
@@ -201,6 +209,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
      * A list of functions that should be called after {@link provideTextDocumentContent} is finished.
      */
     private readonly filterMessagesToRespondTo: PostMessageEventRespondFunction[] = [];
+
+    /**
+     * A list of functions that should be called after {@link provideTextDocumentContent} is finished.
+     */
+    private readonly displaySettingsToRespondTo: PostMessageEventRespondFunction[] = [];
 
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
     readonly onDidChange = this._onDidChange.event;
@@ -365,35 +378,41 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
      */
     private registerDisplaySettingEvents() {
         const displaySettingsChanged = this.postMessageService.registerMessageHandler("displaySettingsChanged", (event, respond) => {
-            let shouldRespond = false;
-            if (event.displayFileNames !== null) {
+            let shouldChangeDocument = false;
+            if (event.displayFileNames !== null && this._displayFileNames !== event.displayFileNames) {
                 this._displayFileNames = event.displayFileNames;
-                shouldRespond = true;
+                shouldChangeDocument = true;
             }
 
-            if (event.displayGuids !== null) {
+            const hideGuids = !event.displayGuids;
+            const isHidingGuids = this.additionalStringsToRemove.some(regex => regex.source === GUID_REGEX.source);
+            if (event.displayGuids !== null && isHidingGuids !== hideGuids) {
                 // if the user wants to display the guids, remove the regex that removes them
                 if (event.displayGuids) {
-                    this.stringsToRemove = this.stringsToRemove.filter(regex => regex.source !== GUID_REGEX.source);
+                    this.additionalStringsToRemove = this.additionalStringsToRemove.filter(regex => regex.source !== GUID_REGEX.source);
                 } else {
-                    this.stringsToRemove.push(GUID_REGEX);
+                    this.additionalStringsToRemove.push(GUID_REGEX);
                 }
-                shouldRespond = true;
+                shouldChangeDocument = true;
             }
 
-            if (event.displayDatesInLine !== null) {
+            if (event.displayDatesInLine !== null && this._displayDatesInLine !== event.displayDatesInLine) {
                 this._displayDatesInLine = event.displayDatesInLine;
-                shouldRespond = true;
+                shouldChangeDocument = true;
             }
 
-            if (shouldRespond) {
-                this.filterMessagesToRespondTo.push(respond);
+            if (shouldChangeDocument) {
+                this.displaySettingsToRespondTo.push(respond);
                 this.triggerDocumentChange();
             } else {
                 this.logger.info("displaySettingsChanged.noChange", undefined, {
                     displayFileNames: "" + event.displayFileNames,
                     displayGuids: "" + event.displayGuids,
                     displayDatesInLine: "" + event.displayDatesInLine,
+                });
+                respond({
+                    command: "messageAck",
+                    data: undefined,
                 });
             }
         });
@@ -454,72 +473,6 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
     }
-
-    /**
-     * Updates the filters for the log entries.
-     * @param filterChangeEvent The event that is fired when the filter changes.
-     */
-    // private updateFilters(filterChangeEvent: FilterChangedEvent) {
-    //     if (filterChangeEvent.addLogLevel) {
-    //         this.disabledLogLevels = this.disabledLogLevels.filter(level => level !== filterChangeEvent.addLogLevel);
-    //     }
-
-    //     if (filterChangeEvent.removeLogLevel) {
-    //         if (!this.disabledLogLevels.includes(filterChangeEvent.removeLogLevel)) {
-    //             this.disabledLogLevels.push(filterChangeEvent.removeLogLevel);
-    //         }
-    //     }
-
-    //     if (filterChangeEvent.fromDate || filterChangeEvent.fromDate === "") {
-    //         if (filterChangeEvent.fromDate === "") {
-    //             this.timeFilterFrom = this.minimumDate;
-    //         } else {
-    //             this.timeFilterFrom = filterChangeEvent.fromDate;
-    //         }
-    //     }
-
-    //     if (filterChangeEvent.tillDate || filterChangeEvent.tillDate === "") {
-    //         this.timeFilterTill = filterChangeEvent.tillDate;
-    //     }
-
-    //     if (filterChangeEvent.removeEntriesWithNoEventTime === true) {
-    //         this.minimumDate = new Date(1000).toISOString();
-    //         this.timeFilterFrom = this.minimumDate;
-    //     } else if (filterChangeEvent.removeEntriesWithNoEventTime === false) {
-    //         this.timeFilterFrom = null;
-    //         this.minimumDate = null;
-    //     }
-
-    //     if (filterChangeEvent.setSessionIdFilter) {
-    //         this.sessionId = filterChangeEvent.setSessionIdFilter;
-    //         const sessionIdLogEntry = this.findEarliestSessionIdInLogEntries();
-    //         if (sessionIdLogEntry) {
-    //             // subtract 1 second from the timestamp to make sure we include the log entry with the session id
-    //             const filterFrom = new Date(sessionIdLogEntry.date.getTime() - 1000).toISOString();
-    //             this.logger.info("updateFilters.setSessionIdFilter.success", undefined, { sessionId: this.sessionId, filterFrom });
-    //             this.timeFilterFrom = filterFrom;
-    //         } else {
-    //             this.logger.logException(
-    //                 "updateFilters.setSessionIdFilter.notFound",
-    //                 new Error(`Could not find log entry with session id: ${this.sessionId}`),
-    //                 undefined,
-    //                 {
-    //                     sessionId: this.sessionId,
-    //                 },
-    //                 true,
-    //                 "Session Id"
-    //             );
-    //         }
-    //     }
-
-    //     if (filterChangeEvent.removeSessionIdFilter) {
-    //         this.sessionId = null;
-    //         this.timeFilterFrom = this.minimumDate;
-    //     }
-
-    //     this.changeTrigger++;
-    //     this._onDidChange.fire(LogContentProvider.documentUri);
-    // }
 
     /**
      * Triggers a document change event.
@@ -689,9 +642,17 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                 throwIfCancellation(token);
 
                 // Generate content for the virtual document
-                const content = this.generateDocumentContent(filteredLogEntires, token);
+                let content = this.generateDocumentContent(filteredLogEntires, token);
 
-                progress.report({ increment: 9 });
+                progress.report({ increment: 4 });
+
+                // go over the list of additional strings to remove and remove them from the content
+                for (const regex of this.additionalStringsToRemove) {
+                    this.logger.info("provideTextDocumentContent.removeAdditionalStrings", undefined, { regex: regex.source });
+                    regex.lastIndex = 0;
+                    content = content.replaceAll(regex, "[GUID]");
+                }
+                progress.report({ increment: 5 });
                 this.logger.info("provideTextDocumentContent.end", undefined, {
                     changeTrigger: "" + this.changeTrigger,
                     filteredLogEntires: "" + filteredLogEntires.size,
@@ -712,6 +673,18 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             if (respond) {
                 this.logger.info("respondToMessages");
                 respond({ command: "updateNumberOfActiveFilters", data: activeFilters });
+            }
+        }
+
+        // pop all the display settings messages and respond to them
+        while (this.displaySettingsToRespondTo.length > 0) {
+            const respond = this.displaySettingsToRespondTo.pop();
+            if (respond) {
+                this.logger.info("respondToMessages.displaySettings");
+                respond({
+                    command: "messageAck",
+                    data: undefined,
+                });
             }
         }
     }
@@ -1110,7 +1083,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
 
             // removes all information that is not needed one by one
             // stringsToRemove is a static list so we can cache the result
-            const entryText = this.stringsToRemove.reduce((text, regex) => text.replace(regex, ""), entry.text);
+            const entryText = this.staticStringsToRemove.reduce((text, regex) => text.replaceAll(regex, ""), entry.text);
             currentGroup.push({ date: entry.date, text: entryText, service: entry.service });
         }
 
@@ -1170,6 +1143,21 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         return prefix.length > 0 ? prefix + " " : "";
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

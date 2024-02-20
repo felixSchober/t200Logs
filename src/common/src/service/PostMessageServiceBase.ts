@@ -134,10 +134,11 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      * @returns void
      */
     protected onMessageReceived(event: MessageEvent<unknown>) {
-        const messageData = event.data;
+        const messageData = event;
         const parsedData = PostMessageSchema.safeParse(messageData);
 
         if (!parsedData.success) {
+            debugger;
             console.error("Invalid message received", parsedData.error);
             this.internalLogErrorMessage(
                 "PostMessageService.onMessageReceived",
@@ -244,10 +245,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
                 if (parsedResponse.success) {
                     resolve(parsedResponse.data);
                 } else {
-                    console.error(
-                        "Received response that could not be parsed according to PostMessageSchema",
-                        parsedResponse.error,
-                        response
+                    debugger;
+                    this.internalLogErrorMessage(
+                        "sendAndReceive.handleResponse",
+                        `Received unexpected response to ${message.command} that could not be parsed according to expected schema. Expected response command id: ${expectResponseId}. - Received response data ${JSON.stringify(response)} - Parse error: ${parsedResponse.error.toString()}`
                     );
                     reject(new Error("Invalid response received", parsedResponse.error));
                 }
@@ -332,4 +333,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      */
     protected abstract postMessage(message: unknown): void;
 }
+
+
+
+
+
+
 

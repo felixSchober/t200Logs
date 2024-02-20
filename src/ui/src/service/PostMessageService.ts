@@ -13,7 +13,7 @@ export class PostMessageService<TState = unknown> extends PostMessageServiceBase
     protected startListening() {
         console.log("Starting to listen for messages from extension.");
         window.addEventListener("message", event => {
-            this.onMessageReceived(event);
+            this.onMessageReceived(event?.data);
         });
     }
 
@@ -63,4 +63,5 @@ export class PostMessageService<TState = unknown> extends PostMessageServiceBase
         this.vscodeApi.postMessage(message);
     }
 }
+
 

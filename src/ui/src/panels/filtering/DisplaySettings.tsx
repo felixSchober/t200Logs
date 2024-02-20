@@ -62,7 +62,7 @@ export const DisplaySettings: React.FC = () => {
     React.useEffect(() => {
         log("useEffect", "Sending display settings to the extension backend");
         send({
-            displayDatesInLine: debouncedDisplaySettings.displayReadableDates,
+            displayDatesInLine: debouncedDisplaySettings.displayInlineTime,
             displayFileNames: debouncedDisplaySettings.displayFileNames,
             displayGuids: debouncedDisplaySettings.displayGuids,
             displayLogLevels: debouncedDisplaySettings.displaySeverityHighlight,
@@ -106,4 +106,5 @@ export const DisplaySettings: React.FC = () => {
         </Flex>
     );
 };
+
 

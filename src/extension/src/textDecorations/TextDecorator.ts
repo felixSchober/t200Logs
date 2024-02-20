@@ -65,13 +65,13 @@ export class TextDecorator implements vscode.Disposable {
 
         this.unregisterPostMessageEvent = postMessageService.registerMessageHandler("displaySettingsChanged", (event, respond) => {
             let shouldAcknowledge = false;
-            if (event.displayReadableDates !== null) {
+            if (event.displayReadableDates !== null && this.isReadableIsoDatesEnabled !== event.displayReadableDates) {
                 this.logger.info("displaySettingsChanged.displayReadableDates", undefined, { newState: "" + event.displayReadableDates });
                 this.applyReadableIsoDates(null, event.displayReadableDates);
                 shouldAcknowledge = true;
             }
 
-            if (event.displayLogLevels !== null) {
+            if (event.displayLogLevels !== null && this.isSeverityLevelHighlightingEnabled !== event.displayLogLevels) {
                 this.logger.info("displaySettingsChanged.displayLogLevels", undefined, { newState: "" + event.displayLogLevels });
                 this.applySeverityLevelHighlighting(null, event.displayLogLevels);
                 shouldAcknowledge = true;
@@ -289,6 +289,7 @@ export class TextDecorator implements vscode.Disposable {
         }
     }
 }
+
 
 
 
