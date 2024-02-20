@@ -1,5 +1,5 @@
-import { CommandIdToData, GetCommandById, MessageCommand } from "../MessageCommands";
-import { CommandId } from "../PostMessageSchema";
+import { CommandIdToData, GetCommandById, MessageCommand } from "../postMessage/MessageCommands";
+import { CommandId } from "../postMessage/PostMessageSchema";
 import { HandleEvent } from "./PostMessageServiceBase";
 
 export interface IPostMessageService {

@@ -1,8 +1,8 @@
 import { v4 as uuid } from "uuid";
 import { z } from "zod";
-import { CommandIdToData, MessageCommand, GetCommandById, PostMessageCommand } from "../MessageCommands";
-import { MessageSchemaMap } from "../MessageSchemaMap";
-import { CommandId, PostMessageSchema } from "../PostMessageSchema";
+import { CommandIdToData, MessageCommand, GetCommandById, PostMessageCommand } from "../postMessage/MessageCommands";
+import { MessageSchemaMap } from "../postMessage/MessageSchemaMap";
+import { CommandId, PostMessageSchema } from "../postMessage/PostMessageSchema";
 import { IPostMessageService } from "./IPostMessageService";
 
 /**
@@ -104,6 +104,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
         },
         keywordHighlightStateChange: {
             commandSchema: MessageSchemaMap.keywordHighlightStateChange,
+            eventListeners: [],
+        },
+        updateNumberOfHighlightedKeywords: {
+            commandSchema: MessageSchemaMap.updateNumberOfHighlightedKeywords,
             eventListeners: [],
         },
         openLogsDocument: {
@@ -333,6 +337,8 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      */
     protected abstract postMessage(message: unknown): void;
 }
+
+
 
 
 

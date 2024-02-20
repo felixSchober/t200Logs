@@ -50,12 +50,12 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
 
     /**
      * Initializes a new instance of the Keyword highlight decorator class.
-     * @param onKeywordHighlightChange The event that is fired when the user adds or removes a keyword to highlight.
+     * @param postMessageService The post message service.
      * @param onTextDocumentGenerationFinishedEvent The event that is fired when the text document generation is finished and we can apply the decorations.
      * @param logger The logger.
      */
     constructor(
-        postMessageService: IPostMessageService,
+        private readonly postMessageService: IPostMessageService,
         onTextDocumentGenerationFinishedEvent: vscode.Event<string>,
         logger: ITelemetryLogger
     ) {
@@ -100,7 +100,11 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
                 regex: new RegExp(`${event.keywordDefinition.keyword}`, "gi"),
             };
             this.keywords.push(highlight);
-            void this.applyKeywordDecoration(highlight);
+            void this.applyKeywordDecoration(highlight, undefined, undefined, () => {
+                this.logger.info("handleKeywordHighlightChange.applyKeywordDecoration.finished", undefined, { keyword: highlight.keyword });
+                this.acknowledgeMessage();
+                this.updateNumberOfActiveKeywords();
+            });
         } else {
             this.keywords = this.keywords.filter(k => k.keyword !== event.keywordDefinition.keyword);
             this.removeKeywordHighlight(event.keywordDefinition.keyword);
@@ -132,6 +136,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         }
 
         const keywordDecoration = this.decorations[keyword];
+        debugger;
         if (keywordDecoration) {
             editor.setDecorations(keywordDecoration, []);
             keywordDecoration.dispose();
@@ -146,10 +151,13 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
             );
         }
         this.acknowledgeMessage();
+        this.updateNumberOfActiveKeywords();
     }
 
     /**
      * Applies all the keyword decorations to the editor.
+     * This is only executed once when the text document generation is finished.
+     * New keywords are added to the list and {@link applyKeywordDecoration} is called.
      * @param content The document content to apply the decoration to. If `null` the method will take the content from the active text editor. (This is useful because after filtering the content read by the vscode API will not yet be updated.).
      */
     private async applyAllKeywordDecorations(content?: string) {
@@ -184,8 +192,6 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
                 });
 
                 await Promise.all(promises);
-
-                this.acknowledgeMessage();
                 this.logger.info("applyAllKeywordDecorations.finished");
             }
         );
@@ -257,7 +263,17 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         onUpdateProgressFinished?.();
         this.logger.info(`applyKeywordDecoration.setDecorations.${keyword.keyword}.success`);
     }
+
+    private updateNumberOfActiveKeywords() {
+        this.postMessageService.sendAndForget({ command: "updateNumberOfHighlightedKeywords", data: this.keywords.length });
+    }
 }
+
+
+
+
+
+
 
 
 

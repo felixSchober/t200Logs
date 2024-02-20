@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { SummaryInfoSchema } from "./model";
-import { LogLevelSchema } from "./Events";
-import { KeywordHighlightSchema } from "./Keywords";
+import { SummaryInfoSchema } from "../model";
+import { LogLevelSchema } from "../Events";
+import { KeywordHighlightSchema } from "../model/Keywords";
 
 /**
  * Maps a command id to a schema for the data that is sent with the command.
@@ -85,6 +85,7 @@ export const MessageSchemaMap = {
         removeEntriesWithNoEventTime: z.boolean(),
     }),
     updateNumberOfActiveFilters: z.number().positive(),
+    updateNumberOfHighlightedKeywords: z.number().positive(),
     getSummary: z.object({}),
     getSummaryResponse: z.object({
         /**
@@ -146,12 +147,4 @@ export const MessageSchemaMap = {
      */
     messageAck: z.undefined(),
 } as const;
-
-
-
-
-
-
-
-
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MessageSchemaMap } from "./MessageSchemaMap";
+import { MessageSchemaMap } from "../postMessage/MessageSchemaMap";
 
 export const KeywordHighlightSchema = z.object({
     /**
@@ -22,6 +22,4 @@ export type KeywordHighlight = z.TypeOf<typeof KeywordHighlightSchema>;
  * Event that is fired the user adds or removes a keyword to highlight.
  */
 export type KeywordHighlightChangeEvent = z.TypeOf<(typeof MessageSchemaMap)["keywordHighlightStateChange"]>;
-
-
 
