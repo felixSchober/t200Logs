@@ -3,6 +3,8 @@ import { VSCodeTextField, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/reac
 import { Flex } from "../../common/Flex";
 import { useSendAndReceive } from "../../service/useSendAndReceive";
 import { useDebounce } from "../../common/useDebounce";
+import { useMessageSubscription } from "../../service/useMessageSubscription";
+import { useLogger } from "../../service/useLogger";
 
 type TimeFilterState = {
     from: string;
@@ -16,6 +18,8 @@ export const TimeFilter: React.FC = () => {
     const debouncedTimeFilter = useDebounce(timeFilter, 1000);
     const { send: sendTime } = useSendAndReceive("filterTime", "updateNumberOfActiveFilters");
     const { send: sendFilterNoEventTime } = useSendAndReceive("filterNoEventTime", "updateNumberOfActiveFilters");
+    const subscriptionTimeFilters = useMessageSubscription("updateTimeFilters");
+    const { log } = useLogger("TimeFilter");
 
     const onCheckboxChange = React.useCallback(
         (event: Event | React.FormEvent<HTMLElement>) => {
@@ -44,16 +48,61 @@ export const TimeFilter: React.FC = () => {
     }, []);
 
     React.useEffect(() => {
-        console.log("debouncedTimeFilter", debouncedTimeFilter, "timeFilterLastUpdated", timeFilterLastUpdated);
+        console.log(
+            "debouncedTimeFilter",
+            debouncedTimeFilter,
+            "timeFilterLastUpdated",
+            timeFilterLastUpdated,
+            "subscriptionTimeFilters",
+            subscriptionTimeFilters
+        );
 
-        // only execute if the debounced filter has changed and is not the same as the last updated filter
-        if (debouncedTimeFilter.from !== timeFilterLastUpdated.from || debouncedTimeFilter.till !== timeFilterLastUpdated.till) {
+        // only execute if
+        // - the debounced filter has changed
+        // and
+        // - is not the same as the last updated filter
+        // AND is not equal to the subscriptionTimeFilters
+        const shouldUpdate =
+            debouncedTimeFilter.from !== timeFilterLastUpdated.from ||
+            (debouncedTimeFilter.till !== timeFilterLastUpdated.till &&
+                !(
+                    debouncedTimeFilter.from === subscriptionTimeFilters?.fromDate &&
+                    debouncedTimeFilter.till === subscriptionTimeFilters?.tillDate
+                ));
+        if (shouldUpdate) {
             setTimeFilterLastUpdated(debouncedTimeFilter);
             sendTime({ fromDate: debouncedTimeFilter.from ?? null, tillDate: debouncedTimeFilter.till ?? null });
         } else {
             console.log("skipping sendTime");
         }
-    }, [debouncedTimeFilter, timeFilterLastUpdated, sendTime]);
+    }, [debouncedTimeFilter, timeFilterLastUpdated, subscriptionTimeFilters, sendTime]);
+
+    React.useEffect(() => {
+        if (subscriptionTimeFilters) {
+            setTimeFilter(prev => {
+                // do nothing if the time filters are the same
+                if (prev.from === subscriptionTimeFilters.fromDate && prev.till === subscriptionTimeFilters.tillDate) {
+                    return prev;
+                }
+
+                // if the time filters are different, update the time filter state
+                const from =
+                    subscriptionTimeFilters.fromDate === null || subscriptionTimeFilters.fromDate === undefined
+                        ? prev.from
+                        : subscriptionTimeFilters.fromDate;
+                const till =
+                    subscriptionTimeFilters.tillDate === null || subscriptionTimeFilters.tillDate === undefined
+                        ? prev.till
+                        : subscriptionTimeFilters.tillDate;
+
+                log("useEffect.timeFilters", `Updating from ${prev.from} to ${from} and till ${prev.till} to ${till}`);
+                return {
+                    from,
+                    till,
+                };
+            });
+        }
+    }, [subscriptionTimeFilters, log]);
 
     return (
         <Flex direction="row" wrap="wrap" justifyContent="flex-start">
@@ -71,6 +120,8 @@ export const TimeFilter: React.FC = () => {
         </Flex>
     );
 };
+
+
 
 
 
