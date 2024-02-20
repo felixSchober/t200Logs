@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
-import { KeywordHighlight, KeywordHighlightChangeEvent } from "@t200logs/common";
+import type { IPostMessageService, KeywordHighlight, KeywordHighlightChangeEvent, PostMessageEventRespondFunction } from "@t200logs/common";
 
 /**
  * Internal representation of a keyword to highlight with a regular expression.
@@ -22,7 +22,7 @@ type KeywordHighlightWithRegex = KeywordHighlight & {
 /**
  * KeywordHighlightDecorator is responsible for highlighting keywords in the logs viewer.
  */
-export class KeywordHighlightDecorator {
+export class KeywordHighlightDecorator implements vscode.Disposable {
     /**
      * List of keywords to highlight.
      */
@@ -39,13 +39,23 @@ export class KeywordHighlightDecorator {
     private readonly logger: ScopedILogger;
 
     /**
+     * List of handler registrations that need to be disposed when the decorator is disposed.
+     */
+    private readonly handlerRegistrations: (() => void)[] = [];
+
+    /**
+     * A list of functions that should be called after {@link applyAllKeywordDecorations} is finished.
+     */
+    private readonly filterMessagesToRespondTo: PostMessageEventRespondFunction[] = [];
+
+    /**
      * Initializes a new instance of the Keyword highlight decorator class.
      * @param onKeywordHighlightChange The event that is fired when the user adds or removes a keyword to highlight.
      * @param onTextDocumentGenerationFinishedEvent The event that is fired when the text document generation is finished and we can apply the decorations.
      * @param logger The logger.
      */
     constructor(
-        onKeywordHighlightChange: vscode.Event<KeywordHighlightChangeEvent>,
+        postMessageService: IPostMessageService,
         onTextDocumentGenerationFinishedEvent: vscode.Event<string>,
         logger: ITelemetryLogger
     ) {
@@ -60,30 +70,53 @@ export class KeywordHighlightDecorator {
             }, 1000);
         });
 
-        onKeywordHighlightChange(event => {
-            this.handleKeywordHighlightChange(event);
+        const keywordHighlightChangeHandler = postMessageService.registerMessageHandler("keywordHighlightStateChange", (event, respond) => {
+            this.handleKeywordHighlightChange(event, respond);
         });
-
+        this.handlerRegistrations.push(keywordHighlightChangeHandler);
         this.logger = logger.createLoggerScope("KeywordHighlightDecorator");
+    }
+
+    dispose() {
+        this.logger.info("dispose");
+        for (const dispose of this.handlerRegistrations) {
+            dispose();
+        }
+        for (const keyword of this.keywords) {
+            this.removeKeywordHighlight(keyword.keyword);
+        }
     }
 
     /**
      * Handles the event when the user adds or removes a keyword to highlight.
      * @param event The event that is fired when the user adds or removes a keyword to highlight.
      */
-    private handleKeywordHighlightChange(event: KeywordHighlightChangeEvent) {
+    private handleKeywordHighlightChange(event: KeywordHighlightChangeEvent, respond: PostMessageEventRespondFunction) {
         this.logger.info("handleKeywordHighlightChange", undefined, { event: JSON.stringify(event) });
-        if (event.addKeyword) {
+        if (event.isChecked) {
             const highlight: KeywordHighlightWithRegex = {
-                ...event.addKeyword,
+                ...event.keywordDefinition,
                 // we use the global flag to highlight all occurrences of the keyword
-                regex: new RegExp(`${event.addKeyword.keyword}`, "gi"),
+                regex: new RegExp(`${event.keywordDefinition.keyword}`, "gi"),
             };
             this.keywords.push(highlight);
             void this.applyKeywordDecoration(highlight);
-        } else if (event.removeKeyword) {
-            this.keywords = this.keywords.filter(k => k.keyword !== event.removeKeyword);
-            this.removeKeywordHighlight(event.removeKeyword);
+        } else {
+            this.keywords = this.keywords.filter(k => k.keyword !== event.keywordDefinition.keyword);
+            this.removeKeywordHighlight(event.keywordDefinition.keyword);
+        }
+        this.filterMessagesToRespondTo.push(respond);
+    }
+
+    private acknowledgeMessage() {
+        while (this.filterMessagesToRespondTo.length > 0) {
+            const respond = this.filterMessagesToRespondTo.pop();
+            if (respond) {
+                respond({
+                    command: "messageAck",
+                    data: undefined,
+                });
+            }
         }
     }
 
@@ -112,6 +145,7 @@ export class KeywordHighlightDecorator {
                 { keyword }
             );
         }
+        this.acknowledgeMessage();
     }
 
     /**
@@ -150,6 +184,8 @@ export class KeywordHighlightDecorator {
                 });
 
                 await Promise.all(promises);
+
+                this.acknowledgeMessage();
                 this.logger.info("applyAllKeywordDecorations.finished");
             }
         );
@@ -222,5 +258,10 @@ export class KeywordHighlightDecorator {
         this.logger.info(`applyKeywordDecoration.setDecorations.${keyword.keyword}.success`);
     }
 }
+
+
+
+
+
 
 

@@ -7,7 +7,7 @@ import { useSendAndReceive } from "../../service/useSendAndReceive";
  * @returns A button that opens the logs viewer
  */
 export const OpenLogsViewerButton: React.FC = () => {
-    const { isPending, send } = useSendAndReceive("openLogsDocument", "openLogsDocument");
+    const { isPending, send } = useSendAndReceive("openLogsDocument", "messageAck");
 
     return (
         <VSCodeButton onClick={() => send(undefined)} disabled={isPending}>
@@ -15,4 +15,5 @@ export const OpenLogsViewerButton: React.FC = () => {
         </VSCodeButton>
     );
 };
+
 

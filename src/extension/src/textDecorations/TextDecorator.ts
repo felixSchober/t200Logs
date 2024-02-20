@@ -7,12 +7,12 @@ import * as vscode from "vscode";
 import { ERROR_REGEX, WARN_REGEX, WEB_DATE_REGEX_GLOBAL } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { DisplaySettingsChangedEvent } from "@t200logs/common";
+import type { IPostMessageService, PostMessageEventRespondFunction } from "@t200logs/common";
 
 /**
  * TextDecorator is a class that provides the ability to decorate in the logs viewer.
  */
-export class TextDecorator {
+export class TextDecorator implements vscode.Disposable {
     /**
      * Flag indicating whether the severity level highlighting is enabled.
      */
@@ -29,6 +29,10 @@ export class TextDecorator {
 
     private readonly isoDateTextDecoration: vscode.TextEditorDecorationType;
 
+    private readonly unregisterPostMessageEvent: () => void;
+
+    private readonly postMessageEventToRespondTo: PostMessageEventRespondFunction[] = [];
+
     private readonly logger: ScopedILogger;
 
     /**
@@ -38,7 +42,7 @@ export class TextDecorator {
      * @param logger The logger.
      */
     constructor(
-        onWebviewDisplaySettingsChangedEvent: vscode.Event<DisplaySettingsChangedEvent>,
+        postMessageService: IPostMessageService,
         onTextDocumentGenerationFinishedEvent: vscode.Event<string>,
         logger: ITelemetryLogger
     ) {
@@ -59,13 +63,31 @@ export class TextDecorator {
             }, 2000);
         });
 
-        onWebviewDisplaySettingsChangedEvent(() => {
-            this.logger.info("onWebviewDisplaySettingsChangedEvent");
-            this.applySeverityLevelHighlighting(null);
-            this.applyReadableIsoDates(null);
+        this.unregisterPostMessageEvent = postMessageService.registerMessageHandler("displaySettingsChanged", (event, respond) => {
+            let shouldAcknowledge = false;
+            if (event.displayReadableDates !== null) {
+                this.logger.info("displaySettingsChanged.displayReadableDates", undefined, { newState: "" + event.displayReadableDates });
+                this.applyReadableIsoDates(null, event.displayReadableDates);
+                shouldAcknowledge = true;
+            }
+
+            if (event.displayLogLevels !== null) {
+                this.logger.info("displaySettingsChanged.displayLogLevels", undefined, { newState: "" + event.displayLogLevels });
+                this.applySeverityLevelHighlighting(null, event.displayLogLevels);
+                shouldAcknowledge = true;
+            }
+
+            if (shouldAcknowledge) {
+                this.postMessageEventToRespondTo.push(respond);
+            }
         });
 
         this.logger = logger.createLoggerScope("TextDecorator");
+    }
+    dispose() {
+        if (this.unregisterPostMessageEvent) {
+            this.unregisterPostMessageEvent();
+        }
     }
 
     /**
@@ -168,6 +190,15 @@ export class TextDecorator {
                         editor.setDecorations(this.errorTextDecoration, errors);
                         editor.setDecorations(this.warnTextDecoration, warnings);
 
+                        // respond to the post message events
+                        while (this.postMessageEventToRespondTo.length > 0) {
+                            const respond = this.postMessageEventToRespondTo.pop();
+                            respond?.({
+                                command: "messageAck",
+                                data: undefined,
+                            });
+                        }
+
                         this.isSeverityLevelHighlightingEnabled = true;
                         this.logger.info("applySeverityLevelHighlighting.apply.end", undefined, {
                             errorsLength: "" + errors.length,
@@ -258,5 +289,8 @@ export class TextDecorator {
         }
     }
 }
+
+
+
 
 

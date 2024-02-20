@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import { GUID_REGEX } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { SummaryInfo, SummaryInfoUser } from "@t200logs/common";
+import { IPostMessageService, PostMessageEventRespondFunction, SummaryInfo, SummaryInfoUser } from "@t200logs/common";
 
 /**
  * Matches "SessionId:	18bf77c6-e99f-4d46-95ec-3b43100c3861".
@@ -50,15 +50,37 @@ const userRegex = /(\S+@\S+)\s+(\S+)\s+(\S+)\s+TId:([0-9a-f-]+)\s+OId:([0-9a-f-]
 /**
  * SummaryInfoProvider is a class that provides the ability to get summary information from teh summary.txt file.
  */
-export class SummaryInfoProvider {
+export class SummaryInfoProvider implements vscode.Disposable {
     private readonly logger: ScopedILogger;
+
+    /**
+     * The handler registration.
+     */
+    private readonly unregisterHandler: () => void;
 
     /**
      * Initializes a new instance of the SummaryInfoProvider class.
      * @param logger The logger.
      */
-    constructor(logger: ITelemetryLogger) {
+    constructor(postMessageService: IPostMessageService, logger: ITelemetryLogger) {
         this.logger = logger.createLoggerScope("SummaryInfoProvider");
+
+        this.unregisterHandler = postMessageService.registerMessageHandler("getSummary", (_, respond) => {
+            this.handleGetSummaryRequest(respond);
+        });
+    }
+    dispose() {
+        this.unregisterHandler();
+    }
+
+    private async handleGetSummaryRequest(respond: PostMessageEventRespondFunction) {
+        const summary = await this.getSummaryInfo();
+        respond({
+            command: "getSummaryResponse",
+            data: {
+                summary,
+            },
+        });
     }
 
     /**
@@ -186,6 +208,11 @@ export class SummaryInfoProvider {
         return users;
     }
 }
+
+
+
+
+
 
 
 

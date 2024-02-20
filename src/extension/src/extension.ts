@@ -13,12 +13,16 @@ import { DevLogger } from "./telemetry";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
 import { KeywordHighlightDecorator } from "./textDecorations/KeywordHighlightDecorator";
 import { TextDecorator } from "./textDecorations/TextDecorator";
-import type { DisplaySettingsChangedEvent, FilterChangedEvent, KeywordHighlightChangeEvent } from "@t200logs/common";
+import type { FilterChangedEvent, TimeFilterChangedEvent } from "@t200logs/common";
+import { ExtensionPostMessageService } from "./ExtensionPostMessageService";
+import { SummaryInfoProvider } from "./info/SummaryInfoProvider";
 
 let telemetryReporter: Readonly<ITelemetryLogger>;
 let logContentProvider: Readonly<LogContentProvider>;
-let onWebviewFilterChanged: vscode.EventEmitter<FilterChangedEvent>;
-let onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>;
+let onCodeLensFilterApplied: vscode.EventEmitter<TimeFilterChangedEvent>;
+let postMessageService: ExtensionPostMessageService;
+let disposableServices: vscode.Disposable[] = [];
+let handlersToUnregister: (() => void)[] = [];
 
 /**
  * Activate the extension.
@@ -29,11 +33,15 @@ export async function activate(context: vscode.ExtensionContext) {
     await setupLogging(context);
     setupFoldingRangeProvider(context);
 
-    if (!logContentProvider || !onWebviewFilterChanged || !onDisplaySettingsChanged) {
-        onWebviewFilterChanged = new vscode.EventEmitter<FilterChangedEvent>();
-        onDisplaySettingsChanged = new vscode.EventEmitter<DisplaySettingsChangedEvent>();
+    if (!logContentProvider || !postMessageService || !onCodeLensFilterApplied) {
+        telemetryReporter.info("extension.activate().serviceInitialization");
+        onCodeLensFilterApplied = new vscode.EventEmitter<TimeFilterChangedEvent>();
+        postMessageService = new ExtensionPostMessageService(telemetryReporter);
+        logContentProvider = new LogContentProvider(onCodeLensFilterApplied.event, postMessageService, telemetryReporter);
 
-        logContentProvider = new LogContentProvider(onWebviewFilterChanged.event, onDisplaySettingsChanged.event, telemetryReporter);
+        disposableServices.push(onCodeLensFilterApplied);
+        disposableServices.push(postMessageService);
+        disposableServices.push(logContentProvider);
     }
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, logContentProvider));
@@ -47,31 +55,26 @@ export async function activate(context: vscode.ExtensionContext) {
         await openLogsDocument();
     });
     context.subscriptions.push(openLogViewerDisposable);
+    const unregisterOpenLogsDocument = postMessageService.registerMessageHandler("openLogsDocument", (_, respond) => {
+        openLogsDocument().then(() => respond({ command: "messageAck", data: undefined }));
+    });
+    handlersToUnregister.push(unregisterOpenLogsDocument);
 
     let resetLogViewerDisposable = vscode.commands.registerCommand(`${EXTENSION_ID}.reset`, () => {
-        logContentProvider.reset();
+        logContentProvider.reset(true);
     });
     context.subscriptions.push(resetLogViewerDisposable);
 
-    setupCodeLensProvider(context, onWebviewFilterChanged);
-    setupTextDecorator(context, logContentProvider, onDisplaySettingsChanged);
-    const { onKeywordHighlightChange } = setupKeywordHighlighter(logContentProvider);
+    setupCodeLensProvider(context, onCodeLensFilterApplied);
+    setupTextDecorator(context, logContentProvider);
+    setupKeywordHighlighter(logContentProvider);
 
-    const getNumberOfActiveFilters = () => {
-        return logContentProvider.getNumberOfActiveFilters();
-    };
+    const summaryInfoProvider = new SummaryInfoProvider(postMessageService, telemetryReporter);
+    disposableServices.push(summaryInfoProvider);
+
     const panelDisposable = vscode.window.registerWebviewViewProvider(
         EXTENSION_ID,
-        new WebviewPanelProvider(
-            context.extensionUri,
-            onWebviewFilterChanged,
-            onDisplaySettingsChanged,
-            getNumberOfActiveFilters,
-            openLogsDocument,
-            logContentProvider.onTimeFilterChangeEvent.event,
-            onKeywordHighlightChange,
-            telemetryReporter
-        ),
+        new WebviewPanelProvider(context.extensionUri, openLogsDocument, postMessageService, telemetryReporter),
         {
             webviewOptions: {
                 retainContextWhenHidden: true,
@@ -108,9 +111,9 @@ async function setupLogging(context: vscode.ExtensionContext) {
 /**
  * Set up the code lens provider for the extension.
  * @param context The vscode context.
- * @param onWebviewFilterChanged The event emitter for filter changes.
+ * @param onCodeLensFilterApplied The event emitter for filter changes.
  */
-function setupCodeLensProvider(context: vscode.ExtensionContext, onWebviewFilterChanged: vscode.EventEmitter<FilterChangedEvent>) {
+function setupCodeLensProvider(context: vscode.ExtensionContext, onCodeLensFilterApplied: vscode.EventEmitter<FilterChangedEvent>) {
     let codeLensDisposable = vscode.languages.registerCodeLensProvider(
         { scheme: LogContentProvider.documentScheme },
         new FilterTimeRangeLensProvider(telemetryReporter)
@@ -119,7 +122,7 @@ function setupCodeLensProvider(context: vscode.ExtensionContext, onWebviewFilter
 
     // This is the command that is executed when the user clicks on the code lens.
     const inlineDateFilterDisposable = vscode.commands.registerCommand(FilterTimeRangeLensProvider.commandId, (dateRange: DateRange) => {
-        FilterTimeRangeLensProvider.executeCommand(dateRange, onWebviewFilterChanged);
+        FilterTimeRangeLensProvider.executeCommand(dateRange, onCodeLensFilterApplied);
     });
     context.subscriptions.push(inlineDateFilterDisposable);
 }
@@ -130,13 +133,9 @@ function setupCodeLensProvider(context: vscode.ExtensionContext, onWebviewFilter
  * @param logContentProvider The log content provider for the virtual document.
  * @param onDisplaySettingsChanged The event emitter for display settings changes.
  */
-function setupTextDecorator(
-    context: vscode.ExtensionContext,
-    logContentProvider: Readonly<LogContentProvider>,
-    onDisplaySettingsChanged: vscode.EventEmitter<DisplaySettingsChangedEvent>
-) {
+function setupTextDecorator(context: vscode.ExtensionContext, logContentProvider: Readonly<LogContentProvider>) {
     const textDecorator = new TextDecorator(
-        onDisplaySettingsChanged.event,
+        postMessageService,
         logContentProvider.onTextDocumentGenerationFinished.event,
         telemetryReporter
     );
@@ -149,6 +148,7 @@ function setupTextDecorator(
     });
     context.subscriptions.push(disposableDecoration);
     context.subscriptions.push(disposableDecorationHints);
+    disposableServices.push(textDecorator);
 }
 
 /**
@@ -157,18 +157,12 @@ function setupTextDecorator(
  * @returns The keyword highlighter and the event emitter for keyword highlight changes.
  */
 function setupKeywordHighlighter(logContentProvider: Readonly<LogContentProvider>) {
-    const onKeywordHighlightChange = new vscode.EventEmitter<KeywordHighlightChangeEvent>();
-
     const keywordHighlighter = new KeywordHighlightDecorator(
-        onKeywordHighlightChange.event,
+        postMessageService,
         logContentProvider.onTextDocumentGenerationFinished.event,
         telemetryReporter
     );
-
-    return {
-        onKeywordHighlightChange,
-        keywordHighlighter,
-    };
+    disposableServices.push(keywordHighlighter);
 }
 
 /**
@@ -187,9 +181,15 @@ function setupFoldingRangeProvider(context: vscode.ExtensionContext) {
  */
 export function deactivate() {
     void telemetryReporter.info("extension.deactivate");
+    for (const unregister of handlersToUnregister) {
+        unregister();
+    }
     logContentProvider.dispose();
     if (telemetryReporter) {
         void telemetryReporter.dispose();
+    }
+    for (const disposable of disposableServices) {
+        disposable.dispose();
     }
 }
 
@@ -201,6 +201,19 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

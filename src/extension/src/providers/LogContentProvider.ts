@@ -10,9 +10,8 @@ import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../constant
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
-import type { DisplaySettingsChangedEvent, FilterChangedEvent, LogLevel, TimeFilterChangedEvent } from "@t200logs/common";
-
-
+import type { IPostMessageService, LogLevel, PostMessageEventRespondFunction, TimeFilterChangedEvent } from "@t200logs/common";
+import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
 
 type LogEntry = {
     /**
@@ -82,7 +81,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         } else {
             this.timeFilterFromDate = null;
         }
-        this.onTimeFilterChangeEvent.fire({ fromDate: value ?? undefined });
+        this.postMessageService.sendAndForget({ command: "updateTimeFilters", data: { fromDate: value ?? null } });
     }
 
     /**
@@ -111,7 +110,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         } else {
             this.timeFilterTillDate = null;
         }
-        this.onTimeFilterChangeEvent.fire({ tillDate: value ?? undefined });
+        this.postMessageService.sendAndForget({ command: "updateTimeFilters", data: { tillDate: value ?? null } });
     }
 
     /**
@@ -192,6 +191,17 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         },
     ];
 
+    /**
+     * A list of handler registrations.
+     * This list contains the functions to unregister the handlers.
+     */
+    private readonly handlerRegistrations: (() => void)[] = [];
+
+    /**
+     * A list of functions that should be called after {@link provideTextDocumentContent} is finished.
+     */
+    private readonly filterMessagesToRespondTo: PostMessageEventRespondFunction[] = [];
+
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
     readonly onDidChange = this._onDidChange.event;
 
@@ -205,12 +215,6 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
     private _displayDatesInLine = false;
 
     /**
-     * Event that is fired when the time filters change.
-     * Other classes can subscribe to this event to get notified when the time filters change.
-     */
-    public onTimeFilterChangeEvent = new vscode.EventEmitter<TimeFilterChangedEvent>();
-
-    /**
      * Event that is fired when the text document generation is finished.
      */
     public onTextDocumentGenerationFinished = new vscode.EventEmitter<string>();
@@ -219,41 +223,16 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
 
     /**
      * Creates a new instance of the LogContentProvider class.
-     * @param onFilterChangeEvent The event that is fired when the filter changes.
+     * @param onFilterChangeEvent The event that is fired a filter changes through the code lens.
      * @param onDisplaySettingsChangedEvent The event that is fired when the display settings change.
      * @param logger The logger.
      */
     constructor(
-        onFilterChangeEvent: vscode.Event<FilterChangedEvent>,
-        onDisplaySettingsChangedEvent: vscode.Event<DisplaySettingsChangedEvent>,
+        private readonly onFilterChangeEvent: vscode.Event<TimeFilterChangedEvent>,
+        private readonly postMessageService: IPostMessageService,
         logger: ITelemetryLogger
     ) {
-        onFilterChangeEvent(filterChangeEvent => {
-            this.updateFilters(filterChangeEvent);
-        });
-
-        onDisplaySettingsChangedEvent(displaySettingsChangedEvent => {
-            this.changeTrigger++;
-
-            if (displaySettingsChangedEvent.displayFileNames !== null) {
-                this._displayFileNames = displaySettingsChangedEvent.displayFileNames;
-            }
-
-            if (displaySettingsChangedEvent.displayGuids !== null) {
-                // if the user wants to display the guids, remove the regex that removes them
-                if (displaySettingsChangedEvent.displayGuids) {
-                    this.stringsToRemove = this.stringsToRemove.filter(regex => regex.source !== GUID_REGEX.source);
-                } else {
-                    this.stringsToRemove.push(GUID_REGEX);
-                }
-            }
-
-            if (displaySettingsChangedEvent.displayDatesInLine !== null) {
-                this._displayDatesInLine = displaySettingsChangedEvent.displayDatesInLine;
-            }
-
-            this._onDidChange.fire(LogContentProvider.documentUri);
-        });
+        this.registerMessageHandlers();
 
         // set the "timeFilterFrom" to a second after timestamp 0.
         // This is done so that we ignore all events that do not have a timestamp.
@@ -262,11 +241,178 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         this.watcher = vscode.workspace.createFileSystemWatcher("**/*.{log,txt}", false, false, false);
         this.registerFileWatcherEvents();
     }
+
+    private registerMessageHandlers() {
+        this.registerFilterEvents();
+        this.registerDisplaySettingEvents();
+    }
+
+    /**
+     * Registers the filter events for the log content provider.
+     * This method is called in the constructor.
+     *
+     * Events are called when the user changes a filter through the webview.
+     * They are dispatched by the {@link ExtensionPostMessageService}.
+     */
+    private registerFilterEvents() {
+        const filterCheckboxStateChange = this.postMessageService.registerMessageHandler("filterCheckboxStateChange", (event, respond) => {
+            if (event.isChecked) {
+                this.keywordFilters.push(event.value);
+            } else {
+                this.keywordFilters = this.keywordFilters.filter(keyword => keyword !== event.value);
+            }
+            this.filterMessagesToRespondTo.push(respond);
+            this.triggerDocumentChange();
+        });
+        this.handlerRegistrations.push(filterCheckboxStateChange);
+
+        const filterLogLevel = this.postMessageService.registerMessageHandler("filterLogLevel", (event, respond) => {
+            if (event.isChecked) {
+                this.disabledLogLevels = this.disabledLogLevels.filter(level => level !== event.logLevel);
+            } else {
+                if (!this.disabledLogLevels.includes(event.logLevel)) {
+                    this.disabledLogLevels.push(event.logLevel);
+                }
+            }
+            this.filterMessagesToRespondTo.push(respond);
+            this.triggerDocumentChange();
+        });
+        this.handlerRegistrations.push(filterLogLevel);
+
+        const filterTime = this.postMessageService.registerMessageHandler("filterTime", (event, respond) => {
+            if (event.fromDate || event.fromDate === "") {
+                if (event.fromDate === "") {
+                    this.timeFilterFrom = this.minimumDate;
+                } else {
+                    this.timeFilterFrom = event.fromDate;
+                }
+            }
+
+            if (event.tillDate || event.tillDate === "") {
+                this.timeFilterTill = event.tillDate;
+            }
+            this.filterMessagesToRespondTo.push(respond);
+            this.triggerDocumentChange();
+        });
+        this.handlerRegistrations.push(filterTime);
+
+        const filterRemoveEntriesWithNoEventTime = this.postMessageService.registerMessageHandler("filterNoEventTime", (event, respond) => {
+            if (event.removeEntriesWithNoEventTime === true) {
+                this.minimumDate = new Date(1000).toISOString();
+                this.timeFilterFrom = this.minimumDate;
+            } else if (event.removeEntriesWithNoEventTime === false) {
+                this.timeFilterFrom = null;
+                this.minimumDate = null;
+            }
+            this.filterMessagesToRespondTo.push(respond);
+            this.triggerDocumentChange();
+        });
+        this.handlerRegistrations.push(filterRemoveEntriesWithNoEventTime);
+
+        const filterSessionId = this.postMessageService.registerMessageHandler("filterSessionId", (event, respond) => {
+            if (event.isChecked) {
+                this.sessionId = event.sessionId;
+                const sessionIdLogEntry = this.findEarliestSessionIdInLogEntries();
+                if (sessionIdLogEntry) {
+                    // subtract 1 second from the timestamp to make sure we include the log entry with the session id
+                    const filterFrom = new Date(sessionIdLogEntry.date.getTime() - 1000).toISOString();
+                    this.logger.info("filterSessionId.success", undefined, { sessionId: this.sessionId, filterFrom });
+                    this.timeFilterFrom = filterFrom;
+                } else {
+                    this.logger.logException(
+                        "filterSessionId.notFound",
+                        new Error(`Could not find log entry with session id: ${this.sessionId}`),
+                        undefined,
+                        {
+                            sessionId: this.sessionId,
+                        },
+                        true,
+                        "Session Id"
+                    );
+                }
+            } else {
+                this.sessionId = null;
+                this.timeFilterFrom = this.minimumDate;
+            }
+            this.filterMessagesToRespondTo.push(respond);
+            this.triggerDocumentChange();
+        });
+        this.handlerRegistrations.push(filterSessionId);
+
+        this.onFilterChangeEvent(event => {
+            if (event.fromDate || event.fromDate === "") {
+                if (event.fromDate === "") {
+                    this.timeFilterFrom = this.minimumDate;
+                } else {
+                    this.timeFilterFrom = event.fromDate;
+                }
+            }
+
+            if (event.tillDate || event.tillDate === "") {
+                this.timeFilterTill = event.tillDate;
+            }
+
+            this.triggerDocumentChange();
+        });
+    }
+
+    /**
+     * Registers the display setting events for the log content provider.
+     * This method is called in the constructor.
+     *
+     * Events are called when the user changes a display setting through the webview.
+     * They are dispatched by the {@link ExtensionPostMessageService}.
+     */
+    private registerDisplaySettingEvents() {
+        const displaySettingsChanged = this.postMessageService.registerMessageHandler("displaySettingsChanged", (event, respond) => {
+            let shouldRespond = false;
+            if (event.displayFileNames !== null) {
+                this._displayFileNames = event.displayFileNames;
+                shouldRespond = true;
+            }
+
+            if (event.displayGuids !== null) {
+                // if the user wants to display the guids, remove the regex that removes them
+                if (event.displayGuids) {
+                    this.stringsToRemove = this.stringsToRemove.filter(regex => regex.source !== GUID_REGEX.source);
+                } else {
+                    this.stringsToRemove.push(GUID_REGEX);
+                }
+                shouldRespond = true;
+            }
+
+            if (event.displayDatesInLine !== null) {
+                this._displayDatesInLine = event.displayDatesInLine;
+                shouldRespond = true;
+            }
+
+            if (shouldRespond) {
+                this.filterMessagesToRespondTo.push(respond);
+                this.triggerDocumentChange();
+            } else {
+                this.logger.info("displaySettingsChanged.noChange", undefined, {
+                    displayFileNames: "" + event.displayFileNames,
+                    displayGuids: "" + event.displayGuids,
+                    displayDatesInLine: "" + event.displayDatesInLine,
+                });
+            }
+        });
+        this.handlerRegistrations.push(displaySettingsChanged);
+    }
+
     /**
      * Disposes of the LogContentProvider.
      */
     dispose() {
         this.watcher.dispose();
+
+        // pop all the handler registrations
+        while (this.handlerRegistrations.length > 0) {
+            const handler = this.handlerRegistrations.pop();
+            if (handler) {
+                handler();
+            }
+        }
     }
 
     /**
@@ -289,17 +435,22 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
 
     /**
      * Resets the cache and filters causing the content provider to re-fetch the log files and re-generate the content.
+     * @param resetFilters Whether to reset the filters as well. Default is false.
      */
-    public reset() {
+    public reset(resetFilters = false) {
         this.logger.info("reset");
         this.logFileCache = [];
         this.logEntryCache = [];
         this.groupedLogEntries = new Map();
-        this.keywordFilters = [];
-        this.disabledLogLevels = [];
-        this.sessionId = null;
-        this.timeFilterFrom = this.minimumDate;
-        this.timeFilterTill = null;
+        if (resetFilters) {
+            this.keywordFilters = [];
+            this.disabledLogLevels = [];
+            this.sessionId = null;
+            this.timeFilterFrom = this.minimumDate;
+            this.timeFilterTill = null;
+            this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: 0 });
+        }
+
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
     }
@@ -308,72 +459,72 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
      * Updates the filters for the log entries.
      * @param filterChangeEvent The event that is fired when the filter changes.
      */
-    private updateFilters(filterChangeEvent: FilterChangedEvent) {
-        if (filterChangeEvent.addKeywordFilter) {
-            this.keywordFilters.push(filterChangeEvent.addKeywordFilter);
-        }
+    // private updateFilters(filterChangeEvent: FilterChangedEvent) {
+    //     if (filterChangeEvent.addLogLevel) {
+    //         this.disabledLogLevels = this.disabledLogLevels.filter(level => level !== filterChangeEvent.addLogLevel);
+    //     }
 
-        if (filterChangeEvent.removeKeywordFilter) {
-            this.keywordFilters = this.keywordFilters.filter(keyword => keyword !== filterChangeEvent.removeKeywordFilter);
-        }
+    //     if (filterChangeEvent.removeLogLevel) {
+    //         if (!this.disabledLogLevels.includes(filterChangeEvent.removeLogLevel)) {
+    //             this.disabledLogLevels.push(filterChangeEvent.removeLogLevel);
+    //         }
+    //     }
 
-        if (filterChangeEvent.addLogLevel) {
-            this.disabledLogLevels = this.disabledLogLevels.filter(level => level !== filterChangeEvent.addLogLevel);
-        }
+    //     if (filterChangeEvent.fromDate || filterChangeEvent.fromDate === "") {
+    //         if (filterChangeEvent.fromDate === "") {
+    //             this.timeFilterFrom = this.minimumDate;
+    //         } else {
+    //             this.timeFilterFrom = filterChangeEvent.fromDate;
+    //         }
+    //     }
 
-        if (filterChangeEvent.removeLogLevel) {
-            if (!this.disabledLogLevels.includes(filterChangeEvent.removeLogLevel)) {
-                this.disabledLogLevels.push(filterChangeEvent.removeLogLevel);
-            }
-        }
+    //     if (filterChangeEvent.tillDate || filterChangeEvent.tillDate === "") {
+    //         this.timeFilterTill = filterChangeEvent.tillDate;
+    //     }
 
-        if (filterChangeEvent.fromDate || filterChangeEvent.fromDate === "") {
-            if (filterChangeEvent.fromDate === "") {
-                this.timeFilterFrom = this.minimumDate;
-            } else {
-                this.timeFilterFrom = filterChangeEvent.fromDate;
-            }
-        }
+    //     if (filterChangeEvent.removeEntriesWithNoEventTime === true) {
+    //         this.minimumDate = new Date(1000).toISOString();
+    //         this.timeFilterFrom = this.minimumDate;
+    //     } else if (filterChangeEvent.removeEntriesWithNoEventTime === false) {
+    //         this.timeFilterFrom = null;
+    //         this.minimumDate = null;
+    //     }
 
-        if (filterChangeEvent.tillDate || filterChangeEvent.tillDate === "") {
-            this.timeFilterTill = filterChangeEvent.tillDate;
-        }
+    //     if (filterChangeEvent.setSessionIdFilter) {
+    //         this.sessionId = filterChangeEvent.setSessionIdFilter;
+    //         const sessionIdLogEntry = this.findEarliestSessionIdInLogEntries();
+    //         if (sessionIdLogEntry) {
+    //             // subtract 1 second from the timestamp to make sure we include the log entry with the session id
+    //             const filterFrom = new Date(sessionIdLogEntry.date.getTime() - 1000).toISOString();
+    //             this.logger.info("updateFilters.setSessionIdFilter.success", undefined, { sessionId: this.sessionId, filterFrom });
+    //             this.timeFilterFrom = filterFrom;
+    //         } else {
+    //             this.logger.logException(
+    //                 "updateFilters.setSessionIdFilter.notFound",
+    //                 new Error(`Could not find log entry with session id: ${this.sessionId}`),
+    //                 undefined,
+    //                 {
+    //                     sessionId: this.sessionId,
+    //                 },
+    //                 true,
+    //                 "Session Id"
+    //             );
+    //         }
+    //     }
 
-        if (filterChangeEvent.removeEntriesWithNoEventTime === true) {
-            this.minimumDate = new Date(1000).toISOString();
-            this.timeFilterFrom = this.minimumDate;
-        } else if (filterChangeEvent.removeEntriesWithNoEventTime === false) {
-            this.timeFilterFrom = null;
-            this.minimumDate = null;
-        }
+    //     if (filterChangeEvent.removeSessionIdFilter) {
+    //         this.sessionId = null;
+    //         this.timeFilterFrom = this.minimumDate;
+    //     }
 
-        if (filterChangeEvent.setSessionIdFilter) {
-            this.sessionId = filterChangeEvent.setSessionIdFilter;
-            const sessionIdLogEntry = this.findEarliestSessionIdInLogEntries();
-            if (sessionIdLogEntry) {
-                // subtract 1 second from the timestamp to make sure we include the log entry with the session id
-                const filterFrom = new Date(sessionIdLogEntry.date.getTime() - 1000).toISOString();
-                this.logger.info("updateFilters.setSessionIdFilter.success", undefined, { sessionId: this.sessionId, filterFrom });
-                this.timeFilterFrom = filterFrom;
-            } else {
-                this.logger.logException(
-                    "updateFilters.setSessionIdFilter.notFound",
-                    new Error(`Could not find log entry with session id: ${this.sessionId}`),
-                    undefined,
-                    {
-                        sessionId: this.sessionId,
-                    },
-                    true,
-                    "Session Id"
-                );
-            }
-        }
+    //     this.changeTrigger++;
+    //     this._onDidChange.fire(LogContentProvider.documentUri);
+    // }
 
-        if (filterChangeEvent.removeSessionIdFilter) {
-            this.sessionId = null;
-            this.timeFilterFrom = this.minimumDate;
-        }
-
+    /**
+     * Triggers a document change event.
+     */
+    private triggerDocumentChange() {
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
     }
@@ -547,9 +698,22 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                     contentLength: "" + content.length,
                 });
                 this.onTextDocumentGenerationFinished.fire(content);
+                this.respondToMessages();
                 return content;
             }
         );
+    }
+
+    private respondToMessages() {
+        const activeFilters = this.getNumberOfActiveFilters();
+        // pop all the filter messages and respond to them
+        while (this.filterMessagesToRespondTo.length > 0) {
+            const respond = this.filterMessagesToRespondTo.pop();
+            if (respond) {
+                this.logger.info("respondToMessages");
+                respond({ command: "updateNumberOfActiveFilters", data: activeFilters });
+            }
+        }
     }
 
     /**
@@ -1006,5 +1170,15 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         return prefix.length > 0 ? prefix + " " : "";
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 

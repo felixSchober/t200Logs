@@ -4,25 +4,10 @@
 
 import * as fs from "fs";
 
-import {
-    CancellationToken,
-    EventEmitter,
-    Event as VscodeEvent,
-    Uri as VscodeUri,
-    Webview,
-    WebviewView,
-    WebviewViewProvider,
-    WebviewViewResolveContext,
-} from "vscode";
+import { CancellationToken, Uri as VscodeUri, Webview, WebviewView, WebviewViewProvider, WebviewViewResolveContext } from "vscode";
 
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import {
-    type DisplaySettingsChangedEvent,
-    type FilterChangedEvent,
-    type KeywordHighlightChangeEvent,
-    type TimeFilterChangedEvent,
-} from "@t200logs/common";
 import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
 
 /**
@@ -38,55 +23,39 @@ export class WebviewPanelProvider implements WebviewViewProvider {
     private readonly logger: ScopedILogger;
 
     /**
-     * The post message service for the webview.
-     */
-    private readonly postMessageService: ExtensionPostMessageService;
-
-    /**
      * Creates a new instance of the view provider.
      * @param extensionUri The path to the extension.
-     * @param onWebviewFilterChanged The event emitter for when the user changes a filter through the webview.
-     * @param onWebviewDisplaySettingsChanged The event emitter for when the user changes display settings change.
-     * @param getNumberOfActiveFilters A function that returns the number of active filters.
      * @param openLogsDocument A function that opens the logs document.
-     * @param timeChangeEvent The event for when the time filter changes through the LogContentProvider.
-     * @param keywordChangeEventEmitter The event emitter for when the user changes a keyword highlight through the webview.
+     * @param postMessageService The post message service.
      * @param logger The logger
      */
     constructor(
         private readonly extensionUri: VscodeUri,
-        onWebviewFilterChanged: EventEmitter<FilterChangedEvent>,
-        onWebviewDisplaySettingsChanged: EventEmitter<DisplaySettingsChangedEvent>,
-        getNumberOfActiveFilters: () => number,
         openLogsDocument: () => Promise<void>,
-        timeChangeEvent: VscodeEvent<TimeFilterChangedEvent>,
-        keywordChangeEventEmitter: EventEmitter<KeywordHighlightChangeEvent>,
+        private readonly postMessageService: ExtensionPostMessageService,
         logger: ITelemetryLogger
     ) {
-        console.log("LogsWebviewViewProvider constructor");
+        this.logger = logger.createLoggerScope("WebviewPanelProvider");
+        this.logger.info("constructor");
 
         // try to open the logs document if it hasn't been opened yet
         if (!this.hasLogsViewerBeenOpened) {
             openLogsDocument()
                 .then(() => {
                     this.hasLogsViewerBeenOpened = true;
-                    console.log("LogsWebviewViewProvider: opened logs document");
+                    this.logger.info("constructor.openLogsDocument");
                 })
                 .catch(e => {
-                    console.error("Failed to open logs document", e);
+                    this.logger.logException(
+                        "constructor.openLogsDocument",
+                        e,
+                        "Failed to open logs document",
+                        undefined,
+                        true,
+                        "Side Panel"
+                    );
                 });
         }
-
-        this.postMessageService = new ExtensionPostMessageService(
-            onWebviewFilterChanged,
-            onWebviewDisplaySettingsChanged,
-            getNumberOfActiveFilters,
-            timeChangeEvent,
-            openLogsDocument,
-            keywordChangeEventEmitter,
-            logger
-        );
-        this.logger = logger.createLoggerScope("WebviewPanelProvider");
     }
 
     /**
@@ -164,6 +133,10 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
+
+
+
 
 
 

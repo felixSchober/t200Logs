@@ -82,9 +82,6 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
      * @param event The event to fire when the filter is changed.
      */
     public static executeCommand(dateRange: DateRange, event: EventEmitter<FilterChangedEvent>) {
-        // const date = new Date(dateLine.replace(LogContentProvider.foldingRegionPrefix, ""));
-        // const fromDate = new Date(date.getTime() - 5000);
-        // const tillDate = new Date(date.getTime() + 5000);
         const [fromDate, tillDate] = dateRange;
 
         console.log("filter from", fromDate, "to", tillDate);
@@ -128,5 +125,6 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
         return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
     }
 }
+
 
 
