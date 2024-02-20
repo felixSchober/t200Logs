@@ -8,6 +8,7 @@ import { ERROR_REGEX, WARN_REGEX, WEB_DATE_REGEX_GLOBAL } from "../constants/reg
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import type { IPostMessageService, PostMessageEventRespondFunction } from "@t200logs/common";
+import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 /**
  * TextDecorator is a class that provides the ability to decorate in the logs viewer.
@@ -66,19 +67,27 @@ export class TextDecorator implements vscode.Disposable {
         this.unregisterPostMessageEvent = postMessageService.registerMessageHandler("displaySettingsChanged", (event, respond) => {
             let shouldAcknowledge = false;
             if (event.displayReadableDates !== null && this.isReadableIsoDatesEnabled !== event.displayReadableDates) {
+                this.toggleReadableIsoDates();
+
                 this.logger.info("displaySettingsChanged.displayReadableDates", undefined, { newState: "" + event.displayReadableDates });
-                this.applyReadableIsoDates(null, event.displayReadableDates);
                 shouldAcknowledge = true;
             }
 
             if (event.displayLogLevels !== null && this.isSeverityLevelHighlightingEnabled !== event.displayLogLevels) {
                 this.logger.info("displaySettingsChanged.displayLogLevels", undefined, { newState: "" + event.displayLogLevels });
-                this.applySeverityLevelHighlighting(null, event.displayLogLevels);
+
+                this.toggleSeverityLevelHighlighting();
                 shouldAcknowledge = true;
             }
 
             if (shouldAcknowledge) {
                 this.postMessageEventToRespondTo.push(respond);
+            } else {
+                respond({
+                    command: "messageAck",
+                    data: undefined,
+                });
+                this.logger.info("displaySettingsChanged.noChange", undefined);
             }
         });
 
@@ -94,21 +103,25 @@ export class TextDecorator implements vscode.Disposable {
      * Toggles the highlighting of the severity level in the logs viewer.
      */
     public toggleSeverityLevelHighlighting() {
+        this.isSeverityLevelHighlightingEnabled = !this.isSeverityLevelHighlightingEnabled;
+
+        if (!this.isSeverityLevelHighlightingEnabled) {
+            this.removeSeverityLevelHighlighting();
+        } else {
+            this.applySeverityLevelHighlighting(null, true);
+        }
+    }
+
+    private removeSeverityLevelHighlighting() {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
-            this.logger.info("toggleSeverityLevelHighlighting");
-            // we don't need to search for matches if we're disabling the highlighting
-            if (this.isSeverityLevelHighlightingEnabled) {
-                editor.setDecorations(this.errorTextDecoration, []);
-                editor.setDecorations(this.warnTextDecoration, []);
-                this.isSeverityLevelHighlightingEnabled = false;
-                return;
-            }
-
-            this.applySeverityLevelHighlighting(null, true);
+            editor.setDecorations(this.errorTextDecoration, []);
+            editor.setDecorations(this.warnTextDecoration, []);
+            this.isSeverityLevelHighlightingEnabled = false;
         } else {
+            this.isSeverityLevelHighlightingEnabled = true;
             this.logger.logException(
-                "toggleSeverityLevelHighlighting",
+                "removeSeverityLevelHighlighting",
                 new Error("No active text editor"),
                 "No active text editor",
                 undefined,
@@ -147,11 +160,20 @@ export class TextDecorator implements vscode.Disposable {
                     {
                         location: vscode.ProgressLocation.Notification,
                         title: "Applying severity level highlighting...",
+                        cancellable: true,
                     },
-                    async () => {
+                    async (_, token) => {
+                        token.onCancellationRequested(() => {
+                            this.logger.info("applySeverityLevelHighlighting.apply.cancelled", undefined, {
+                                errorsLength: "" + errorDecorationsArray.length,
+                                warningsLength: "" + warnDecorationsArray.length,
+                            });
+                        });
                         const errorDecorationPromise = new Promise<vscode.DecorationOptions[]>(resolve => {
                             let match;
+                            ERROR_REGEX.lastIndex = 0;
                             while ((match = ERROR_REGEX.exec(text))) {
+                                throwIfCancellation(token);
                                 const startPos = editor.document.positionAt(match.index);
                                 const endPos = editor.document.positionAt(match.index + match[0].length);
 
@@ -169,7 +191,9 @@ export class TextDecorator implements vscode.Disposable {
 
                         const warnDecorationPromise = new Promise<vscode.DecorationOptions[]>(resolve => {
                             let match;
+                            WARN_REGEX.lastIndex = 0;
                             while ((match = WARN_REGEX.exec(text))) {
+                                throwIfCancellation(token);
                                 const startPos = editor.document.positionAt(match.index);
                                 const endPos = editor.document.positionAt(match.index + match[0].length);
 
@@ -216,6 +240,8 @@ export class TextDecorator implements vscode.Disposable {
                     "Severity level highlighting"
                 );
             }
+        } else {
+            this.logger.info("applySeverityLevelHighlighting.noAction", undefined);
         }
     }
 
@@ -223,16 +249,20 @@ export class TextDecorator implements vscode.Disposable {
      * Toggles the addition of human-readable dates in the logs viewer.
      */
     public toggleReadableIsoDates() {
+        this.isReadableIsoDatesEnabled = !this.isReadableIsoDatesEnabled;
+
+        if (!this.isReadableIsoDatesEnabled) {
+            this.removeReadableIsoDates();
+        } else {
+            this.applyReadableIsoDates(null, true);
+        }
+    }
+
+    private removeReadableIsoDates() {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
-            // we don't need to search for matches if we're disabling the highlighting
-            if (this.isReadableIsoDatesEnabled) {
-                editor.setDecorations(this.isoDateTextDecoration, []);
-                this.isReadableIsoDatesEnabled = false;
-                return;
-            }
-
-            this.applyReadableIsoDates(null, true);
+            editor.setDecorations(this.isoDateTextDecoration, []);
+            this.isReadableIsoDatesEnabled = false;
         }
     }
 
@@ -253,6 +283,7 @@ export class TextDecorator implements vscode.Disposable {
                 const decorationsArray: vscode.DecorationOptions[] = [];
 
                 let match;
+                WEB_DATE_REGEX_GLOBAL.lastIndex = 0;
                 while ((match = WEB_DATE_REGEX_GLOBAL.exec(text))) {
                     const date = new Date(match[0]);
                     const humanReadableDate = date.toLocaleString(); // Convert to a human-readable format
@@ -264,7 +295,7 @@ export class TextDecorator implements vscode.Disposable {
                         range: new vscode.Range(startPos, endPos),
                         renderOptions: {
                             after: {
-                                contentText: this.isReadableIsoDatesEnabled ? "" : ` [${humanReadableDate} UTC]`,
+                                contentText: this.isReadableIsoDatesEnabled ? ` 🌐 [${humanReadableDate} UTC]` : "",
                                 color: "lightgrey", // You can adjust the color
                                 fontWeight: "bold",
                                 textDecoration: "none;",
@@ -286,9 +317,24 @@ export class TextDecorator implements vscode.Disposable {
                     "Readable ISO dates"
                 );
             }
+        } else {
+            this.logger.info("applyReadableIsoDates.noAction", undefined);
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -23,7 +23,7 @@ export const WEB_DATE_REGEX = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(?!["
 /**
  * Same as {@link WEB_DATE_REGEX} but with global flag.
  */
-export const WEB_DATE_REGEX_GLOBAL = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(?!["\\])/;
+export const WEB_DATE_REGEX_GLOBAL = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(?!["\\])/g;
 
 /**
  * Matches all lines that contain either of the following:
@@ -32,7 +32,7 @@ export const WEB_DATE_REGEX_GLOBAL = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}
  * - <ERR>
  * - [failure].
  */
-export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]/;
+export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]/g;
 
 /**
  * Matches all lines that contain either of the following:
@@ -43,7 +43,9 @@ export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]/;
  * - <WAR>
  * - warning.
  */
-export const WARN_REGEX = /.*\sWARN\s.*|.*\sWarn\s.*|.*\sWar\s.*|.*<WARN>.*|\s<WAR>\s|warning/;
+export const WARN_REGEX = /.*\sWARN\s.*|.*\sWarn\s.*|.*\sWar\s.*|.*<WARN>.*|\s<WAR>\s|warning/g;
+
+
 
 
 
