@@ -83,6 +83,11 @@ jobs:
       - name: install vsce
         run: npm install -g vsce
 
+      - name: build extension and ui
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: build-prod
+
       - name: compile and create vsix
         uses: borales/actions-yarn@v4.2.0
         with:

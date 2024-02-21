@@ -108,7 +108,7 @@
         "compile": "webpack",
         "watch": "webpack --config ./src/extension/webpack.config.js --watch",
         "build-ui-dev": "cd src/ui && webpack --config webpack.config.js --mode development --watch",
-        "build-ui-prod": "webpack --config ./src/ui/webpack.config.js --mode production",
+        "build-prod": "cd src/ui && webpack --config webpack.config.js --mode production && cd ../.. && webpack --config ./src/extension/webpack.config.js --mode production",
         "package": "webpack --mode production --devtool hidden-source-map",
         "vsce-package": "mkdir out && cd src/extension && vsce package -o ../../out/t200logs.vsix --yarn && cd ../..",
         "vsce-package-local": "mkdir out && cd src/extension && vsce package -o ../../out/t200logs.vsix --yarn && cd ../..",
