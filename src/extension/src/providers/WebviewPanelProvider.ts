@@ -90,6 +90,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
             enableScripts: true,
             localResourceRoots: [
                 VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact"),
+                VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact", "assets"),
                 VscodeUri.joinPath(this.extensionUri, "..", "..", "node_modules", "@vscode", "codicons", "dist"),
             ],
         };
@@ -97,28 +98,33 @@ export class WebviewPanelProvider implements WebviewViewProvider {
             scheme: "vscode-resource",
         }).fsPath;
 
-        const codiconCssPath = webview.asWebviewUri(
-            VscodeUri.joinPath(this.extensionUri, "..", "..", "node_modules", "@vscode", "codicons", "dist", "codicon.css")
-        );
+        // const codiconCssPath = webview.asWebviewUri(
+        //     VscodeUri.joinPath(this.extensionUri, "..", "..", "node_modules", "@vscode", "codicons", "dist", "codicon.css")
+        // );
 
         this.logger.info("getHtmlForWebview", "Reading HTML content", { htmlPath });
 
         // Path to the CSS file
-        // const cssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "styles.css"));
+        const codiconCssPath = webview.asWebviewUri(
+            VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact", "assets", "codicon.css")
+        );
+        const codiconFontPath = webview.asWebviewUri(
+            VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact", "assets", "codicon.ttf")
+        );
 
-        // const codiconCssPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.css"));
-        // const codiconFontPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "codicon.ttf"));
-
-        // replace the font path in the codiconCssPath CSS file
-        // let cssContent = fs.readFileSync(codiconCssPath.fsPath, "utf8");
-        // cssContent = cssContent.replace("%%CODICON_FONT_PATH%%", codiconFontPath.toString());
-        // fs.writeFileSync(codiconCssPath.fsPath, cssContent);
+        // replace the font path in the codiconCssPath CSS file with the webview URI
+        let cssContent = fs.readFileSync(codiconCssPath.fsPath, "utf8");
+        debugger;
+        cssContent = cssContent.replace(
+            /src:\s*url\(["'](\.\/codicon\.ttf\?[a-zA-Z0-9]+)["']\)\s*format\(["']truetype["']\);/,
+            codiconFontPath.toString()
+        );
+        fs.writeFileSync(codiconCssPath.fsPath, cssContent);
 
         // Path to the JS file
         const jsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanelReact", "main.js"));
 
         // path to the toolkit.min.js file
-        // const toolkitJsPath = webview.asWebviewUri(VscodeUri.joinPath(this.extensionUri, "media", "sidePanel", "toolkit.min.js"));
 
         // Read HTML content
         let htmlContent = fs.readFileSync(htmlPath, "utf8");
@@ -131,6 +137,14 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
+
+
+
+
+
+
+
 
 
 

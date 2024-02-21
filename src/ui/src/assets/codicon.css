@@ -14,7 +14,7 @@
  @font-face {
     font-family: "codicon";
     font-display: block;
-    src: url("https://file%2B.vscode-resource.vscode-cdn.net/Users/felix/Documents/Repositories/learning/t200Logs.nosync/media/sidePanel/codicon.ttf") format("truetype");
+    src: url("https://file%2B.vscode-resource.vscode-cdn.net/Users/felix/Documents/Repositories/learning/t200Logs.nosync/media/sidePanelReact/codicon.ttf") format("truetype");
   }
   
   .codicon[class*="codicon-"] {
