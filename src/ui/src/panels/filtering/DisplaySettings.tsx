@@ -4,25 +4,11 @@ import { Flex } from "../../common/Flex";
 import { useSendAndReceive } from "../../service/useSendAndReceive";
 import { useDebounce } from "../../common/useDebounce";
 import { useLogger } from "../../service/useLogger";
-
-type DisplaySettingsState = {
-    displayFileNames: boolean;
-    displayGuids: boolean;
-    displaySeverityHighlight: boolean;
-    displayReadableDates: boolean;
-    displayInlineTime: boolean;
-};
-
-const initialDisplaySettingsState: DisplaySettingsState = {
-    displayFileNames: true,
-    displayGuids: true,
-    displaySeverityHighlight: false,
-    displayReadableDates: false,
-    displayInlineTime: false,
-};
+import { useExtensionState } from "../../service/useExtensionState";
+import { ExtensionStateKey, INITIAL_EXTENSION_STATE } from "../../vscode/ExtensionState";
 
 export const DisplaySettings: React.FC = () => {
-    const [displaySettings, setDisplaySettings] = React.useState<DisplaySettingsState>(initialDisplaySettingsState);
+    const [displaySettings, setDisplaySettings] = useExtensionState("displaySettingState");
     const { log, logError } = useLogger("DisplaySettings");
     const debouncedDisplaySettings = useDebounce(displaySettings, 500);
 
@@ -42,13 +28,13 @@ export const DisplaySettings: React.FC = () => {
                     setDisplaySettings(prev => ({ ...prev, displayGuids: value }));
                     break;
                 case "displaySeverityHighlight":
-                    setDisplaySettings(prev => ({ ...prev, displaySeverityHighlight: value }));
+                    setDisplaySettings(prev => ({ ...prev, displayLogLevels: value }));
                     break;
                 case "displayReadableDates":
                     setDisplaySettings(prev => ({ ...prev, displayReadableDates: value }));
                     break;
                 case "displayInlineTime":
-                    setDisplaySettings(prev => ({ ...prev, displayInlineTime: value }));
+                    setDisplaySettings(prev => ({ ...prev, displayDatesInLine: value }));
                     break;
                 default:
                     logError("onCheckboxChange", `Unknown checkbox name: ${name}`);
@@ -62,11 +48,7 @@ export const DisplaySettings: React.FC = () => {
     React.useEffect(() => {
         log("useEffect", "Sending display settings to the extension backend");
         send({
-            displayDatesInLine: debouncedDisplaySettings.displayInlineTime,
-            displayFileNames: debouncedDisplaySettings.displayFileNames,
-            displayGuids: debouncedDisplaySettings.displayGuids,
-            displayLogLevels: debouncedDisplaySettings.displaySeverityHighlight,
-            displayReadableDates: debouncedDisplaySettings.displayReadableDates,
+            ...debouncedDisplaySettings,
         });
     }, [debouncedDisplaySettings, send, log]);
 
@@ -74,31 +56,35 @@ export const DisplaySettings: React.FC = () => {
         <Flex direction="row" wrap="wrap" justifyContent="flex-start">
             <VSCodeCheckbox
                 disabled={isPending}
-                checked={displaySettings.displayFileNames}
+                checked={displaySettings.displayFileNames ?? INITIAL_EXTENSION_STATE.displaySettingState.displayFileNames}
                 name="displayFileNames"
                 onChange={onCheckboxChange}>
                 Display file names
             </VSCodeCheckbox>
-            <VSCodeCheckbox disabled={isPending} checked={displaySettings.displayGuids} name="displayGuids" onChange={onCheckboxChange}>
+            <VSCodeCheckbox
+                disabled={isPending}
+                checked={displaySettings.displayGuids ?? INITIAL_EXTENSION_STATE.displaySettingState.displayGuids}
+                name="displayGuids"
+                onChange={onCheckboxChange}>
                 Display GUIDs
             </VSCodeCheckbox>
             <VSCodeCheckbox
                 disabled={isPending}
-                checked={displaySettings.displaySeverityHighlight}
+                checked={displaySettings.displayLogLevels ?? INITIAL_EXTENSION_STATE.displaySettingState.displayLogLevels}
                 name="displaySeverityHighlight"
                 onChange={onCheckboxChange}>
                 Display severity highlight
             </VSCodeCheckbox>
             <VSCodeCheckbox
                 disabled={isPending}
-                checked={displaySettings.displayReadableDates}
+                checked={displaySettings.displayReadableDates ?? INITIAL_EXTENSION_STATE.displaySettingState.displayReadableDates}
                 name="displayReadableDates"
                 onChange={onCheckboxChange}>
                 Display readable dates
             </VSCodeCheckbox>
             <VSCodeCheckbox
                 disabled={isPending}
-                checked={displaySettings.displayInlineTime}
+                checked={displaySettings.displayDatesInLine ?? INITIAL_EXTENSION_STATE.displaySettingState.displayDatesInLine}
                 name="displayInlineTime"
                 onChange={onCheckboxChange}>
                 Display inline time
@@ -106,5 +92,16 @@ export const DisplaySettings: React.FC = () => {
         </Flex>
     );
 };
+
+
+
+
+
+
+
+
+
+
+
 
 

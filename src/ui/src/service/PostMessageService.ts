@@ -1,5 +1,6 @@
 import { PostMessageServiceBase } from "@t200logs/common";
 import { WebviewApi } from "vscode-webview";
+import { ILogger } from "./ILogger";
 
 /**
  * Implementation of a {@link PostMessageServiceBase|PostMessageService} that uses the vscode API to send and receive messages.
@@ -62,6 +63,19 @@ export class PostMessageService<TState = unknown> extends PostMessageServiceBase
     protected override postMessage(message: unknown): void {
         this.vscodeApi.postMessage(message);
     }
+
+    /**
+     * Sends messages to the extension.
+     * @returns A logger service that can be used to log messages to the post message service
+     */
+    public getLogger(): ILogger {
+        return {
+            log: (event: string, message: string) => this.sendLogMessage(event, message),
+            error: (event: string, message: string) => this.sendLogErrorMessage(event, message),
+        };
+    }
 }
+
+
 
 

@@ -123,9 +123,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         // Read HTML content
         let htmlContent = fs.readFileSync(htmlPath, "utf8");
 
-        // htmlContent = htmlContent.replace("%%CSS_PATH%%", cssPath.toString());
         htmlContent = htmlContent.replace("/main.js", jsPath.toString());
-        // htmlContent = htmlContent.replace("%%TOOLKIT_JS_PATH%%", toolkitJsPath.toString());
         htmlContent = htmlContent.replace("%%CODICON_CSS_PATH%%", codiconCssPath.toString());
 
         this.logger.info("getHtmlForWebview.end", undefined, { htmlContentLength: "" + htmlContent.length });
@@ -133,6 +131,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
 
 
 
