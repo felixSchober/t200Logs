@@ -73,4 +73,5 @@ resources/favicons/*
 .DS_Store
 
 # compiled files in the media directory
-src/extension/media/sidePanelReact/
+src/extension/media/sidePanelReact/*.html
+src/extension/media/sidePanelReact/*.js
