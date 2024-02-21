@@ -114,7 +114,6 @@ export class WebviewPanelProvider implements WebviewViewProvider {
 
         // replace the font path in the codiconCssPath CSS file with the webview URI
         let cssContent = fs.readFileSync(codiconCssPath.fsPath, "utf8");
-        debugger;
         cssContent = cssContent.replace(
             /src:\s*url\(["'](\.\/codicon\.ttf\?[a-zA-Z0-9]+)["']\)\s*format\(["']truetype["']\);/,
             codiconFontPath.toString()
@@ -137,6 +136,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
 
 
 

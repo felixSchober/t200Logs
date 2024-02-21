@@ -141,7 +141,7 @@
         }
     },
     "dependencies": {
-        "@t200logs/common": "^workspace:*",
+        "@t200logs/common": "1.0.0",
         "uuid": "^9.0.1"
     },
     "devDependencies": {
