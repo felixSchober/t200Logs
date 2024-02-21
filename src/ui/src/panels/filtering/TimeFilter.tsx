@@ -18,9 +18,10 @@ export const TimeFilter: React.FC = () => {
     const debouncedTimeFilter = useDebounce(timeFilter, 1000);
     const { send: sendTime } = useSendAndReceive("filterTime", "updateNumberOfActiveFilters");
     const { send: sendFilterNoEventTime } = useSendAndReceive("filterNoEventTime", "updateNumberOfActiveFilters");
+    const { send: sendSessionIdFilter } = useSendAndReceive("filterSessionId", "updateNumberOfActiveFilters");
     const subscriptionTimeFilters = useMessageSubscription("updateTimeFilters");
     const { log } = useLogger("TimeFilter");
-
+    const summary = useMessageSubscription("getSummaryResponse");
     const onCheckboxChange = React.useCallback(
         (event: Event | React.FormEvent<HTMLElement>) => {
             const target = event.target as HTMLInputElement;
@@ -30,6 +31,8 @@ export const TimeFilter: React.FC = () => {
         },
         [sendFilterNoEventTime]
     );
+
+    const isSessionIdDefined = summary?.summary?.sessionId !== undefined;
 
     const onTextFieldChange = React.useCallback((event: Event | React.FormEvent<HTMLElement>) => {
         const target = event.target as HTMLInputElement;
@@ -46,6 +49,26 @@ export const TimeFilter: React.FC = () => {
                 break;
         }
     }, []);
+
+    const onSessionIdFilterChange = React.useCallback(
+        (event: Event | React.FormEvent<HTMLElement>) => {
+            const target = event.target as HTMLInputElement;
+            const value = target.checked;
+            const name = target.name;
+            switch (name) {
+                case "filter_session_id":
+                    const sessionId = summary?.summary?.sessionId;
+                    if (!sessionId) {
+                        return;
+                    }
+                    sendSessionIdFilter({ isChecked: value, sessionId: sessionId });
+                    break;
+                default:
+                    break;
+            }
+        },
+        [sendSessionIdFilter, summary]
+    );
 
     React.useEffect(() => {
         console.log(
@@ -116,13 +139,14 @@ export const TimeFilter: React.FC = () => {
                 <VSCodeTextField placeholder="YYYY-MM-DD HH:MM" name="till" value={timeFilter.till} onChange={onTextFieldChange}>
                     Till
                 </VSCodeTextField>
+
+                <h4>Session Id</h4>
+                <p>If we find a session id in the summary.txt file, you can filter based on it </p>
+                <VSCodeCheckbox disabled={!isSessionIdDefined} onChange={onSessionIdFilterChange} name="filter_session_id">
+                    Start around session start
+                </VSCodeCheckbox>
             </Flex>
         </Flex>
     );
+
 };
-
-
-
-
-
-
