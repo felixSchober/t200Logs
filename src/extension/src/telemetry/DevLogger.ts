@@ -171,7 +171,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         const telemetryLine = this.getErrorEventString(eventName, properties, measurements, errorProps);
         console.error(telemetryLine);
         this.outputChannel.appendLine(telemetryLine);
-        this.outputChannel.show();
+        // this.outputChannel.show();
     }
 
     /**
@@ -245,6 +245,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         return Promise.resolve();
     }
 }
+
 
 
 
