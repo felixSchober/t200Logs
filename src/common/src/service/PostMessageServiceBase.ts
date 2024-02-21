@@ -122,6 +122,18 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.messageAck,
             eventListeners: [],
         },
+        setKeywordFiltersFromConfiguration: {
+            commandSchema: MessageSchemaMap.setKeywordFiltersFromConfiguration,
+            eventListeners: [],
+        },
+        setKeywordHighlightsFromConfiguration: {
+            commandSchema: MessageSchemaMap.setKeywordHighlightsFromConfiguration,
+            eventListeners: [],
+        },
+        webviewReady: {
+            commandSchema: MessageSchemaMap.webviewReady,
+            eventListeners: [],
+        },
     };
 
     /**
@@ -142,7 +154,6 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
         const parsedData = PostMessageSchema.safeParse(messageData);
 
         if (!parsedData.success) {
-            debugger;
             console.error("Invalid message received", parsedData.error);
             this.internalLogErrorMessage(
                 "onMessageReceived.parseError",
@@ -173,6 +184,11 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             this.replyToMessage(response, messageId);
         };
 
+        this.internalLogMessage(
+            "onMessageReceived.notifyListeners.listeners",
+            `Active listeners for command: ${commandId} - ${eventListeners.length} listeners`
+        );
+
         for (const listener of eventListeners) {
             const listenerForData = listener as HandleEvent<typeof parsedMessageData>;
             this.internalLogMessage(
@@ -193,7 +209,9 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
     private parseMessageData<T extends MessageCommand>(commandId: T["command"], data: unknown, schema: z.Schema<T["data"]>): T["data"] {
         const parsedData = schema.safeParse(data);
         if (!parsedData.success) {
-            throw new Error(`Invalid message data received for command: ${commandId}`);
+            throw new Error(
+                `Invalid message data received for command: '${commandId}'. Message data: '${JSON.stringify(data)}' - Parse error: '${parsedData.error.toString()}`
+            );
         }
         return parsedData.data;
     }
@@ -253,7 +271,6 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
                 if (parsedResponse.success) {
                     resolve(parsedResponse.data);
                 } else {
-                    debugger;
                     this.internalLogErrorMessage(
                         "sendAndReceive.handleResponse",
                         `Received unexpected response to ${message.command} that could not be parsed according to expected schema. Expected response command id: ${expectResponseId}. - Received response data ${JSON.stringify(response)} - Parse error: ${parsedResponse.error.toString()}`
@@ -342,6 +359,14 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      */
     protected abstract postMessage(message: unknown): void;
 }
+
+
+
+
+
+
+
+
 
 
 

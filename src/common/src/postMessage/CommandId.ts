@@ -20,5 +20,10 @@ export const CommandIdSchema = z.union([
     z.literal("updateNumberOfHighlightedKeywords"),
     z.literal("updateTimeFilters"),
     z.literal("messageAck"),
+    z.literal("setKeywordFiltersFromConfiguration"),
+    z.literal("setKeywordHighlightsFromConfiguration"),
+    z.literal("webviewReady"),
 ]);
+
+
 

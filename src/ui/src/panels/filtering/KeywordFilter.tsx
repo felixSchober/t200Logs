@@ -4,6 +4,7 @@ import { Flex } from "../../common/Flex";
 import { useSendAndReceive } from "../../service/useSendAndReceive";
 import { v4 as uuid } from "uuid";
 import { useLogger } from "../../service/useLogger";
+import { useMessageSubscription } from "../../service/useMessageSubscription";
 
 type KeywordDefinition = {
     /**
@@ -27,19 +28,30 @@ type KeywordDefinition = {
     isCustom: boolean;
 };
 
-const predefinedKeywords: KeywordDefinition[] = [
-    { id: uuid(), keyword: "Auth|auth", isChecked: false, isCustom: false },
-    { id: uuid(), keyword: "CDL|cdl", isChecked: false, isCustom: false },
-    { id: uuid(), keyword: "oneauth|OneAuth", isChecked: false, isCustom: false },
-    { id: uuid(), keyword: "AcquireToken|acquireToken", isChecked: false, isCustom: false },
-    { id: uuid(), keyword: "auth-login-page", isChecked: false, isCustom: false },
-];
+const predefinedKeywords: KeywordDefinition[] = [];
 
 export const KeywordFilter: React.FC = () => {
     const { log, logError } = useLogger("KeywordFilter");
     const [keywords, setKeywords] = React.useState<KeywordDefinition[]>(predefinedKeywords);
     const [newKeywordField, setNewKeywordField] = React.useState("");
     const { send, isPending } = useSendAndReceive("filterCheckboxStateChange", "updateNumberOfActiveFilters");
+    const keywordsFromConfiguration = useMessageSubscription("setKeywordFiltersFromConfiguration");
+
+    React.useEffect(() => {
+        if (keywordsFromConfiguration && keywordsFromConfiguration.length > 0) {
+            setKeywords(prev => {
+                const newKeywords: KeywordDefinition[] = keywordsFromConfiguration.map(kw => {
+                    return {
+                        keyword: kw.value,
+                        isCustom: false,
+                        id: uuid(),
+                        isChecked: false,
+                    };
+                });
+                return [...prev, ...newKeywords];
+            });
+        }
+    }, [keywordsFromConfiguration]);
 
     const onCheckboxChange = React.useCallback(
         (event: Event | React.FormEvent<HTMLElement>) => {
@@ -153,6 +165,13 @@ export const KeywordFilter: React.FC = () => {
         </Flex>
     );
 };
+
+
+
+
+
+
+
 
 
 

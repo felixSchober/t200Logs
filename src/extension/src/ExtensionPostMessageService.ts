@@ -1,8 +1,7 @@
 import { Webview, Disposable } from "vscode";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
 import { ScopedILogger } from "./telemetry/ILogger";
-import { MessageCommand, PostMessageCommand, PostMessageServiceBase } from "@t200logs/common";
-import { v4 as uuid } from "uuid";
+import { PostMessageServiceBase } from "@t200logs/common";
 
 export class ExtensionPostMessageService extends PostMessageServiceBase implements Disposable {
     /**
@@ -22,11 +21,18 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
     private webview: Webview | null = null;
 
     /**
+     * A list of messages that are in the queue to be sent to the webview.
+     * This is required because consumers of the service might send messages before the webview is registered.
+     * This queue is processed when the webview is registered.
+     */
+    private readonly messagesInQueueToBeSent: unknown[] = [];
+
+    /**
      * A list of disposables that are disposed when the post message service is disposed.
      */
     private disposables: Disposable[] = [];
 
-    private readonly logMessageHandlers: (() => void)[] = [];
+    private readonly unregisterMessageHandlers: (() => void)[] = [];
 
     /**
      *  Creates a new instance of the post message service.
@@ -43,8 +49,8 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
             disposable.dispose();
         }
 
-        for (const unregisterLogMessageHandler of this.logMessageHandlers) {
-            unregisterLogMessageHandler();
+        for (const unregisterMessageHandler of this.unregisterMessageHandlers) {
+            unregisterMessageHandler();
         }
     }
 
@@ -70,12 +76,12 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         const unregisterLogMessageHandler = this.registerMessageHandler("logMessage", message => {
             this.webviewLogger.info(`.LOG.${message.event}`, message.message);
         });
-        this.logMessageHandlers.push(unregisterLogMessageHandler);
+        this.unregisterMessageHandlers.push(unregisterLogMessageHandler);
 
         const unregisterErrorMessageHandler = this.registerMessageHandler("logErrorMessage", message => {
             this.webviewLogger.logException(`.LOG.${message.event}`, new Error(message.errorMessage));
         });
-        this.logMessageHandlers.push(unregisterErrorMessageHandler);
+        this.unregisterMessageHandlers.push(unregisterErrorMessageHandler);
     }
 
     protected internalLogMessage(event: string, message: string): void {
@@ -86,14 +92,11 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
     }
     protected postMessage(message: unknown): void {
         if (!this.webview) {
-            this.logger.logException(
-                "sendMessage",
-                new Error("Webview is not defined"),
-                "Cannot send message because the webview is not defined",
-                {
-                    message: JSON.stringify(message),
-                }
-            );
+            this.logger.info("sendMessage", "Cannot send message because the webview is not defined. Adding to queue.", {
+                message: JSON.stringify(message),
+                messagesInQueue: "" + this.messagesInQueueToBeSent.length,
+            });
+            this.messagesInQueueToBeSent.push(message);
             return;
         }
         this.webview.postMessage(message).then(result => {
@@ -118,45 +121,46 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         this.logger.info("registerWebview");
         this.webview = webview;
         this.startListening();
+
+        // register a listener for the webview ready message
+        // once the webview is ready, we can start processing messages in the queue
+        const unregisterWebviewReadyHandler = this.registerMessageHandler("webviewReady", (_, respond) => {
+            this.logger.info("registerWebview.webviewReady.messageReceived");
+            respond({ command: "messageAck", data: undefined });
+            this.processMessagesInQueue();
+        });
+        this.unregisterMessageHandlers.push(unregisterWebviewReadyHandler);
     }
 
-    /**
-     *
-     * @param command The command to send
-     * @param id The id of the message that is used to identify responses. If not provided, a new id will be generated.
-     * @returns
-     */
-    public async sendMessage(command: MessageCommand, id?: string) {
-        if (!this.webview) {
-            this.logger.logException(
-                "sendMessage",
-                new Error("Webview is not defined"),
-                "Cannot send message because the webview is not defined",
-                {
-                    commandId: command.command,
-                    id: id ?? "undefined",
-                }
-            );
-            return;
-        }
-        const message: PostMessageCommand<MessageCommand["command"]> = {
-            ...command,
-            id: id ?? uuid(),
-        };
-        this.logger.info("sendMessage", undefined, {
-            commandId: command.command,
-            id: id ?? "undefined",
-            payload: JSON.stringify(command.data),
-        });
-        const result = this.webview.postMessage(message);
-        if (!result) {
-            this.logger.logException("sendMessage", new Error("Failed to send message to webview"), "Failed to send message to webview", {
-                commandId: command.command,
-                id: id ?? "undefined",
+    private processMessagesInQueue() {
+        // even though we are only processing the messages in the queue when the webview is ready,
+        // there is a slight delay when React is rerendering the webview and the webview is ready.
+        // therefore, we have to use a small delay to ensure that the webview is ready to receive messages.
+        setTimeout(() => {
+            this.logger.info("registerWebview.queue", "Processing messages in queue", {
+                messagesInQueue: "" + this.messagesInQueueToBeSent.length,
             });
-        }
+            // Process any messages that were sent before the webview was registered
+            while (this.messagesInQueueToBeSent.length > 0) {
+                const message = this.messagesInQueueToBeSent.shift();
+                this.logger.info("registerWebview.queue", "Processing message from queue", {
+                    messageData: JSON.stringify(message),
+                });
+                if (message) {
+                    this.postMessage(message);
+                }
+            }
+        }, 200);
     }
 }
+
+
+
+
+
+
+
+
 
 
 

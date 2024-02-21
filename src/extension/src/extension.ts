@@ -16,6 +16,7 @@ import { TextDecorator } from "./textDecorations/TextDecorator";
 import type { FilterChangedEvent, TimeFilterChangedEvent } from "@t200logs/common";
 import { ExtensionPostMessageService } from "./ExtensionPostMessageService";
 import { SummaryInfoProvider } from "./info/SummaryInfoProvider";
+import { ConfigurationManager } from "./configuration/ConfigurationManager";
 
 let telemetryReporter: Readonly<ITelemetryLogger>;
 let logContentProvider: Readonly<LogContentProvider>;
@@ -31,13 +32,22 @@ let handlersToUnregister: (() => void)[] = [];
 export async function activate(context: vscode.ExtensionContext) {
     console.log("Extension activated");
     await setupLogging(context);
+
+    const configurationManager = new ConfigurationManager(telemetryReporter);
+    telemetryReporter.startLogging(configurationManager.shouldShowWelcomeMessage);
+
     setupFoldingRangeProvider(context);
 
     if (!logContentProvider || !postMessageService || !onCodeLensFilterApplied) {
         telemetryReporter.info("extension.activate().serviceInitialization");
         onCodeLensFilterApplied = new vscode.EventEmitter<TimeFilterChangedEvent>();
         postMessageService = new ExtensionPostMessageService(telemetryReporter);
-        logContentProvider = new LogContentProvider(onCodeLensFilterApplied.event, postMessageService, telemetryReporter);
+        logContentProvider = new LogContentProvider(
+            onCodeLensFilterApplied.event,
+            postMessageService,
+            configurationManager,
+            telemetryReporter
+        );
 
         disposableServices.push(onCodeLensFilterApplied);
         disposableServices.push(postMessageService);
@@ -67,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     setupCodeLensProvider(context, onCodeLensFilterApplied);
     setupTextDecorator(context, logContentProvider);
-    setupKeywordHighlighter(logContentProvider);
+    setupKeywordHighlighter(logContentProvider, configurationManager);
 
     const summaryInfoProvider = new SummaryInfoProvider(postMessageService, telemetryReporter);
     disposableServices.push(summaryInfoProvider);
@@ -104,8 +114,6 @@ async function setupLogging(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand(EXTENSION_ID + ".provideFeedback", async () => await telemetryReporter.provideFeedback())
     );
-
-    telemetryReporter.startLogging();
 }
 
 /**
@@ -156,9 +164,10 @@ function setupTextDecorator(context: vscode.ExtensionContext, logContentProvider
  * @param logContentProvider The log content provider for the virtual document.
  * @returns The keyword highlighter and the event emitter for keyword highlight changes.
  */
-function setupKeywordHighlighter(logContentProvider: Readonly<LogContentProvider>) {
+function setupKeywordHighlighter(logContentProvider: Readonly<LogContentProvider>, configurationManager: ConfigurationManager) {
     const keywordHighlighter = new KeywordHighlightDecorator(
         postMessageService,
+        configurationManager,
         logContentProvider.onTextDocumentGenerationFinished.event,
         telemetryReporter
     );
@@ -201,6 +210,8 @@ export function deactivate() {
 export function createTelemetryReporter(context: vscode.ExtensionContext): Readonly<ITelemetryLogger> {
     return new DevLogger(context.logUri);
 }
+
+
 
 
 

@@ -72,6 +72,46 @@
                 "category": "T200Logs"
             }
         ],
+        "configuration": {
+            "title": "Teams Logs Viewer",
+            "order": 0,
+            "properties": {
+                "t200logs.showWelcomeMessage": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show a welcome message when opening the log viewer with an option to open the extension logs."
+                },
+                "t200logs.keywords.filter": {
+                    "type": "array",
+                    "markdownDescription": "You can add your own custom predefined keyword here using the following format: `{\"keyword\": \"YOUR_KEYWORD\", \"isChecked\": true}`. These will be loaded on startup and can be toggled on and off in the log viewer. You can enable or disable the default keywords by setting the `isChecked` property.\n\n - `keyword`: The keyword to filter. This can be a regular expression\n - `isChecked`: Whether the filter should be enabled by default.",
+                    "default": [
+                        {
+                            "keyword": "(a|A)uth",
+                            "isChecked": false
+                        },
+                        {
+                            "keyword": "(o|O)ne(a|A)uth",
+                            "isChecked": false
+                        },
+                        {
+                            "keyword": "(a|A)cquire(_)?(t|T)oken",
+                            "isChecked": false
+                        }
+                    ]
+                },
+                "t200logs.keywords.highlights": {
+                    "type": "array",
+                    "markdownDescription": "You can add your own custom predefined keyword highlights here using the following format: `{\"keyword\": \"YOUR_KEYWORD\", \"color\": \"#FF0000\", \"isChecked\": false}`. These will be loaded on startup and can be toggled on and off in the log viewer.\n\n- `keyword`: The keyword to highlight. This can be a regular expression\n- `color`: The color to use for highlighting\n- `isChecked`: Whether the highlight should be enabled by default",
+                    "default": [
+                        {
+                            "keyword": "Auth|auth",
+                            "color": "#FF0000",
+                            "isChecked": false
+                        }
+                    ]
+                }
+            }
+        },
         "viewsContainers": {
             "activitybar": [
                 {

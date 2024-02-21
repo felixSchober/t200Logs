@@ -12,6 +12,7 @@ import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 import type { IPostMessageService, LogLevel, PostMessageEventRespondFunction, TimeFilterChangedEvent } from "@t200logs/common";
 import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
+import { ConfigurationManager } from "../configuration/ConfigurationManager";
 
 type LogEntry = {
     /**
@@ -179,7 +180,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         /-logs\.txt/g,
         /<\d{5}>/g,
         /\s0x[0-9a-fA-F]{16}\s/g, // 0x0000000000000000 with spaces before and after
-        /[0-9a-f]{8}\s/g // d93f9c40 with a space after (process ids)
+        /[0-9a-f]{8}\s/g, // d93f9c40 with a space after (process ids)
     ] as const;
 
     /**
@@ -243,6 +244,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
     constructor(
         private readonly onFilterChangeEvent: vscode.Event<TimeFilterChangedEvent>,
         private readonly postMessageService: IPostMessageService,
+        private readonly configurationManager: ConfigurationManager,
         logger: ITelemetryLogger
     ) {
         this.registerMessageHandlers();
@@ -253,11 +255,23 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         this.logger = logger.createLoggerScope("LogContentProvider");
         this.watcher = vscode.workspace.createFileSystemWatcher("**/*.{log,txt}", false, false, false);
         this.registerFileWatcherEvents();
+
+        this.setupKeywordFiltersFromConfiguration();
     }
 
     private registerMessageHandlers() {
         this.registerFilterEvents();
         this.registerDisplaySettingEvents();
+    }
+
+    private setupKeywordFiltersFromConfiguration() {
+        this.keywordFilters = this.configurationManager.keywordFilters.filter(kw => kw.isChecked).map(kw => kw.keyword);
+        this.logger.info("setupKeywordFiltersFromConfiguration");
+        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
+        this.postMessageService.sendAndForget({
+            command: "setKeywordFiltersFromConfiguration",
+            data: this.configurationManager.keywordFilters.map(kw => ({ value: kw.keyword, isChecked: kw.isChecked })),
+        });
     }
 
     /**
@@ -1143,6 +1157,9 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         return prefix.length > 0 ? prefix + " " : "";
     }
 }
+
+
+
 
 
 

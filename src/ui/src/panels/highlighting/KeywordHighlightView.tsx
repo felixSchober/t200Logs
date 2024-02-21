@@ -49,8 +49,26 @@ export const KeywordHighlightView: React.FC = () => {
     const { log, logError } = useLogger("KeywordHighlightView");
     const [keywords, setKeywords] = React.useState<KeywordHighlightDefinition[]>([]);
     const [newKeywordField, setNewKeywordField] = React.useState("");
+
     const { send, isPending } = useSendAndReceive("keywordHighlightStateChange", "messageAck", 4000);
     const activeKeywords = useMessageSubscription("updateNumberOfHighlightedKeywords");
+    const keywordsFromConfiguration = useMessageSubscription("setKeywordHighlightsFromConfiguration");
+
+    React.useEffect(() => {
+        if (keywordsFromConfiguration && keywordsFromConfiguration.length > 0) {
+            setKeywords(prev => {
+                const newKeywords: KeywordHighlightDefinition[] = keywordsFromConfiguration.map(kw => {
+                    return {
+                        ...kw.keywordDefinition,
+                        isCustom: false,
+                        id: uuid(),
+                        isChecked: kw.isChecked,
+                    };
+                });
+                return [...prev, ...newKeywords];
+            });
+        }
+    }, [keywordsFromConfiguration]);
 
     const onCheckboxChange = React.useCallback(
         (event: Event | React.FormEvent<HTMLElement>) => {
@@ -190,6 +208,11 @@ export const KeywordHighlightView: React.FC = () => {
         </>
     );
 };
+
+
+
+
+
 
 
 

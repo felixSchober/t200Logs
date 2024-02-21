@@ -5,7 +5,7 @@ import { useSendAndReceive } from "../../service/useSendAndReceive";
 import { useDebounce } from "../../common/useDebounce";
 import { useLogger } from "../../service/useLogger";
 import { useExtensionState } from "../../service/useExtensionState";
-import { ExtensionStateKey, INITIAL_EXTENSION_STATE } from "../../vscode/ExtensionState";
+import { INITIAL_EXTENSION_STATE } from "../../vscode/ExtensionState";
 
 export const DisplaySettings: React.FC = () => {
     const [displaySettings, setDisplaySettings] = useExtensionState("displaySettingState");
@@ -92,6 +92,7 @@ export const DisplaySettings: React.FC = () => {
         </Flex>
     );
 };
+
 
 
 

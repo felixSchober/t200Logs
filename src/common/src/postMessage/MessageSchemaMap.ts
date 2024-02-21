@@ -84,8 +84,8 @@ export const MessageSchemaMap = {
          */
         removeEntriesWithNoEventTime: z.boolean(),
     }),
-    updateNumberOfActiveFilters: z.number().positive(),
-    updateNumberOfHighlightedKeywords: z.number().positive(),
+    updateNumberOfActiveFilters: z.number().nonnegative(),
+    updateNumberOfHighlightedKeywords: z.number().nonnegative(),
     getSummary: z.object({}),
     getSummaryResponse: z.object({
         /**
@@ -146,5 +146,45 @@ export const MessageSchemaMap = {
      * Acknowledges a message
      */
     messageAck: z.undefined(),
+
+    /**
+     * Message sent from the extension to the webview to set the keyword filters from the configuration
+     */
+    setKeywordFiltersFromConfiguration: z.array(
+        z.object({
+            /**
+             * The value of the filter checkbox
+             */
+            value: z.string(),
+
+            /**
+             * The state of the filter checkbox
+             */
+            isChecked: z.boolean(),
+        })
+    ),
+
+    /**
+     * Message sent from the extension to the webview to set the keyword highlights from the configuration
+     */
+    setKeywordHighlightsFromConfiguration: z.array(
+        z.object({
+            /**
+             * The keyword to highlight
+             */
+            keywordDefinition: KeywordHighlightSchema,
+
+            /**
+             * The state of the keyword highlight
+             */
+            isChecked: z.boolean(),
+        })
+    ),
+    webviewReady: z.undefined(),
 } as const;
+
+
+
+
+
 

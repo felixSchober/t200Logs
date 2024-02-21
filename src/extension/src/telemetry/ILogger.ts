@@ -10,8 +10,9 @@ import { TelemetryEventMeasurements, TelemetryEventProperties } from "@vscode/ex
 export interface ILogger {
     /**
      * Starts logging.
+     * @param shouldShowWelcomeMessage Whether to show the welcome message.
      */
-    startLogging(): void;
+    startLogging(shouldShowWelcomeMessage: boolean): void;
 
     /**
      * Logs the informational message.
@@ -60,5 +61,6 @@ type DropFirstParameter<T> = T extends (first: any, ...rest: infer U) => Promise
 export type ScopedILogger = {
     [K in keyof ILoggerLoggingMethods]: DropFirstParameter<ILoggerLoggingMethods[K]>;
 };
+
 
 

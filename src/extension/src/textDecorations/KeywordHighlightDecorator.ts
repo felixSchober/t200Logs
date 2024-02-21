@@ -8,6 +8,7 @@ import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 import type { IPostMessageService, KeywordHighlight, KeywordHighlightChangeEvent, PostMessageEventRespondFunction } from "@t200logs/common";
+import { ConfigurationManager } from "../configuration/ConfigurationManager";
 
 /**
  * Internal representation of a keyword to highlight with a regular expression.
@@ -56,6 +57,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
      */
     constructor(
         private readonly postMessageService: IPostMessageService,
+        private readonly configurationManager: ConfigurationManager,
         onTextDocumentGenerationFinishedEvent: vscode.Event<string>,
         logger: ITelemetryLogger
     ) {
@@ -75,6 +77,33 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         });
         this.handlerRegistrations.push(keywordHighlightChangeHandler);
         this.logger = logger.createLoggerScope("KeywordHighlightDecorator");
+        this.setupKeywordHighlightsFromConfiguration();
+    }
+
+    private setupKeywordHighlightsFromConfiguration() {
+        const keywordHighlights = this.configurationManager.keywordHighlights;
+        this.logger.info("setupKeywordHighlightsFromConfiguration", undefined, {
+            keywordHighlights: keywordHighlights.map(kw => `{[${kw.isChecked ? "X" : "-"}] ${kw.keyword} - ${kw.color}}`).join(", "),
+        });
+        for (const keyword of keywordHighlights.filter(kw => kw.isChecked)) {
+            this.keywords.push({
+                ...keyword,
+                regex: new RegExp(`${keyword.keyword}`, "gi"),
+            });
+        }
+        this.postMessageService.sendAndForget({ command: "updateNumberOfHighlightedKeywords", data: this.keywords.length });
+        this.postMessageService.sendAndForget({
+            command: "setKeywordHighlightsFromConfiguration",
+            data: keywordHighlights.map(kw => {
+                return {
+                    keywordDefinition: {
+                        keyword: kw.keyword,
+                        color: kw.color,
+                    },
+                    isChecked: kw.isChecked,
+                };
+            }),
+        });
     }
 
     dispose() {
@@ -262,6 +291,13 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         this.postMessageService.sendAndForget({ command: "updateNumberOfHighlightedKeywords", data: this.keywords.length });
     }
 }
+
+
+
+
+
+
+
 
 
 

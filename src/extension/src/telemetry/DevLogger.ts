@@ -57,11 +57,13 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
     /**
      * Start logging to the log file if not already running.
      */
-    public startLogging(): void {
+    public startLogging(shouldShowWelcomeMessage: boolean): void {
         if (!this.logFileWriter) {
             this.logFileWriter = new FileSystemWriter(this, this.logUri);
 
+            if (shouldShowWelcomeMessage) {
             void this.displayLogFileMessage();
+            }
         }
     }
 
