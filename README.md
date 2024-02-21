@@ -39,3 +39,10 @@ Automated build and release of the extension
 ### 0.2.0
 
 - Adds custom keyword highlighting
+
+### 0.3.0
+
+- Refactor from native HTML and JS to React
+- Ability to add keywords through the settings
+- Ability to remove keywords from the UI
+- Number of highlights is now correctly displayed
