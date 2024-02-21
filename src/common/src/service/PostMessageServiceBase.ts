@@ -145,14 +145,14 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             debugger;
             console.error("Invalid message received", parsedData.error);
             this.internalLogErrorMessage(
-                "PostMessageService.onMessageReceived",
+                "onMessageReceived.parseError",
                 `Invalid message received. Message: '${JSON.stringify(event)}' Parse error: '${parsedData.error.toString()}'`
             );
             return;
         }
 
         const messageId = parsedData.data.id;
-        this.internalLogMessage("PostMessageService.onMessageReceived", `Received message with id: ${messageId}`);
+        this.internalLogMessage("onMessageReceived.receivedMessage", `Received '${parsedData.data.command}' message with id: ${messageId}`);
 
         // Check if we have a promise for the message id we can resolve
         const resolve = this.receivedMessages.get(messageId);
@@ -175,6 +175,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
 
         for (const listener of eventListeners) {
             const listenerForData = listener as HandleEvent<typeof parsedMessageData>;
+            this.internalLogMessage(
+                "onMessageReceived.notifyListeners",
+                `Calling listener for command: ${commandId} and message id ${messageId}`
+            );
             listenerForData(parsedMessageData, respond);
         }
     }
@@ -201,7 +205,7 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      * @returns A function to unregister the handler
      */
     public registerMessageHandler<T extends CommandId>(commandId: T, handler: HandleEvent<CommandIdToData<T>>): () => void {
-        this.internalLogMessage("PostMessageService.registerMessageHandler", `Registering message handler for command: ${commandId}`);
+        this.internalLogMessage("registerMessageHandler", `Registering message handler for command: ${commandId}`);
         const eventListeners = this.eventListeners[commandId].eventListeners;
         eventListeners.push(handler);
 
@@ -216,7 +220,7 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      * @param handler The handler to unregister
      */
     public unregisterMessageHandler<T extends MessageCommand>(commandId: T["command"], handler: HandleEvent<T["data"]>) {
-        this.internalLogMessage("PostMessageService.unregisterMessageHandler", `Unregistering message handler for command: ${commandId}`);
+        this.internalLogMessage("unregisterMessageHandler", `Unregistering message handler for command: ${commandId}`);
         const eventListeners = this.eventListeners[commandId].eventListeners;
         const index = eventListeners.indexOf(handler);
         if (index !== -1) {
@@ -258,6 +262,7 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
                 }
             };
 
+            this.internalLogMessage("sendAndReceive", `Sending command: ${command.command} with id: ${message.id}`);
             this.postMessage(message);
             this.receivedMessages.set(message.id, handleResponse);
 
@@ -266,7 +271,7 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
                     if (this.receivedMessages.has(message.id)) {
                         this.receivedMessages.delete(message.id);
                         this.internalLogErrorMessage(
-                            "PostMessageService.sendAndReceive",
+                            "sendAndReceive",
                             `Timeout after ${timeout}ms waiting for response to command: '${command.command}'`
                         );
                         reject(new Error("Timeout"));
@@ -337,6 +342,11 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      */
     protected abstract postMessage(message: unknown): void;
 }
+
+
+
+
+
 
 
 
