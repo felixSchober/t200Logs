@@ -35,6 +35,8 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
+.yarn/cache
+.yarn/install-state.gz
 
 # TypeScript v1 declaration files
 typings/
@@ -70,3 +72,7 @@ coverage/
 resources/favicons/*
 !resources/favicons/.gitkeep
 .DS_Store
+
+# compiled files in the media directory
+src/extension/media/sidePanelReact/*.html
+src/extension/media/sidePanelReact/*.js

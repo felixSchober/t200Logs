@@ -10,11 +10,19 @@ on:
       - 'GitVersion.yml'
       - '.eslintrc.json'
       - 'test/**'
+  pull_request:
+    branches: 
+      - main
+    paths-ignore: # don't run when changes made to these folders 
+      - '.vscode/**'
+      - 'GitVersion.yml'
+      - '.eslintrc.json'
+      - 'test/**'
     
 jobs:
   cicd:
     name: CI/CD
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
@@ -45,19 +53,25 @@ jobs:
           node-version: '18.x'
         
       - name: clean install dependencies
-        uses: borales/actions-yarn@v5.0.0
+        uses: borales/actions-yarn@v4.2.0
         with:
           cmd: install
-          args: --frozen-lockfile
 
-      - name: update metadata in package.json
+      - name: update metadata in extension package.json
         uses: onlyutkarsh/patch-files-action@v1.0.5
         with:
-          files: '${{github.workspace}}/package.json'
+          files: '${{github.workspace}}/src/extension/package.json'
           patch-syntax: |
             = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
             = /displayName => "Teams Logs Viewer"
             = /description => "Extension to make diagnosing Teams logs much easier. Open this extension in a folder containing Teams logs and it will combine them into a single view with filtering and visual hints."
+
+      - name: update metadata in ui package.json
+        uses: onlyutkarsh/patch-files-action@v1.0.5
+        with:
+          files: '${{github.workspace}}/src/ui/package.json'
+          patch-syntax: |
+            = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
       
       - name: add version in CHANGELOG.md
         uses: cschleiden/replace-tokens@v1
@@ -69,8 +83,13 @@ jobs:
       - name: install vsce
         run: npm install -g vsce
 
+      - name: build extension and ui
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: build-prod
+
       - name: compile and create vsix
-        uses: borales/actions-yarn@v5.0.0
+        uses: borales/actions-yarn@v4.2.0
         with:
           cmd: vsce-package
 
@@ -82,7 +101,7 @@ jobs:
 
       - name: create a release
         id: create_release
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
@@ -92,7 +111,7 @@ jobs:
     
       - name: Upload Release Asset
         id: upload-release-asset 
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

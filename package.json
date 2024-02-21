@@ -1,6 +1,9 @@
 {
     "private": true,
     "name": "t200logs",
+    "workspaces": [
+        "src/*"
+    ],
     "displayName": "Teams Logs Viewer",
     "description": "Extension to make diagnosing Teams logs much easier. Open this extension in a folder containing Teams logs and it will combine them into a single view with filtering and visual hints.",
     "repository": {
@@ -25,7 +28,7 @@
     "activationEvents": [
         "onFileSystem:scheme:log-viewer"
     ],
-    "main": "./dist/extension.js",
+    "main": "./src/extension/dist/extension.js",
     "contributes": {
         "commands": [
             {
@@ -103,10 +106,12 @@
     "scripts": {
         "vscode:prepublish": "yarn run package",
         "compile": "webpack",
-        "watch": "webpack --watch",
+        "watch": "webpack --config ./src/extension/webpack.config.js --watch",
+        "build-ui-dev": "cd src/ui && webpack --config webpack.config.js --mode development --watch",
+        "build-prod": "cd src/ui && webpack --config webpack.config.js --mode production && cd ../.. && webpack --config ./src/extension/webpack.config.js --mode production",
         "package": "webpack --mode production --devtool hidden-source-map",
-        "vsce-package": "mkdirp out && vsce package -o out/t200logs.vsix --yarn",
-        "vsce-package-local": "mkdirp out && vsce package -o out/t200logs.vsix --yarn",
+        "vsce-package": "mkdir out && cd src/extension && vsce package -o ../../out/t200logs.vsix --yarn && cd ../..",
+        "vsce-package-local": "mkdir out && cd src/extension && vsce package -o ../../out/t200logs.vsix --yarn && cd ../..",
         "compile-tests": "tsc -p . --outDir out",
         "watch-tests": "tsc -p . -w --outDir out",
         "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
@@ -115,7 +120,8 @@
         "installWithPublicRegistry": "install --registry=https://registry.yarnpkg.com"
     },
     "dependencies": {
-        "@vscode/extension-telemetry": "^0.9.2"
+        "@vscode/extension-telemetry": "^0.9.2",
+        "tslib": "^2.6.2"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.3",
@@ -141,6 +147,8 @@
         "ts-prune": "^0.10.3",
         "typescript": "^5.2.2",
         "webpack": "^5.89.0",
-        "webpack-cli": "^5.1.4"
-    }
+        "webpack-cli": "^5.1.4",
+        "webpack-watch-files-plugin": "^1.2.1"
+    },
+    "packageManager": "yarn@1.22.19"
 }
