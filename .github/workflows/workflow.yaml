@@ -56,7 +56,6 @@ jobs:
         uses: borales/actions-yarn@v5.0.0
         with:
           cmd: install
-          args: --frozen-lockfile
 
       - name: update metadata in package.json
         uses: onlyutkarsh/patch-files-action@v1.0.5
