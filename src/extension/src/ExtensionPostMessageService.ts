@@ -34,8 +34,8 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
      */
     constructor(logger: ITelemetryLogger) {
         super();
-        this.logger = logger.createLoggerScope("ExtensionPostMessageService");
-        this.webviewLogger = logger.createLoggerScope("Webview");
+        this.logger = logger.createLoggerScope("EX.PostMessageService");
+        this.webviewLogger = logger.createLoggerScope("UI.PostMessageService");
     }
 
     public dispose() {
@@ -68,12 +68,12 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
 
     private registerLogMessageHandler() {
         const unregisterLogMessageHandler = this.registerMessageHandler("logMessage", message => {
-            this.webviewLogger.info(message.event, message.message);
+            this.webviewLogger.info(`.LOG.${message.event}`, message.message);
         });
         this.logMessageHandlers.push(unregisterLogMessageHandler);
 
         const unregisterErrorMessageHandler = this.registerMessageHandler("logErrorMessage", message => {
-            this.webviewLogger.logException(message.event, new Error(message.errorMessage));
+            this.webviewLogger.logException(`.LOG.${message.event}`, new Error(message.errorMessage));
         });
         this.logMessageHandlers.push(unregisterErrorMessageHandler);
     }
@@ -157,4 +157,6 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         }
     }
 }
+
+
 

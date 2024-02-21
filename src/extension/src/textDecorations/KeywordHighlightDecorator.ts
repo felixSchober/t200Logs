@@ -136,19 +136,13 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         }
 
         const keywordDecoration = this.decorations[keyword];
-        debugger;
         if (keywordDecoration) {
             editor.setDecorations(keywordDecoration, []);
             keywordDecoration.dispose();
             delete this.decorations[keyword];
             this.logger.info("removeKeywordHighlight", undefined, { keyword });
         } else {
-            this.logger.logException(
-                "removeKeywordHighlight",
-                new Error("No decoration found for keyword"),
-                "No decoration found for keyword",
-                { keyword }
-            );
+            this.logger.info("removeKeywordHighlight.noChange", undefined, { keyword });
         }
         this.acknowledgeMessage();
         this.updateNumberOfActiveKeywords();
@@ -268,6 +262,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         this.postMessageService.sendAndForget({ command: "updateNumberOfHighlightedKeywords", data: this.keywords.length });
     }
 }
+
 
 
 

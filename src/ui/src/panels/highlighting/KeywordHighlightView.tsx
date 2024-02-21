@@ -59,8 +59,6 @@ export const KeywordHighlightView: React.FC = () => {
             const name = target.name;
 
             const keywordId = name.split("_")[1];
-            console.log(`keywordId - change ${value}`, keywordId);
-
             setKeywords(prev => {
                 const keyword = prev.find(kw => kw.id === keywordId);
                 if (keyword) {
@@ -192,6 +190,7 @@ export const KeywordHighlightView: React.FC = () => {
         </>
     );
 };
+
 
 
 
