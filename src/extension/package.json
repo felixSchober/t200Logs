@@ -145,7 +145,7 @@
         "uuid": "^9.0.1"
     },
     "devDependencies": {
-        "@types/node": "^16.11.1",
+        "@types/node": "^20.11.19",
         "@types/uuid": "9.0.8",
         "typescript": "^4.4.4"
     }
