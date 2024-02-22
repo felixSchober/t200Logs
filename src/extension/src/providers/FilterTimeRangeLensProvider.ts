@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-import { CancellationToken, CodeLens, CodeLensProvider, Command, EventEmitter, Range, TextDocument } from "vscode";
+import { CancellationToken, CodeLens, CodeLensProvider, Command, EventEmitter, ProviderResult, Range, TextDocument } from "vscode";
 
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
@@ -10,17 +10,43 @@ import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 import { LogContentProvider } from "./LogContentProvider";
 import { FilterChangedEvent } from "@t200logs/common";
+import { EXTENSION_ID } from "../constants/constants";
 
 export type DateRange = [Date | null, Date | null];
+
+/**
+ * A CodeLens with a date range.
+ */
+class CodeLensWithDateRange extends CodeLens {
+    public readonly dateRange: [Date, Date];
+    public readonly lensType: "filter" | "resetFilter";
+
+    constructor(range: Range, dateRange: [Date, Date], lensType: "filter" | "resetFilter") {
+        super(range, undefined);
+        this.dateRange = dateRange;
+        this.lensType = lensType;
+    }
+}
 
 /**
  * FilterTimeRangeLensProvider is a class that provides the ability to decorate in the logs viewer.
  * This class is responsible for providing the code lenses that allow the user to filter by time range.
  */
-export class FilterTimeRangeLensProvider implements CodeLensProvider {
-    public static readonly commandId = "t200logs.inlineDateFilter";
+export class FilterTimeRangeLensProvider implements CodeLensProvider<CodeLensWithDateRange> {
+    /**
+     * The id of the command that is executed by clicking on the code lens.
+     */
+    public static readonly commandId = `${EXTENSION_ID}.inlineDateFilter`;
 
+    /**
+     * The time range in milliseconds that the filter will be applied to.
+     */
     public static readonly dateRangeTimeInMilliSeconds = 5000;
+
+    /**
+     * The time range in seconds based on {@link dateRangeTimeInMilliSeconds}.
+     */
+    private static readonly timeRangeInSeconds = FilterTimeRangeLensProvider.dateRangeTimeInMilliSeconds / 1000;
 
     private readonly logger: ScopedILogger;
 
@@ -42,38 +68,50 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
      * @returns An array of code lenses or a thenable that resolves to such. The lack of a result can be
      * signaled by returning `undefined`, `null`, or an empty array.
      */
-    provideCodeLenses(document: TextDocument, token: CancellationToken): CodeLens[] {
-        let lenses = [];
+    async provideCodeLenses(document: TextDocument, token: CancellationToken): Promise<CodeLensWithDateRange[]> {
         const regex = /\/\/ \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g;
-        const timeRangeInSec = FilterTimeRangeLensProvider.dateRangeTimeInMilliSeconds / 1000;
         this.logger.info("provideCodeLenses.start", undefined, { documentLineCount: "" + document.lineCount });
-        for (let i = 0; i < document.lineCount; i++) {
-            let line = document.lineAt(i);
-            if (line.text.match(regex)) {
-                const filterDateRange = FilterTimeRangeLensProvider.getDateRange(line.text);
-                const range = new Range(i, 0, i, 0);
-                const filterCommand: Command = {
-                    title: `🔍 Filter ${this.getCodeLensDateRangeTitle(filterDateRange)}`,
-                    command: FilterTimeRangeLensProvider.commandId,
-                    tooltip: `Filter by this date +- ${timeRangeInSec} seconds`,
-                    arguments: [filterDateRange],
-                };
-                const resetFilterCommand: Command = {
-                    title: "❌ Reset filter",
-                    command: FilterTimeRangeLensProvider.commandId,
-                    tooltip: "Reset the filter",
-                    arguments: [[null, null]],
-                };
-                lenses.push(new CodeLens(range, filterCommand));
-                lenses.push(new CodeLens(range, resetFilterCommand));
+
+        return new Promise<CodeLensWithDateRange[]>(resolve => {
+            let lenses = [];
+
+            // Loop through the regex matches and create a code lens for each match.
+            let match;
+            while ((match = regex.exec(document.getText())) !== null) {
+                const filterDateRange = FilterTimeRangeLensProvider.getDateRange(match[0]);
+                const range = new Range(document.positionAt(match.index), document.positionAt(match.index + match[0].length));
+                lenses.push(new CodeLensWithDateRange(range, filterDateRange, "filter"));
+                lenses.push(new CodeLensWithDateRange(range, filterDateRange, "resetFilter"));
                 throwIfCancellation(token);
             }
-        }
-        this.logger.info("provideCodeLenses.end", undefined, {
-            documentLineCount: "" + document.lineCount,
-            createdLenses: "" + lenses.length,
+            this.logger.info("provideCodeLenses.end", undefined, {
+                documentLineCount: "" + document.lineCount,
+                createdLenses: "" + lenses.length,
+            });
+            resolve(lenses);
         });
-        return lenses;
+    }
+
+    /**
+     * Resolve a code lens by adding the command based on the given date range.
+     * @param codeLens Resolves a code lens by adding the missing command.
+     * @param _ CancellationToken
+     * @returns The code lens with the missing command.
+     */
+    public resolveCodeLens(codeLens: CodeLensWithDateRange, _: CancellationToken): ProviderResult<CodeLensWithDateRange> {
+        let command: Command;
+        if (codeLens.lensType === "filter") {
+            command = {
+                title: `🔍 Filter ${this.getCodeLensDateRangeTitle(codeLens.dateRange)}`,
+                command: FilterTimeRangeLensProvider.commandId,
+                tooltip: `Filter by this date +- ${FilterTimeRangeLensProvider.timeRangeInSeconds} seconds`,
+                arguments: [codeLens.dateRange],
+            };
+        } else {
+            command = RESET_FILTER_COMMAND;
+        }
+        codeLens.command = command;
+        return codeLens;
     }
 
     /**
@@ -126,5 +164,10 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider {
     }
 }
 
+const RESET_FILTER_COMMAND: Command = {
+    title: "❌ Reset filter",
+    command: FilterTimeRangeLensProvider.commandId,
+    tooltip: "Reset the filter",
+    arguments: [[null, null]],
 
-
+};
