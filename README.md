@@ -36,21 +36,27 @@ See below for a list of release notes
 
 Initial release of extension
 
-### 0.0.2
+### 0.1.3
 
 Included internal logger for extension
 
-### 0.0.3
+### 0.1.4
 
 Automated build and release of the extension
 
-### 0.2.0
+### 0.1.5
 
 - Adds custom keyword highlighting
 
-### 0.3.0
+### 0.1.7
 
 - Refactor from native HTML and JS to React
 - Ability to add keywords through the settings
 - Ability to remove keywords from the UI
 - Number of highlights is now correctly displayed
+
+### 0.1.8
+
+- Performance improvements by asynchronously computing code lenses
+- Turning off file names will substitute the file name with the an emoji based on log type (desktop, web)
+- General bug fixes
