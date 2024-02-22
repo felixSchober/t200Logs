@@ -16,6 +16,14 @@ Teams logs have potentially hundreds of files and it is hard to find the logs th
 8. Quick date filtering through code lens.
 9. Extracts session id from the summary and allows filtering based on the session id.
 
+## Interesting keywords
+
+This section collects a list of interesting keywords I need to investigate if they'd be useful to add to the extension as default keywords.
+They could also be used in the future to extract more information from the logs into the summary tab.
+
+- `Me::accounts`
+- `useUserLicense: userLicenseDetails:`
+
 ## Known Issues
 
 - Visual highlights might not be accurate when the log filter has changed.
@@ -28,21 +36,27 @@ See below for a list of release notes
 
 Initial release of extension
 
-### 0.0.2
+### 0.1.3
 
 Included internal logger for extension
 
-### 0.0.3
+### 0.1.4
 
 Automated build and release of the extension
 
-### 0.2.0
+### 0.1.5
 
 - Adds custom keyword highlighting
 
-### 0.3.0
+### 0.1.7
 
 - Refactor from native HTML and JS to React
 - Ability to add keywords through the settings
 - Ability to remove keywords from the UI
 - Number of highlights is now correctly displayed
+
+### 0.1.8
+
+- Performance improvements by asynchronously computing code lenses
+- Turning off file names will substitute the file name with the an emoji based on log type (desktop, web)
+- General bug fixes

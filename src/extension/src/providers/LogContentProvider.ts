@@ -596,7 +596,9 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                     this.logger.info("provideTextDocumentContent.cancelled", undefined);
                 });
 
-                progress.report({ increment: 1 });
+                progress.report({ increment: 1, message: "Waiting for vscode UI thread" });
+                progress.report({ increment: 1, message: "Finding files" });
+
                 if (this.logEntryCache.length === 0) {
                     this.logFileCache = await vscode.workspace.findFiles(
                         "**/*.{log,txt}",
@@ -612,20 +614,20 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                 }
 
                 throwIfCancellation(token);
-                progress.report({ increment: 10 });
+                progress.report({ increment: 10, message: "Grouping files" });
 
                 // Group files by service and sort them by date
                 const serviceFiles = this.groupAndSortFiles(this.logFileCache, token);
                 this.logger.info("provideTextDocumentContent.groupAndSortFiles.success", undefined, {
                     serviceFileCount: "" + serviceFiles.length,
                 });
-                progress.report({ increment: 25 });
+                progress.report({ increment: 24, message: "Parsing log entries" });
 
                 throwIfCancellation(token);
 
                 // Read and parse all log files
                 const logEntries = await this.provideLogEntries(serviceFiles);
-                progress.report({ increment: 30 });
+                progress.report({ increment: 30, message: "Grouping log entries by time" });
 
                 throwIfCancellation(token);
 
@@ -644,21 +646,21 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                     );
                     return JSON.stringify(error);
                 }
-                progress.report({ increment: 15 });
+                progress.report({ increment: 15, message: "Filtering log entries" });
 
                 throwIfCancellation(token);
 
                 // Filter grouped log entries
                 const filteredLogEntires = this.filterLogContent(groupedLogEntries, token);
 
-                progress.report({ increment: 10 });
+                progress.report({ increment: 10, message: "Generating content" });
 
                 throwIfCancellation(token);
 
                 // Generate content for the virtual document
                 let content = this.generateDocumentContent(filteredLogEntires, token);
 
-                progress.report({ increment: 4 });
+                progress.report({ increment: 4, message: "Removing unnecessary strings" });
 
                 // go over the list of additional strings to remove and remove them from the content
                 for (const regex of this.additionalStringsToRemove) {
@@ -666,7 +668,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                     regex.lastIndex = 0;
                     content = content.replaceAll(regex, "[GUID]");
                 }
-                progress.report({ increment: 5 });
+                progress.report({ increment: 5, message: "Waiting for vscode rendering to complete" });
                 this.logger.info("provideTextDocumentContent.end", undefined, {
                     changeTrigger: "" + this.changeTrigger,
                     filteredLogEntires: "" + filteredLogEntires.size,
@@ -863,16 +865,25 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             content = content.replaceAll(replacement.searchString, replacement.replacementString);
         });
 
-        return content.split("\n").map(line => {
+        // The previous line is used to check if we have a duplicate log entry.
+        let previousLine = "";
+        const contentOrNull = content.split("\n").map(line => {
             const truncatedLine = this.truncateLongLines(line);
             const date = this.extractDateFromLogEntry(truncatedLine);
             logEntriesRead++;
+
+            if (line === previousLine) {
+                return null;
+            }
+            previousLine = line;
             return {
                 date: date,
                 text: `[${this.padZero(logEntriesRead)}]${truncatedLine}`,
                 service: serviceName,
             };
         });
+
+        return contentOrNull.filter(entry => entry !== null) as LogEntry[];
     }
 
     /**
@@ -884,7 +895,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
      * @returns The truncated line.
      */
     private truncateLongLines(line: string): string {
-        if (line.length > 2000) {
+        if (line.length > 4000) {
             return line.substring(0, 2000) + " ...";
         }
         return line;
@@ -1140,11 +1151,16 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
      */
     private getLogLinePrefix(logEntry: LogEntry): string {
         let prefix = "";
-        if (this._displayFileNames && logEntry.service) {
-            // make sure that the prefix is always the same length
-            const fileNamePrefix = logEntry.service.padEnd(this.lengthOfLongestFileName, " ");
 
-            prefix = `[${fileNamePrefix}]`;
+        if (logEntry.service) {
+            if (this._displayFileNames) {
+                // make sure that the prefix is always the same length
+                const fileNamePrefix = logEntry.service.padEnd(this.lengthOfLongestFileName, " ");
+
+                prefix = `[${fileNamePrefix}]`;
+            } else {
+                prefix = this.substituteFileNames(logEntry.service);
+            }
         }
 
         if (this._displayDatesInLine && !logEntry.isMarker) {
@@ -1156,7 +1172,29 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         }
         return prefix.length > 0 ? prefix + " " : "";
     }
+
+    private substituteFileNames(service: string): string {
+        switch (service) {
+            case "Launcher":
+            case "MSTeams":
+            case "TeamsNotificationCenter":
+            case "TeamsRespawnService":
+            case "TeamsSwitcher":
+            case "skylib":
+            case "tscalling":
+                return "🖥️";
+            default:
+                return "🌐";
+        }
+    }
 }
+
+
+
+
+
+
+
 
 
 

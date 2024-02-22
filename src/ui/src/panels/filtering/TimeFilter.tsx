@@ -139,14 +139,14 @@ export const TimeFilter: React.FC = () => {
                 <VSCodeTextField placeholder="YYYY-MM-DD HH:MM" name="till" value={timeFilter.till} onChange={onTextFieldChange}>
                     Till
                 </VSCodeTextField>
-
-                <h4>Session Id</h4>
-                <p>If we find a session id in the summary.txt file, you can filter based on it </p>
-                <VSCodeCheckbox disabled={!isSessionIdDefined} onChange={onSessionIdFilterChange} name="filter_session_id">
-                    Start around session start
-                </VSCodeCheckbox>
             </Flex>
+            <h4>Session Id</h4>
+            <p>If we find a session id in the summary.txt file, you can filter based on it </p>
+            <VSCodeCheckbox disabled={!isSessionIdDefined} onChange={onSessionIdFilterChange} name="filter_session_id">
+                Start around session start
+            </VSCodeCheckbox>
         </Flex>
     );
+
 
 };

@@ -295,7 +295,7 @@ export class TextDecorator implements vscode.Disposable {
                         range: new vscode.Range(startPos, endPos),
                         renderOptions: {
                             after: {
-                                contentText: this.isReadableIsoDatesEnabled ? ` 🌐 [${humanReadableDate} UTC]` : "",
+                                contentText: this.isReadableIsoDatesEnabled ? ` 🕒 [${humanReadableDate} UTC]` : "",
                                 color: "lightgrey", // You can adjust the color
                                 fontWeight: "bold",
                                 textDecoration: "none;",
@@ -322,6 +322,7 @@ export class TextDecorator implements vscode.Disposable {
         }
     }
 }
+
 
 
 
