@@ -16,6 +16,14 @@ Teams logs have potentially hundreds of files and it is hard to find the logs th
 8. Quick date filtering through code lens.
 9. Extracts session id from the summary and allows filtering based on the session id.
 
+## Interesting keywords
+
+This section collects a list of interesting keywords I need to investigate if they'd be useful to add to the extension as default keywords.
+They could also be used in the future to extract more information from the logs into the summary tab.
+
+- `Me::accounts`
+- `useUserLicense: userLicenseDetails:`
+
 ## Known Issues
 
 - Visual highlights might not be accurate when the log filter has changed.
