@@ -13,16 +13,20 @@ export const useExtensionState = <TKey extends ExtensionStateKey>(stateKey: Exte
     const { stateService } = useVSCodeApi();
     const [state, setState] = React.useState<ExtensionState[TKey]>(stateService.getStateForKey(stateKey));
 
-    return React.useMemo(() => {
-        return [
-            state,
-            value => {
-                const valueToSet = value instanceof Function ? value(state) : value;
-
+    const setExtensionState = React.useCallback(
+        (value: React.SetStateAction<ExtensionState[TKey]>) => {
+            setState(prev => {
+                const valueToSet = value instanceof Function ? value(prev) : value;
                 stateService.setStateForKey(stateKey, valueToSet);
-                setState(valueToSet);
-            },
-        ];
-    }, [state, stateService, stateKey]);
+                return valueToSet;
+            });
+        },
+        [stateService, stateKey]
+    );
+
+    return React.useMemo(() => {
+        return [state, setExtensionState];
+    }, [state, setExtensionState]);
 };
+
 
