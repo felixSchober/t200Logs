@@ -153,7 +153,10 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
     public sendTelemetryEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void {
         // eslint-disable-next-line no-console
         const telemetryLine = this.getEventString(eventName, properties, measurements);
-        console.log(telemetryLine);
+        const now = new Date();
+        const mins = ("" + now.getMinutes()).padStart(2, "0");
+        const secs = ("" + now.getSeconds()).padStart(2, "0");
+        console.log(`[${mins}:${secs}] ${telemetryLine}`);
         this.outputChannel.appendLine(telemetryLine);
     }
 
@@ -247,6 +250,7 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         return Promise.resolve();
     }
 }
+
 
 
 
