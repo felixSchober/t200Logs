@@ -35,7 +35,7 @@
         "@babel/preset-react": "^7.23.3",
         "@babel/preset-typescript": "^7.23.3",
         "@types/node": "20.x",
-        "@types/react": "^18.2.14",
+        "@types/react": "^18.2.58",
         "@types/react-dom": "^18.2.18",
         "@types/uuid": "^9.0.7",
         "@types/vscode-webview": "^1.57.5",
