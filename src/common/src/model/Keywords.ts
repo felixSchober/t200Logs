@@ -1,4 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { z } from "zod";
+
 import { MessageSchemaMap } from "../postMessage/MessageSchemaMap";
 
 export const KeywordHighlightSchema = z.object({
@@ -19,6 +24,9 @@ export const KeywordHighlightSchema = z.object({
 export type KeywordHighlight = z.TypeOf<typeof KeywordHighlightSchema>;
 
 export type KeywordHighlightWithIsChecked = KeywordHighlight & {
+    /**
+     * Whether the keyword is checked.
+     */
     isChecked: boolean;
 };
 
@@ -40,5 +48,4 @@ export type KeywordFilter = {
      * The (initial) state of the filter.
      */
     isChecked: boolean;
-
 };

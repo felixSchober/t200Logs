@@ -56,13 +56,14 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
 
     /**
      * Start logging to the log file if not already running.
+     * @param shouldShowWelcomeMessage Whether to show the welcome message.
      */
     public startLogging(shouldShowWelcomeMessage: boolean): void {
         if (!this.logFileWriter) {
             this.logFileWriter = new FileSystemWriter(this, this.logUri);
 
             if (shouldShowWelcomeMessage) {
-            void this.displayLogFileMessage();
+                void this.displayLogFileMessage();
             }
         }
     }
@@ -249,12 +250,5 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         this.logFileWriter?.dispose();
         return Promise.resolve();
     }
+
 }
-
-
-
-
-
-
-
-

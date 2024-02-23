@@ -1,4 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { z } from "zod";
+
 import { CommandIdSchema } from "./CommandId";
 
 /**
@@ -16,7 +21,7 @@ export const PostMessageSchema = z.object({
     id: z.string().uuid(),
 
     /**
-     * The name of the command to execute
+     * The name of the command to execute.
      */
     command: CommandIdSchema,
 

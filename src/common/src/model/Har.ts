@@ -4,16 +4,16 @@
 
 import { z } from "zod";
 
-const harHeaderSchema = z.object({
+const HarHeaderSchema = z.object({
     name: z.string(),
     value: z.string(),
 });
 
-const harRequestSchema = z.object({
+const HarRequestSchema = z.object({
     method: z.string(),
     url: z.string(),
     httpVersion: z.string(),
-    headers: z.array(harHeaderSchema),
+    headers: z.array(HarHeaderSchema),
     queryString: z.array(
         z.object({
             name: z.string(),
@@ -28,11 +28,11 @@ const harRequestSchema = z.object({
     bodySize: z.number(),
 });
 
-const harResponseSchema = z.object({
+const HarResponseSchema = z.object({
     status: z.number().positive(),
     statusText: z.string(),
     httpVersion: z.string(),
-    headers: z.array(harHeaderSchema),
+    headers: z.array(HarHeaderSchema),
     content: z.object({
         size: z.number(),
         mimeType: z.string(),
@@ -45,11 +45,11 @@ const harResponseSchema = z.object({
     bodySize: z.number(),
 });
 
-export const harEntrySchema = z.object({
+export const HarEntrySchema = z.object({
     startedDateTime: z.string(),
     time: z.number(),
-    request: harRequestSchema,
-    response: harResponseSchema,
+    request: HarRequestSchema,
+    response: HarResponseSchema,
     cache: z.object({
         beforeRequest: z.object({
             lastAccess: z.string(),
@@ -64,15 +64,17 @@ export const harEntrySchema = z.object({
     }),
 });
 
-export const harSchema = z.object({
+export const HarSchema = z.object({
     log: z.object({
         version: z.string(),
         creator: z.object({
             name: z.string(),
             version: z.string(),
         }),
-        entries: z.array(harEntrySchema),
+        entries: z.array(HarEntrySchema),
     }),
 });
 
-export type HarEntry = z.infer<typeof harEntrySchema>;
+export type HarEntry = z.infer<typeof HarEntrySchema>;
+
+

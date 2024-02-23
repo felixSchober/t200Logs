@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { v4 as uuid } from "uuid";
 import { z } from "zod";
-import { CommandIdToData, MessageCommand, GetCommandById, PostMessageCommand } from "../postMessage/MessageCommands";
+
+import { CommandIdToData, GetCommandById, MessageCommand, PostMessageCommand } from "../postMessage/MessageCommands";
 import { MessageSchemaMap } from "../postMessage/MessageSchemaMap";
 import { CommandId, PostMessageSchema } from "../postMessage/PostMessageSchema";
+
 import { IPostMessageService } from "./IPostMessageService";
 
 /**
@@ -12,9 +18,9 @@ export type PostMessageEventRespondFunction = (response: MessageCommand) => void
 
 /**
  * A function that handles when a message with a specific command is received.
- * @param data The data received with the message
+ * @param data The data received with the message.
  * @param respond A function to call to respond to the message with a new message.
- * @template T The type of the data received with the message
+ * @template T The type of the data received with the message.
  */
 export type HandleEvent<T> = (data: T, respond: PostMessageEventRespondFunction) => void;
 
@@ -147,7 +153,6 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      *
      * Call this method in the implementation of the {@link startListening} method.
      * @param event The message event received from the extension.
-     * @returns void
      */
     protected onMessageReceived(event: MessageEvent<unknown>) {
         const messageData = event;
@@ -202,9 +207,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
     /**
      * Parses the message data using the provided schema.
      * Throws an error if the data cannot be parsed according to the schema.
-     * @param message The message to parse
-     * @param schema The schema to use to parse the message data
-     * @returns The parsed message
+     * @param commandId The command id of the message. Used to infer the schema to use to parse the message data.
+     * @param data The data to parse.
+     * @param schema The schema to use to parse the message data.
+     * @returns The parsed message.
      */
     private parseMessageData<T extends MessageCommand>(commandId: T["command"], data: unknown, schema: z.Schema<T["data"]>): T["data"] {
         const parsedData = schema.safeParse(data);
@@ -218,9 +224,9 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
 
     /**
      * Registers a handler for a specific command.
-     * @param commandId The command to register a handler for
-     * @param handler The handler to call when the command is received
-     * @returns A function to unregister the handler
+     * @param commandId The command to register a handler for.
+     * @param handler The handler to call when the command is received.
+     * @returns A function to unregister the handler.
      */
     public registerMessageHandler<T extends CommandId>(commandId: T, handler: HandleEvent<CommandIdToData<T>>): () => void {
         this.internalLogMessage("registerMessageHandler", `Registering message handler for command: ${commandId}`);
@@ -234,8 +240,8 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
 
     /**
      * Unregisters a handler for a specific command.
-     * @param commandId The command to unregister the handler for
-     * @param handler The handler to unregister
+     * @param commandId The command to unregister the handler for.
+     * @param handler The handler to unregister.
      */
     public unregisterMessageHandler<T extends MessageCommand>(commandId: T["command"], handler: HandleEvent<T["data"]>) {
         this.internalLogMessage("unregisterMessageHandler", `Unregistering message handler for command: ${commandId}`);
@@ -252,8 +258,8 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      * @param expectResponseId The command id to expect as a response.
      * @param timeout The timeout in milliseconds to wait for a response. If the timeout is reached the promise will be rejected. Default is -1 which means no timeout.
      * @returns A promise that resolves when the response is received with the response data.
-     * @template TCommandId The command id of the command to send. E.g. `"getSummary"`
-     * @template TResponseId The command id of the response to expect. E.g. `"getSummaryResponse"`
+     * @template TCommandId The command id of the command to send. E.g. `"getSummary"`.
+     * @template TResponseId The command id of the response to expect. E.g. `"getSummaryResponse"`.
      */
     public sendAndReceive<TCommandId extends CommandId, TResponseId extends CommandId>(
         command: GetCommandById<TCommandId>,
@@ -266,8 +272,8 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
         };
         return new Promise<CommandIdToData<TResponseId>>((resolve, reject) => {
             const handleResponse = (response: unknown) => {
-                const responseSchema = this.eventListeners[expectResponseId].commandSchema;
-                const parsedResponse = responseSchema.safeParse(response);
+                const ResponseSchema = this.eventListeners[expectResponseId].commandSchema;
+                const parsedResponse = ResponseSchema.safeParse(response);
                 if (parsedResponse.success) {
                     resolve(parsedResponse.data);
                 } else {
@@ -300,9 +306,8 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
 
     /**
      * Replies to a message with a given command and request id.
-     * @param command The command to send
-     * @param requestId The id of the message that should be replied to
-     * @returns void
+     * @param command The command to send.
+     * @param requestId The id of the message that should be replied to.
      */
     protected replyToMessage(command: MessageCommand, requestId: string) {
         this.sendAndForget(command, requestId);
@@ -310,7 +315,7 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
 
     /**
      * Acknowledges a message by sending a messageAck command to the webview.
-     * @param id The id of the message to acknowledge
+     * @param id The id of the message to acknowledge.
      */
     public acknowledgeMessage(id: string): void {
         this.internalLogErrorMessage("acknowledgeMessage", `Ack message ${id}`);
@@ -321,7 +326,7 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      * Sends a message to the extension and forgets about it. No response is expected.
      *
      * If you need to know if the message was received and processed by the extension, use {@link sendAndReceive} instead.
-     * @param command The command to send to the extension
+     * @param command The command to send to the extension.
      * @param requestId The id of the message that the UI sent to the extension. If no id is provided, a new id will be generated.
      */
     public sendAndForget(command: MessageCommand, requestId: string | undefined = undefined): void {
@@ -336,8 +341,8 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      * Logs a message to the extension. Called by internal methods of this class.
      *
      * Implement this command so that it either sends a log message to the extension or logs it directly in case of the extension.
-     * @param event The event to log
-     * @param message The message to log
+     * @param event The event to log.
+     * @param message The message to log.
      */
     protected abstract internalLogMessage(event: string, message: string): void;
 
@@ -345,8 +350,8 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      * Logs an error message to the extension. Called by internal methods of this class.
      *
      * Implement this command so that it either sends an error message to the extension or logs it directly in case of the extension.
-     * @param event The event to log
-     * @param errorMessage The error message to log
+     * @param event The event to log.
+     * @param errorMessage The error message to log.
      */
     protected abstract internalLogErrorMessage(event: string, errorMessage: string): void;
 
@@ -359,6 +364,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
      */
     protected abstract postMessage(message: unknown): void;
 }
+
+
+
+
 
 
 

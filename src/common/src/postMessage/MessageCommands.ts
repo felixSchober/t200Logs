@@ -1,4 +1,9 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { z } from "zod";
+
 import { MessageSchemaMap } from "./MessageSchemaMap";
 import { CommandId } from "./PostMessageSchema";
 
@@ -6,7 +11,13 @@ import { CommandId } from "./PostMessageSchema";
  * Utility type that takes a command id and returns the type of the data that is sent with the command.
  */
 export type GetCommandById<T extends CommandId> = {
+    /**
+     * The command id. This is used to identify the command.
+     */
     command: T;
+    /**
+     * The data that is sent with the command.
+     */
     data: CommandIdToData<T>;
 };
 
@@ -41,7 +52,7 @@ export type MessageCommand = {
  */
 export type PostMessageCommand<TId extends CommandId> = GetCommandById<TId> & {
     /**
-     * The id of the message
+     * The id of the message.
      */
     id: string;
 };
@@ -50,7 +61,4 @@ export type PostMessageCommand<TId extends CommandId> = GetCommandById<TId> & {
  * Utility type that takes a command id and returns the type of the data that is sent with the command.
  */
 export type CommandIdToData<T extends CommandId> = z.TypeOf<(typeof MessageSchemaMap)[T]>;
-
-
-
 

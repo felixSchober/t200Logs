@@ -9,6 +9,11 @@
     },
     "plugins": ["@typescript-eslint", "header", "import", "jsdoc", "promise", "security"],
     "root": true,
+    "env": {
+        "browser": true,
+        "es6": true,
+        "node": true
+    },
     "rules": {
         "@typescript-eslint/naming-convention": "off",
         "@typescript-eslint/semi": "error",
@@ -110,7 +115,20 @@
         {
             "files": ["*.ts", "*.js"],
             "rules": {
-                "@typescript-eslint/naming-convention": "error"
+                "@typescript-eslint/naming-convention": [
+                    "error",
+                    // Allow PascalCase for names that use the word "Schema"
+                    {
+                        "selector": "variableLike",
+                        "format": ["PascalCase"],
+                        "filter": {
+                            "regex": "Schema$",
+                            "match": true
+                        },
+                        "leadingUnderscore": "allow",
+                        "trailingUnderscore": "allow"
+                    }
+                ]
             }
         }
     ],
@@ -130,6 +148,9 @@
         }
     }
 }
+
+
+
 
 
 

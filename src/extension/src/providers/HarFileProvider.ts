@@ -4,7 +4,7 @@
 
 import * as fs from "fs/promises";
 
-import { HarEntry, IPostMessageService, harSchema } from "@t200logs/common";
+import { HarEntry, HarSchema, IPostMessageService } from "@t200logs/common";
 import { CancellationToken, Disposable, Uri, workspace } from "vscode";
 
 import { ScopedILogger } from "../telemetry/ILogger";
@@ -195,7 +195,7 @@ export class HarFileProvider implements Disposable {
 
         // try to parse result with zod
         throwIfCancellation(token);
-        const parseResult = await harSchema.safeParseAsync(jsonContent, { async: true });
+        const parseResult = await HarSchema.safeParseAsync(jsonContent, { async: true });
         if (!parseResult.success) {
             const error = new Error(`Could not verify HAR file content schema. See error: ${parseResult.error.toString()}`);
             this.logger.logException(
@@ -225,4 +225,5 @@ export class HarFileProvider implements Disposable {
         }
     }
 }
+
 

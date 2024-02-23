@@ -2,15 +2,18 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+/* eslint-disable max-classes-per-file */
+
+
+import { FilterChangedEvent } from "@t200logs/common";
 import { CancellationToken, CodeLens, CodeLensProvider, Command, EventEmitter, ProviderResult, Range, TextDocument } from "vscode";
 
+import { EXTENSION_ID } from "../constants/constants";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 import { LogContentProvider } from "./LogContentProvider";
-import { FilterChangedEvent } from "@t200logs/common";
-import { EXTENSION_ID } from "../constants/constants";
 
 export type DateRange = [Date | null, Date | null];
 
@@ -21,6 +24,12 @@ class CodeLensWithDateRange extends CodeLens {
     public readonly dateRange: [Date, Date];
     public readonly lensType: "filter" | "resetFilter";
 
+    /**
+     * Initializes a new instance of the CodeLensWithDateRange class.
+     * @param range The range of the code lens.
+     * @param dateRange The date range of the code lens. E.g. [fromDate, tillDate].
+     * @param lensType The type of the code lens. E.g. "filter" or "resetFilter".
+     */
     constructor(range: Range, dateRange: [Date, Date], lensType: "filter" | "resetFilter") {
         super(range, undefined);
         this.dateRange = dateRange;
@@ -95,10 +104,11 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider<CodeLensWit
     /**
      * Resolve a code lens by adding the command based on the given date range.
      * @param codeLens Resolves a code lens by adding the missing command.
-     * @param _ CancellationToken
+     * @param token CancellationToken.
      * @returns The code lens with the missing command.
      */
-    public resolveCodeLens(codeLens: CodeLensWithDateRange, _: CancellationToken): ProviderResult<CodeLensWithDateRange> {
+    public resolveCodeLens(codeLens: CodeLensWithDateRange, token: CancellationToken): ProviderResult<CodeLensWithDateRange> {
+        throwIfCancellation(token);
         let command: Command;
         if (codeLens.lensType === "filter") {
             command = {

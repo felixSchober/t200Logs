@@ -1,8 +1,16 @@
-import { Webview, Disposable } from "vscode";
-import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
-import { ScopedILogger } from "./telemetry/ILogger";
-import { PostMessageServiceBase } from "@t200logs/common";
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
 
+import { PostMessageServiceBase } from "@t200logs/common";
+import { Disposable, Webview } from "vscode";
+
+import { ScopedILogger } from "./telemetry/ILogger";
+import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
+
+/**
+ * The post message service for the extension.
+ */
 export class ExtensionPostMessageService extends PostMessageServiceBase implements Disposable {
     /**
      * The logger for the class.
@@ -35,8 +43,8 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
     private readonly unregisterMessageHandlers: (() => void)[] = [];
 
     /**
-     *  Creates a new instance of the post message service.
-     * @param logger The logger
+     * Creates a new instance of the post message service.
+     * @param logger The logger.
      */
     constructor(logger: ITelemetryLogger) {
         super();
@@ -44,6 +52,9 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         this.webviewLogger = logger.createLoggerScope("UI.PostMessageService");
     }
 
+    /**
+     * Disposes the post message service.
+     */
     public dispose() {
         for (const disposable of this.disposables) {
             disposable.dispose();
@@ -54,6 +65,9 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         }
     }
 
+    /**
+     * Starts listening for messages from the webview.
+     */
     protected startListening(): void {
         const webviewEventDisposable = this.webview?.onDidReceiveMessage(this.onMessageReceived, this);
         if (webviewEventDisposable) {
@@ -72,6 +86,9 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         }
     }
 
+    /**
+     * Registers listeners for log messages and error messages from the webview.
+     */
     private registerLogMessageHandler() {
         const unregisterLogMessageHandler = this.registerMessageHandler("logMessage", message => {
             this.webviewLogger.info(`.LOG.${message.event}`, message.message);
@@ -84,12 +101,26 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         this.unregisterMessageHandlers.push(unregisterErrorMessageHandler);
     }
 
+    /**
+     * Handles logging a message from the within the service.
+     * @param event The event that was received.
+     * @param message The message that was received.
+     */
     protected internalLogMessage(event: string, message: string): void {
         this.logger.info(event, message);
     }
+    /**
+     * Handles logging an error message from the within the service.
+     * @param event The event that was received.
+     * @param errorMessage The error message that was received.
+     */
     protected internalLogErrorMessage(event: string, errorMessage: string): void {
         this.logger.logException(event, new Error(errorMessage));
     }
+    /**
+     * Sends a message to the webview.
+     * @param message The message to send.
+     */
     protected postMessage(message: unknown): void {
         if (!this.webview) {
             this.logger.info("sendMessage", "Cannot send message because the webview is not defined. Adding to queue.", {
@@ -99,7 +130,7 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
             this.messagesInQueueToBeSent.push(message);
             return;
         }
-        this.webview.postMessage(message).then(result => {
+        void this.webview.postMessage(message).then(result => {
             if (!result) {
                 this.logger.logException(
                     "sendMessage.sendFailure",
@@ -115,7 +146,7 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
 
     /**
      * Registers the webview to the post message service so that it can send and receive messages.
-     * @param webview The webview to register
+     * @param webview The webview to register.
      */
     public registerWebview(webview: Webview) {
         this.logger.info("registerWebview");
@@ -132,6 +163,9 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         this.unregisterMessageHandlers.push(unregisterWebviewReadyHandler);
     }
 
+    /**
+     * Processes the messages in the queue to be sent to the webview.
+     */
     private processMessagesInQueue() {
         // even though we are only processing the messages in the queue when the webview is ready,
         // there is a slight delay when React is rerendering the webview and the webview is ready.
@@ -153,14 +187,4 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         }, 200);
     }
 }
-
-
-
-
-
-
-
-
-
-
 
