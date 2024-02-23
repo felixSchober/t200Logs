@@ -32,7 +32,7 @@ export const WEB_DATE_REGEX_GLOBAL = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}
  * - <ERR>
  * - [failure].
  */
-export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]/g;
+export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]|Error/g;
 
 /**
  * Matches all lines that contain either of the following:
@@ -44,6 +44,7 @@ export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]/g;
  * - warning.
  */
 export const WARN_REGEX = /.*\sWARN\s.*|.*\sWarn\s.*|.*\sWar\s.*|.*<WARN>.*|\s<WAR>\s|warning/g;
+
 
 
 
