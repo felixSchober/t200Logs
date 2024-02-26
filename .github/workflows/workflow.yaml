@@ -53,12 +53,12 @@ jobs:
           node-version: '18.x'
         
       - name: clean install dependencies
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: install
 
       - name: lint
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: lint
 
@@ -89,12 +89,12 @@ jobs:
         run: npm install -g vsce
 
       - name: build extension and ui
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: build-prod
 
       - name: compile and create vsix
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: vsce-package
 
