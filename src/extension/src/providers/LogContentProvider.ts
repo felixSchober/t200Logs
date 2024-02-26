@@ -248,7 +248,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
 
         this.setupKeywordFiltersFromConfiguration();
 
-        this.harFileProvider = new HarFileProvider(postMessageService, logger);
+        this.harFileProvider = new HarFileProvider(logger);
     }
 
     /**
@@ -1209,6 +1209,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         }
     }
 }
+
+
 
 
 

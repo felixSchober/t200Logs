@@ -4,7 +4,7 @@
 
 import * as fs from "fs/promises";
 
-import { HarEntry, HarSchema, IPostMessageService } from "@t200logs/common";
+import { HarEntry, HarSchema, JwtSchema } from "@t200logs/common";
 import { CancellationToken, Disposable, Uri, workspace } from "vscode";
 
 import { ScopedILogger } from "../telemetry/ILogger";
@@ -30,13 +30,9 @@ export class HarFileProvider implements Disposable {
 
     /**
      * Creates a new instance of the HarFileProvider.
-     * @param postMessageService The post message service to use for communication with the extension.
      * @param logger The logger to use for logging.
      */
-    constructor(
-        private readonly postMessageService: IPostMessageService,
-        logger: ITelemetryLogger
-    ) {
+    constructor(logger: ITelemetryLogger) {
         this.logger = logger.createLoggerScope("HarFileProvider");
     }
 
@@ -77,7 +73,7 @@ export class HarFileProvider implements Disposable {
 
         throwIfCancellation(token);
         this.logger.info("getEntries.convert");
-        this.harEntryCache = entries.map(this.convertHarEntryToLogEntry);
+        this.harEntryCache = entries.map(entry => this.convertHarEntryToLogEntry(entry));
 
         this.logger.info("getEntries.end", undefined, { entries: "" + this.harEntryCache.length });
         return this.harEntryCache;
@@ -112,7 +108,7 @@ export class HarFileProvider implements Disposable {
             body = ` - ${entry.response.content.text}`;
         }
 
-        return `${logLevel} [${entry.request.method}] ${entry.request.url} -> [${entry.response.status} ${entry.response.statusText}]${body}`;
+        return `${logLevel} [${entry.request.method}] ${entry.request.url}${this.getAuthorizationDetails(entry)} -> [${entry.response.status} ${entry.response.statusText}]${body}`;
     }
 
     /**
@@ -201,7 +197,7 @@ export class HarFileProvider implements Disposable {
             this.logger.logException(
                 "parseStringToEntries.schema",
                 error,
-                "Could not verify HAR file content schema. Parsing stopped",
+                "Could not verify HAR file content schema. HAR file skipped.",
                 { contentStart: content.substring(0, 100) },
                 true,
                 "HAR File"
@@ -217,6 +213,48 @@ export class HarFileProvider implements Disposable {
     }
 
     /**
+     * Gets the authorization details for a single entry.
+     * @param entry The entry to get the authorization details for.
+     * @returns A string with the authorization details.
+     * @example " [🔑 https://www.example.com iat: 1/1/2024 11:42 exp: 2/2/2024 11:42 scp: 'User.ReadAll'] "
+     */
+    private getAuthorizationDetails(entry: HarEntry): string {
+        let result = "";
+        const authHeader = entry.request.headers.find(header => header.name.toLowerCase() === "authorization");
+        if (!authHeader) {
+            return result;
+        }
+        result += " [🔑";
+        const authValue = authHeader.value.replace(/Bearer /, "");
+
+        const tokenParts = authValue.split(".");
+        if (tokenParts.length === 3) {
+            const decodedPayload = Buffer.from(tokenParts[1], "base64").toString("utf-8");
+            if (decodedPayload) {
+                let decodedJwtJsonPayload: unknown;
+                try {
+                    decodedJwtJsonPayload = JSON.parse(decodedPayload);
+                } catch (error) {
+                    this.logger.logException("getAuthorizationDetails.JSON", error);
+                    return `${result}?] `;
+                }
+                const jwtParseResult = JwtSchema.safeParse(decodedJwtJsonPayload);
+                if (jwtParseResult.success) {
+                    result += ` ${jwtParseResult.data.aud} iat: ${jwtParseResult.data.iat.toLocaleString()} exp: ${jwtParseResult.data.exp.toLocaleString()} scp: '${jwtParseResult.data.scp ?? ""}'`;
+                } else {
+                    this.logger.logException("getAuthorizationDetails.schema", jwtParseResult.error);
+                    return `${result}?] `;
+                }
+            }
+        }
+
+        // if the token is a JWT, decode it and show the payload
+
+        result += "] ";
+        return result;
+    }
+
+    /**
      * Disposes all child disposables of the service.
      */
     dispose() {
@@ -225,5 +263,29 @@ export class HarFileProvider implements Disposable {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
