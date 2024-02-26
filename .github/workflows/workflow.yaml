@@ -18,6 +18,9 @@ on:
       - 'GitVersion.yml'
       - '.eslintrc.json'
       - 'test/**'
+
+permissions:
+  contents: write
     
 jobs:
   cicd:
@@ -85,6 +88,18 @@ jobs:
         env:
           VERSION: "${{ steps.gitversion.outputs.majorMinorPatch }}"
 
+        # If we are in a PR, commit the changes to the branch
+      - name: commit and push changes
+        if: github.event_name == 'pull_request'
+        run: |
+            git config --global user.email "github-actions@users.noreply.github.com"
+            git config --global user.name "github-actions[bot]"
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+            git checkout "${GITHUB_REF:11}"
+            git add .
+            git commit -m "Update version to ${{ steps.gitversion.outputs.majorMinorPatch }}"
+            git push
+
       - name: install vsce
         run: npm install -g vsce
 
@@ -100,6 +115,7 @@ jobs:
 
       - name: upload vsix as artifact
         uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         with:
           name: t200logs-${{steps.gitversion.outputs.majorMinorPatch}}.vsix
           path: ${{github.workspace}}/out/t200logs.vsix
