@@ -53,6 +53,7 @@ export class FileSystemWriter implements vscode.Disposable {
     /**
      * The interval ID for the write operation.
      */
+    // eslint-disable-next-line no-undef
     private setIntervalId: NodeJS.Timeout | undefined;
 
     /**
@@ -180,4 +181,5 @@ export class FileSystemWriter implements vscode.Disposable {
         }
     }
 }
+
 

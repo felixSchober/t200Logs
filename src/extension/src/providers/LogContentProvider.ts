@@ -4,36 +4,17 @@
 
 import * as fs from "fs/promises";
 
+import type { IPostMessageService, LogLevel, PostMessageEventRespondFunction, TimeFilterChangedEvent } from "@t200logs/common";
 import * as vscode from "vscode";
 
+import { ConfigurationManager } from "../configuration/ConfigurationManager";
 import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
-import type { IPostMessageService, LogLevel, PostMessageEventRespondFunction, TimeFilterChangedEvent } from "@t200logs/common";
-import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
-import { ConfigurationManager } from "../configuration/ConfigurationManager";
 
-type LogEntry = {
-    /**
-     * The date of the log entry.
-     */
-    date: Date;
-    /**
-     * The text of the log entry.
-     */
-    text: string;
-
-    /**
-     * The service that generated the log entry.
-     */
-    service?: string;
-
-    /**
-     * Whether the log entry is a marker entry for grouping.
-     */
-    isMarker?: boolean;
-};
+import { HarFileProvider } from "./HarFileProvider";
+import { LogEntry } from "./LogEntry";
 
 type ServiceFiles = {
     /**
@@ -233,12 +214,21 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
      */
     public onTextDocumentGenerationFinished = new vscode.EventEmitter<string>();
 
+    /**
+     * Watcher for the log files in the workspace.
+     */
     private readonly watcher: vscode.FileSystemWatcher;
+
+    /**
+     * The provider for the HAR files.
+     */
+    private readonly harFileProvider: HarFileProvider;
 
     /**
      * Creates a new instance of the LogContentProvider class.
      * @param onFilterChangeEvent The event that is fired a filter changes through the code lens.
-     * @param onDisplaySettingsChangedEvent The event that is fired when the display settings change.
+     * @param postMessageService The post message service to use for communication with the extension.
+     * @param configurationManager The configuration manager.
      * @param logger The logger.
      */
     constructor(
@@ -257,13 +247,21 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         this.registerFileWatcherEvents();
 
         this.setupKeywordFiltersFromConfiguration();
+
+        this.harFileProvider = new HarFileProvider(logger);
     }
 
+    /**
+     * Registers all post message handlers.
+     */
     private registerMessageHandlers() {
         this.registerFilterEvents();
         this.registerDisplaySettingEvents();
     }
 
+    /**
+     * Sets up the keyword filters from the configuration.
+     */
     private setupKeywordFiltersFromConfiguration() {
         this.keywordFilters = this.configurationManager.keywordFilters.filter(kw => kw.isChecked).map(kw => kw.keyword);
         this.logger.info("setupKeywordFiltersFromConfiguration");
@@ -475,6 +473,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         this.logFileCache = [];
         this.logEntryCache = [];
         this.groupedLogEntries = new Map();
+        this.harFileProvider.clearCache();
         if (resetFilters) {
             this.keywordFilters = [];
             this.disabledLogLevels = [];
@@ -566,20 +565,22 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
 
     /**
      * Provide textual content for a given uri.
-     * @param _ An uri which scheme matches the scheme this provider was created for.
+     * @param documentUri An uri which scheme matches the scheme this provider was created for.
      * @returns A string representing the textual content.
      */
-    public async provideTextDocumentContent(_: vscode.Uri): Promise<string> {
+    public async provideTextDocumentContent(documentUri: vscode.Uri): Promise<string> {
         if (!vscode.workspace.workspaceFolders) {
             this.logger.logException(
                 "provideTextDocumentContent.noWorkspaceFolder",
                 new Error("No workspace folder found."),
                 "No workspace folder found. Please open the folder containing the Teams Logs and try again.",
-                undefined,
+                {
+                    uri: documentUri.fsPath,
+                },
                 true,
                 "No workspace folder"
             );
-            return "";
+            return "Please open a folder containing the Teams Logs and try again.";
         }
 
         // show async progress
@@ -627,14 +628,16 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
 
                 // Read and parse all log files
                 const logEntries = await this.provideLogEntries(serviceFiles);
-                progress.report({ increment: 30, message: "Grouping log entries by time" });
+                progress.report({ increment: 10, message: "Parsing HAR files" });
+                const harEntries = await this.harFileProvider.getEntries(token);
 
+                progress.report({ increment: 20, message: "Grouping log entries by time" });
                 throwIfCancellation(token);
 
                 // Group log entries by second
                 let groupedLogEntries: Map<number, LogEntry[]>;
                 try {
-                    groupedLogEntries = this.groupLogEntriesBySecond(logEntries, token);
+                    groupedLogEntries = this.groupLogEntriesBySecond(logEntries, harEntries, token);
                 } catch (error) {
                     this.logger.logException(
                         "provideTextDocumentContent.groupLogEntriesBySecond",
@@ -646,7 +649,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                     );
                     return JSON.stringify(error);
                 }
-                progress.report({ increment: 15, message: "Filtering log entries" });
+                progress.report({ increment: 20, message: "Filtering log entries" });
 
                 throwIfCancellation(token);
 
@@ -681,6 +684,9 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         );
     }
 
+    /**
+     * Responds to the messages that are waiting for the content to be generated.
+     */
     private respondToMessages() {
         const activeFilters = this.getNumberOfActiveFilters();
         // pop all the filter messages and respond to them
@@ -746,11 +752,6 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             }
         }
         this.logger.info("provideLogEntries.read.end", undefined, { filesRead: "" + filesRead, logEntriesRead: "" + logEntriesRead });
-
-        // Sort log entries by date
-        logEntries.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-        this.logger.info("provideLogEntries.sort.end");
 
         this.logEntryCache = logEntries;
         return this.logEntryCache;
@@ -913,15 +914,18 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         // matches 2023-11-28T15:16:31.758465+00:00
         // matches 2024-02-08T18:11:06.702420-08:00
         // The date is in the first capture group
+        // eslint-disable-next-line no-useless-escape
         const isoDateRegex = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6})[\+|-]\d{2}:\d{2}/;
 
         // matches Sun Jan 07 2024 18:45:43 GMT-0800 (Pacific Standard Time)
         // The date is in the first capture group
+        // eslint-disable-next-line no-useless-escape
         const webDateRegexT1 = /(\w{3} \w{3} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT[\+|-]\d{4})/;
 
         // matches 01/04/24 01:31:00.824 AM -08
         // matches 01/04/24 01:31:00.824 AM +08
         // The date is in the first capture group
+        // eslint-disable-next-line no-useless-escape
         const webDateRegexSkype = /(\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}.\d{3} [A|P]M [-|\+]\d{2})/;
 
         const isoDateMatch = line.match(isoDateRegex);
@@ -1061,20 +1065,32 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
      * Groups the given log entries by second.
      * This assumes that the list of log entries is sorted by date and not filtered.
      * @param logEntries The list of log entries to group by second.
+     * @param harLogEntries The list of HAR log entries to group by second.
      * @param token The cancellation token.
      * @returns A map of log entries grouped by second.
      */
-    private groupLogEntriesBySecond(logEntries: LogEntry[], token: vscode.CancellationToken): Map<number, LogEntry[]> {
+    private groupLogEntriesBySecond(
+        logEntries: LogEntry[],
+        harLogEntries: LogEntry[],
+        token: vscode.CancellationToken
+    ): Map<number, LogEntry[]> {
         if (this.groupedLogEntries.size > 0) {
             this.logger.info("groupLogEntriesBySecond.cached", undefined, { groupCount: "" + this.groupedLogEntries.size });
             return this.groupedLogEntries;
         }
 
-        this.logger.info("groupLogEntriesBySecond.start", undefined, { logEntryCount: "" + logEntries.length });
+        this.logger.info("groupLogEntriesBySecond.start", undefined, {
+            logEntryCount: "" + logEntries.length,
+            harLogEntryCount: "" + harLogEntries.length,
+        });
+
+        let allEntries = logEntries.concat(harLogEntries);
+        allEntries = allEntries.sort((a, b) => a.date.getTime() - b.date.getTime());
+        this.logger.info("groupLogEntriesBySecond.sort", undefined, { combinedLogEntryCount: "" + allEntries.length });
 
         let currentSecond: Date | null = null;
         let currentGroup = new Array<LogEntry>();
-        for (const entry of logEntries) {
+        for (const entry of allEntries) {
             // Check if the entry is in a new second
             if (!currentSecond || entry.date.getSeconds() !== currentSecond.getSeconds()) {
                 throwIfCancellation(token);
@@ -1173,6 +1189,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         return prefix.length > 0 ? prefix + " " : "";
     }
 
+    /**
+     * Substitutes the file names with emojis.
+     * @param service The service name to substitute.
+     * @returns The substituted file name.
+     */
     private substituteFileNames(service: string): string {
         switch (service) {
             case "Launcher":
@@ -1188,6 +1209,18 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

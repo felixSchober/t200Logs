@@ -57,6 +57,11 @@ jobs:
         with:
           cmd: install
 
+      - name: lint
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: lint
+
       - name: update metadata in extension package.json
         uses: onlyutkarsh/patch-files-action@v1.0.5
         with:

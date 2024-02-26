@@ -1,11 +1,17 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { CommandId, CommandIdToData } from "@t200logs/common";
-import { useVSCodeApi } from "../vscode/useVSCodeApi";
 import * as React from "react";
+
+import { useVSCodeApi } from "../vscode/useVSCodeApi";
+
 import { useLogger } from "./useLogger";
 
 /**
- * A hook that subscribes to a message from the webview
- * @param messageId The id of the message to subscribe to
+ * A hook that subscribes to a message from the webview.
+ * @param messageId The id of the message to subscribe to.
  * @returns The response from the webview or null if no response has been received yet.
  * @example const activeFilters = useMessageSubscription("updateNumberOfActiveFilters");
  */
@@ -29,8 +35,9 @@ export const useMessageSubscription = <T extends CommandId>(messageId: T): Comma
                 removeHandlerRef.current = undefined;
             }
         };
-    }, [messageService, messageId]);
+    }, [messageService, messageId, log]);
 
     return response;
 };
+
 

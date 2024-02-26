@@ -1,13 +1,19 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
+import * as React from "react";
+
 import { ExtensionState, ExtensionStateKey } from "../vscode/ExtensionState";
 import { useVSCodeApi } from "../vscode/useVSCodeApi";
-import * as React from "react";
+
 
 type UseExtensionStateHook<T extends ExtensionStateKey> = [ExtensionState[T], React.Dispatch<React.SetStateAction<ExtensionState[T]>>];
 
 /**
- * A hook to get the state for an extension state key
- * @param stateKey The state key to get the state for
- * @returns The state and a function to set the state
+ * A hook to get the state for an extension state key.
+ * @param stateKey The state key to get the state for.
+ * @returns The state and a function to set the state.
  */
 export const useExtensionState = <TKey extends ExtensionStateKey>(stateKey: ExtensionStateKey): UseExtensionStateHook<TKey> => {
     const { stateService } = useVSCodeApi();

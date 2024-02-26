@@ -2,13 +2,13 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+import type { IPostMessageService, KeywordHighlight, KeywordHighlightChangeEvent, PostMessageEventRespondFunction } from "@t200logs/common";
 import * as vscode from "vscode";
 
+import { ConfigurationManager } from "../configuration/ConfigurationManager";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
-import type { IPostMessageService, KeywordHighlight, KeywordHighlightChangeEvent, PostMessageEventRespondFunction } from "@t200logs/common";
-import { ConfigurationManager } from "../configuration/ConfigurationManager";
 
 /**
  * Internal representation of a keyword to highlight with a regular expression.
@@ -52,6 +52,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
     /**
      * Initializes a new instance of the Keyword highlight decorator class.
      * @param postMessageService The post message service.
+     * @param configurationManager The configuration manager.
      * @param onTextDocumentGenerationFinishedEvent The event that is fired when the text document generation is finished and we can apply the decorations.
      * @param logger The logger.
      */
@@ -80,6 +81,9 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         this.setupKeywordHighlightsFromConfiguration();
     }
 
+    /**
+     * Sets up the keyword highlights from the configuration.
+     */
     private setupKeywordHighlightsFromConfiguration() {
         const keywordHighlights = this.configurationManager.keywordHighlights;
         this.logger.info("setupKeywordHighlightsFromConfiguration", undefined, {
@@ -106,6 +110,9 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         });
     }
 
+    /**
+     * Disposes the keyword highlight decorator.
+     */
     dispose() {
         this.logger.info("dispose");
         for (const dispose of this.handlerRegistrations) {
@@ -119,6 +126,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
     /**
      * Handles the event when the user adds or removes a keyword to highlight.
      * @param event The event that is fired when the user adds or removes a keyword to highlight.
+     * @param respond The respond function to call when the message has been handled.
      */
     private handleKeywordHighlightChange(event: KeywordHighlightChangeEvent, respond: PostMessageEventRespondFunction) {
         this.logger.info("handleKeywordHighlightChange", undefined, { event: JSON.stringify(event) });
@@ -141,6 +149,9 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         this.filterMessagesToRespondTo.push(respond);
     }
 
+    /**
+     * Acknowledges all the messages that are waiting for a response.
+     */
     private acknowledgeMessage() {
         while (this.filterMessagesToRespondTo.length > 0) {
             const respond = this.filterMessagesToRespondTo.pop();
@@ -287,10 +298,14 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         this.logger.info(`applyKeywordDecoration.setDecorations.${keyword.keyword}.success`);
     }
 
+    /**
+     * Updates the number of active keywords by sending a message to the webview.
+     */
     private updateNumberOfActiveKeywords() {
         this.postMessageService.sendAndForget({ command: "updateNumberOfHighlightedKeywords", data: this.keywords.length });
     }
 }
+
 
 
 

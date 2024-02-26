@@ -6,9 +6,10 @@ import * as fs from "fs";
 
 import { CancellationToken, Uri as VscodeUri, Webview, WebviewView, WebviewViewProvider, WebviewViewResolveContext } from "vscode";
 
+import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
+import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 /**
  * The webview view provider for the logs viewer in the side panel.
@@ -27,7 +28,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
      * @param extensionUri The path to the extension.
      * @param openLogsDocument A function that opens the logs document.
      * @param postMessageService The post message service.
-     * @param logger The logger
+     * @param logger The logger.
      */
     constructor(
         private readonly extensionUri: VscodeUri,
@@ -62,13 +63,10 @@ export class WebviewPanelProvider implements WebviewViewProvider {
      * Resolves and defines a webview view.
      * @param webviewView The webview we've been asked to resolve.
      * @param _ The context for the webview.
-     * @param __ A cancellation token.
+     * @param token A cancellation token.
      */
-    public resolveWebviewView(
-        webviewView: WebviewView,
-        _: WebviewViewResolveContext<unknown>,
-        __: CancellationToken
-    ): void | Thenable<void> {
+    public resolveWebviewView(webviewView: WebviewView, _: WebviewViewResolveContext<unknown>, token: CancellationToken): void {
+        throwIfCancellation(token);
         this.logger.info("resolveWebviewView", "Resolving webview view");
 
         try {
@@ -136,6 +134,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         return htmlContent;
     }
 }
+
 
 
 

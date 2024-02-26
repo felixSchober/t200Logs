@@ -60,3 +60,7 @@ Automated build and release of the extension
 - Performance improvements by asynchronously computing code lenses
 - Turning off file names will substitute the file name with the an emoji based on log type (desktop, web)
 - General bug fixes
+
+### 0.1.9
+
+- Adds support for HAR files

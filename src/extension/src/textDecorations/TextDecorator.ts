@@ -2,12 +2,12 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+import type { IPostMessageService, PostMessageEventRespondFunction } from "@t200logs/common";
 import * as vscode from "vscode";
 
 import { ERROR_REGEX, WARN_REGEX, WEB_DATE_REGEX_GLOBAL } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import type { IPostMessageService, PostMessageEventRespondFunction } from "@t200logs/common";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 /**
@@ -38,7 +38,7 @@ export class TextDecorator implements vscode.Disposable {
 
     /**
      * Initializes a new instance of the TextDecorator class.
-     * @param onWebviewDisplaySettingsChangedEvent The event that is fired when the display settings change through the webview.
+     * @param postMessageService The post message service.
      * @param onTextDocumentGenerationFinishedEvent The event that is fired when the text document generation is finished and we can apply the decorations.
      * @param logger The logger.
      */
@@ -93,6 +93,9 @@ export class TextDecorator implements vscode.Disposable {
 
         this.logger = logger.createLoggerScope("TextDecorator");
     }
+    /**
+     * Disposes the text decorator.
+     */
     dispose() {
         if (this.unregisterPostMessageEvent) {
             this.unregisterPostMessageEvent();
@@ -112,6 +115,9 @@ export class TextDecorator implements vscode.Disposable {
         }
     }
 
+    /**
+     * Removes the highlighting of the severity level in the logs viewer.
+     */
     private removeSeverityLevelHighlighting() {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
@@ -258,6 +264,9 @@ export class TextDecorator implements vscode.Disposable {
         }
     }
 
+    /**
+     * Removes the addition of human-readable dates in the logs viewer.
+     */
     private removeReadableIsoDates() {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
@@ -322,6 +331,8 @@ export class TextDecorator implements vscode.Disposable {
         }
     }
 }
+
+
 
 
 

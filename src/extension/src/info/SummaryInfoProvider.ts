@@ -4,12 +4,12 @@
 
 import * as fs from "fs/promises";
 
+import { IPostMessageService, PostMessageEventRespondFunction, SummaryInfo, SummaryInfoUser } from "@t200logs/common";
 import * as vscode from "vscode";
 
 import { GUID_REGEX } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { IPostMessageService, PostMessageEventRespondFunction, SummaryInfo, SummaryInfoUser } from "@t200logs/common";
 
 /**
  * Matches "SessionId:	18bf77c6-e99f-4d46-95ec-3b43100c3861".
@@ -60,19 +60,27 @@ export class SummaryInfoProvider implements vscode.Disposable {
 
     /**
      * Initializes a new instance of the SummaryInfoProvider class.
+     * @param postMessageService The post message service to send and receive messages.
      * @param logger The logger.
      */
     constructor(postMessageService: IPostMessageService, logger: ITelemetryLogger) {
         this.logger = logger.createLoggerScope("SummaryInfoProvider");
 
         this.unregisterHandler = postMessageService.registerMessageHandler("getSummary", (_, respond) => {
-            this.handleGetSummaryRequest(respond);
+            void this.handleGetSummaryRequest(respond);
         });
     }
+    /**
+     * Disposes the summary info provider.
+     */
     dispose() {
         this.unregisterHandler();
     }
 
+    /**
+     * Handles the get summary request from the webview.
+     * @param respond The respond function.
+     */
     private async handleGetSummaryRequest(respond: PostMessageEventRespondFunction) {
         const summary = await this.getSummaryInfo();
         respond({
@@ -208,6 +216,8 @@ export class SummaryInfoProvider implements vscode.Disposable {
         return users;
     }
 }
+
+
 
 
 

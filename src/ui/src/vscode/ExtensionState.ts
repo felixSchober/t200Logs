@@ -1,9 +1,16 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { MessageSchemaMap } from "@t200logs/common";
 import { z } from "zod";
 
 export type DisplaySettingState = z.TypeOf<typeof MessageSchemaMap.displaySettingsChanged>;
 
 export type ExtensionState = {
+    /**
+     * The state of the display settings.
+     */
     displaySettingState: DisplaySettingState;
 };
 

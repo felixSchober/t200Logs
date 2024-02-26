@@ -1,20 +1,25 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { CommandId, CommandIdToData, GetCommandById } from "@t200logs/common";
-import { useVSCodeApi } from "../vscode/useVSCodeApi";
 import * as React from "react";
 
+import { useVSCodeApi } from "../vscode/useVSCodeApi";
+
 /**
- * A function that sends a message command to the webview
+ * A function that sends a message command to the webview.
  */
 type SendMethod<T extends CommandId> = (command: CommandIdToData<T>) => void;
 
 type HookReturn<T extends CommandId, TResponse> = {
     /**
-     * A function that sends a message command to the webview
+     * A function that sends a message command to the webview.
      */
     send: SendMethod<T>;
 
     /**
-     * A boolean indicating if the message is pending and has not received a response
+     * A boolean indicating if the message is pending and has not received a response.
      */
     isPending: boolean;
 
@@ -26,10 +31,9 @@ type HookReturn<T extends CommandId, TResponse> = {
 
 /**
  * A hook that provides a method to send a message to the webview and wait for a response.
- * @param messageId The id of the message to send
+ * @param messageId The id of the message to send.
  * @param responseId The id of the message to receive.
  * @param timeout The time in milliseconds to wait for a response. If -1, then it will wait indefinitely.
- * @param resetSend If true, send can be called again. If false, send will not be called again until the response is received.
  * @returns A hook that sends a message to the webview and waits for a response.
  */
 export const useSendAndReceive = <TMessageId extends CommandId, TResponseId extends CommandId>(
@@ -53,9 +57,9 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
                 setIsPending(false);
                 setResponse(response);
             };
-            sendAndWait();
+            void sendAndWait();
         },
-        [messageService]
+        [messageService, messageId, responseId, timeout]
     );
 
     return React.useMemo(() => {
@@ -66,10 +70,5 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
         };
     }, [send, isPending, response]);
 };
-
-
-
-
-
 
 
