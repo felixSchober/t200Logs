@@ -23,12 +23,17 @@ permissions:
   contents: write
     
 jobs:
-  cicd:
-    name: CI/CD
+  version_bump:
+    name: Bump version
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && !contains(github.event.head_commit.message, 'BUMP version to')
+
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.USER_PAT }} # This is a user PAT with repo scope to allow the action to push the version bump commit to the repo
+                                         # If we'd use the default GITHUB_TOKEN, the action would not retrigger itself and the required status checks would not be run
 
       - name: fetch all history and tags from all branches for gitversion
         run: git fetch --prune --unshallow
@@ -50,24 +55,7 @@ jobs:
           echo "MajorMinorPatch: ${{ steps.gitversion.outputs.majorMinorPatch }}"
           echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
 
-      - name: setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18.x'
-        
-      - name: clean install dependencies
-        uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: install
-
-      - name: lint
-        if: github.event_name == 'pull_request'
-        uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: lint
-
       - name: update metadata in extension package.json
-        if: github.event_name == 'pull_request'
         uses: onlyutkarsh/patch-files-action@v1.0.5
         with:
           files: '${{github.workspace}}/src/extension/package.json'
@@ -77,7 +65,6 @@ jobs:
             = /description => "Extension to make diagnosing Teams logs much easier. Open this extension in a folder containing Teams logs and it will combine them into a single view with filtering and visual hints."
 
       - name: update metadata in ui package.json
-        if: github.event_name == 'pull_request'
         uses: onlyutkarsh/patch-files-action@v1.0.5
         with:
           files: '${{github.workspace}}/src/ui/package.json'
@@ -85,7 +72,6 @@ jobs:
             = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
       
       - name: add version in CHANGELOG.md
-        if: github.event_name == 'pull_request'
         uses: cschleiden/replace-tokens@v1
         with:
           files: '${{github.workspace}}/CHANGELOG.md'
@@ -94,22 +80,48 @@ jobs:
 
         # If we are in a PR, commit the changes to the branch
       - name: commit and push changes
-        if: github.event_name == 'pull_request'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-            commit_message: Update version to ${{ steps.gitversion.outputs.majorMinorPatch }}
+            commit_message: BUMP version to ${{ steps.gitversion.outputs.majorMinorPatch }}
             tagging_message: v${{ steps.gitversion.outputs.majorMinorPatch }}
+
+  cicd:
+    name: CI/CD
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message , 'BUMP version to')"
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21.x'
+        
+      - name: clean install dependencies
+        uses: borales/actions-yarn@v5.0.0
+        with:
+          cmd: install
+
+      - name: lint
+        if: github.event_name == 'pull_request'
+        uses: borales/actions-yarn@v5.0.0
+        with:
+          cmd: lint
+
+      
 
       - name: install vsce
         run: npm install -g vsce
 
       - name: build extension and ui
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: build-prod
 
       - name: compile and create vsix
-        uses: borales/actions-yarn@v4.2.0
+        uses: borales/actions-yarn@v5.0.0
         with:
           cmd: vsce-package
 
