@@ -65,6 +65,15 @@ Automated build and release of the extension
 
 - Adds support for HAR files
 
+### 0.1.18
+
+## 📦 Uncategorized
+
+- BUMP version to 0.1.17
+   - PR: #0
+
+
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
