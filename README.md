@@ -129,6 +129,10 @@ Automated build and release of the extension
 
 
 
+### 0.1.18
+
+- no changes
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
