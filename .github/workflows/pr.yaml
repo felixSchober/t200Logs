@@ -1,15 +1,6 @@
-name: "Build & Deploy"
+name: "PR - Build, Bump and Changelog"
 
 on:
-  push:
-    branches: 
-      - 'feature/**' # match an pushes on feature/* and feature/<any sub branch>/*
-      - main
-    paths-ignore: # don't run when changes made to these folders 
-      - '.vscode/**'
-      - 'GitVersion.yml'
-      - '.eslintrc.json'
-      - 'test/**'
   pull_request:
     branches: 
       - main
@@ -30,11 +21,10 @@ permissions:
     
 jobs:
   detect_ci_trigger:
-    name: Detect CI trigger
+    name: PR - Detect CI trigger
     runs-on: ubuntu-latest
     outputs:
       execute_pr: ${{ steps.last_commit_author.outputs.execute_jobs }}
-      execute_push: ${{ steps.check_not_pr.outputs.execute_jobs }}
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
@@ -52,7 +42,6 @@ jobs:
           echo "Head ref": ${{ github.head_ref }}
 
       - name: Log commits
-        if: github.event_name == 'pull_request'
         run: |
           BASE_COMMIT=$(git rev-parse origin/${{ github.base_ref }})
           HEAD_COMMIT=$(git rev-parse HEAD)
@@ -60,20 +49,11 @@ jobs:
           echo "Head commit: $HEAD_COMMIT"
 
       - name: Echo the commit message of the last commit
-        if: github.event_name == 'pull_request'
         run: |
           LAST_COMMIT_MESSAGE=$(git log -1 --pretty=format:%s)
           echo $LAST_COMMIT_MESSAGE
 
-      # If we are not in a PR, we don't need to check the last commit author
-      # (E.g. push to main we always want to run the CI/CD job)
-      - name: Output execute_jobs=true if not a PR
-        if: github.event_name != 'pull_request'
-        id: check_not_pr
-        run: echo "execute_jobs=true" >> $GITHUB_OUTPUT
-
       - name: Check last commit author
-        if: github.event_name == 'pull_request'
         id: last_commit_author
         run: |
           AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
@@ -85,13 +65,12 @@ jobs:
           fi
 
   build_changelog:
-    name: Build changelog
+    name: PR - Build changelog
     runs-on: ubuntu-latest
     needs: detect_ci_trigger
     outputs:
       changelog_pr: ${{ steps.changelog_pr.outputs.changelog }}
-      changelog_release: ${{ steps.changelog_release.outputs.changelog }}
-    if: needs.detect_ci_trigger.outputs.execute_pr == 'true' || needs.detect_ci_trigger.outputs.execute_push == 'true'
+    if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
       - name: checkout repo
@@ -101,77 +80,22 @@ jobs:
         run: git fetch --prune --unshallow
 
       - name: Generate changelog for PR build
-        if: github.event_name == 'pull_request'
         id: changelog_pr
         uses: mikepenz/release-changelog-builder-action@v4
         with:
           commitMode: true
-          configurationJson: |
-            {
-              "template": "#{{CHANGELOG}}",
-              "categories": [
-                {
-                    "title": "## Feature",
-                    "labels": ["feat", "feature"]
-                },
-                {
-                    "title": "## Fix",
-                    "labels": ["fix", "bug"]
-                },
-                {
-                    "title": "## Other",
-                    "labels": []
-                }
-              ],
-              "label_extractor": [
-                {
-                  "pattern": "^(build|bump|Bump|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
-                  "target": "$1"
-                }
-              ],
-            }
+          configuration: ${{ github.workspace }}/.github/release_configuration_template.json
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Generate changelog for release build
-        if: github.event_name == 'push'
-        id: changelog_release
-        uses: mikepenz/release-changelog-builder-action@v4
-        with:
-          commitMode: true
-          configuration: ${{ github.workspace }}/.github/release_configuration_template.json
-          configurationJson: |
-            {
-              "template": "#{{CHANGELOG}}",
-              "categories": [
-                {
-                    "title": "## Feature",
-                    "labels": ["feat", "feature"]
-                },
-                {
-                    "title": "## Fix",
-                    "labels": ["fix", "bug"]
-                },
-                {
-                    "title": "## Other",
-                    "labels": []
-                }
-              ],
-              "label_extractor": [
-                {
-                  "pattern": "^(build|bump|Bump|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
-                  "target": "$1"
-                }
-              ],
-            }
 
   version_bump:
-    name: Bump version
+    name: PR - Bump version
     runs-on: ubuntu-latest
     needs: 
       - detect_ci_trigger
       - build_changelog
-    if: github.event_name == 'pull_request' && needs.detect_ci_trigger.outputs.execute_pr == 'true'
+    if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
       - name: checkout repo
@@ -245,27 +169,25 @@ jobs:
             commit_author: ${{env.BUMP_AUTHOR_NAME}} <${{env.BUMP_AUTHOR_MAIL}}>
 
       - name: tag the commit
-        if: github.event_name == 'pull_request'
         run: |
           git config --local user.email ${{env.BUMP_AUTHOR_MAIL}}
           git config --local user.name ${{env.BUMP_AUTHOR_NAME}}
-          git tag -a ${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }}"
+          git tag -a v${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }} through PR ${{ github.event.pull_request.number }}"
           git push origin ${{ steps.gitversion.outputs.majorMinorPatch }}
 
       - name: Create PR comment with new version
-        if: github.event_name == 'pull_request'
         uses: mshick/add-pr-comment@v2
         with:
               message: ${{needs.build_changelog.outputs.changelog_pr}}
               message-id: "bump-version"
 
-  cicd:
-    name: CI/CD
+  build:
+    name: PR - Build
     runs-on: ubuntu-latest
     needs: 
       - detect_ci_trigger
       - build_changelog
-    if: needs.detect_ci_trigger.outputs.execute_pr == 'true' || needs.detect_ci_trigger.outputs.execute_push == 'true'
+    if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
       - name: checkout repo
@@ -284,7 +206,6 @@ jobs:
           cmd: install
 
       - name: lint
-        if: github.event_name == 'pull_request'
         uses: borales/actions-yarn@v5.0.0
         with:
           cmd: lint
@@ -301,46 +222,3 @@ jobs:
         uses: borales/actions-yarn@v5.0.0
         with:
           cmd: vsce-package
-
-      - name: Get latest tag
-        id: get_latest_tag
-        run: |
-          git fetch --depth=1 origin +refs/tags/*:refs/tags/*  # Ensure all tags are fetched
-          LATEST_TAG=$(git tag | sort -V | tail -n1)
-          if [ -z "$LATEST_TAG" ]; then
-            echo "No tags found. Exiting..."
-            exit 1
-          fi
-          echo "Latest tag: $LATEST_TAG"
-          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
-
-
-      - name: upload vsix as artifact
-        uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        with:
-          name: t200logs-${{steps.get_latest_tag.outputs.tag}}.vsix
-          path: ${{github.workspace}}/out/t200logs.vsix
-
-      - name: create a release
-        id: create_release
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{steps.get_latest_tag.outputs.tag}}
-          release_name: ${{steps.get_latest_tag.outputs.tag}}
-          body: ${{ needs.build_changelog.outputs.changelog_release }}
-    
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ${{github.workspace}}/out/t200logs.vsix
-          asset_name: t200logs-${{steps.get_latest_tag.outputs.tag}}.vsix
-          asset_content_type: application/zip

@@ -1,0 +1,140 @@
+name: "CI/CD - Release Workflow"
+
+on:
+  push:
+    branches: 
+      - releases/*
+
+permissions:
+  contents: write
+  
+jobs:
+  build_changelog:
+    name: CI/CD - Build changelog
+    runs-on: ubuntu-latest
+    needs: cicd
+    outputs:
+      changelog_release: ${{ steps.changelog_release.outputs.changelog }}
+      latest_release_tag: ${{ steps.latest_release_tag.outputs.latest_release_tag }}
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+        
+      - name: fetch all history and tags from all branches
+        run: git fetch --prune --unshallow
+
+      - name: Get previous release tag
+        id: prev_release_tag
+        run: |
+            PREV_RELEASE_TAG=$(git tag --sort=-version:refname | grep -E '^(.*)-release$' | tail -1 | head -1)
+            if [ -z "$PREV_RELEASE_TAG" ]; then
+              echo "No previous release found. Exiting..."
+              exit 1
+            fi
+            echo "Previous release tag: $PREV_RELEASE_TAG"
+            echo "prev_release_tag=$PREV_RELEASE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Get latest release tag
+        id: latest_release_tag
+        run: |
+            LATEST_RELEASE_TAG=$(git tag --sort=-version:refname | grep -E '^(.*)-release$' | head -1)
+            if [ -z "$LATEST_RELEASE_TAG" ]; then
+              echo "No latest release found. Exiting..."
+              exit 1
+            fi
+            echo "Latest release tag: $LATEST_RELEASE_TAG"
+            echo "latest_release_tag=$LATEST_RELEASE_TAG" >> $GITHUB_OUTPUT          
+      
+      - name: Generate changelog for release build
+        id: changelog_release
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          commitMode: false
+          fromTag: ${{ steps.prev_release_tag.outputs.prev_release_tag }}
+          toTag: ${{ steps.latest_release_tag.outputs.latest_release_tag }}
+          configuration: ${{ github.workspace }}/.github/release_configuration_template.json
+
+  release:
+    name: CI/CD - Create release
+    runs-on: ubuntu-latest
+    needs: 
+        - build_changelog
+        - cicd
+
+    steps:
+      - name: create a release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{needs.build_changelog.outputs.latest_release_tag}}
+          release_name: ${{needs.build_changelog.outputs.latest_release_tag}}
+          body: ${{ needs.build_changelog.outputs.changelog_release }}
+    
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ${{github.workspace}}/out/t200logs.vsix
+          asset_name: t200logs-${{needs.cicd.outputs.build_tag}}.vsix
+          asset_content_type: application/zip        
+
+  cicd:
+    name: CI/CD - Build app
+    runs-on: ubuntu-latest
+    outputs:
+      build_tag: ${{ steps.get_latest_tag.outputs.tag }}
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history for all branches and tags
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21.x'
+        
+      - name: clean install dependencies
+        uses: borales/actions-yarn@v5.0.0
+        with:
+          cmd: install
+
+      - name: install vsce
+        run: npm install -g vsce
+
+      - name: build extension and ui
+        uses: borales/actions-yarn@v5.0.0
+        with:
+          cmd: build-prod
+
+      - name: compile and create vsix
+        uses: borales/actions-yarn@v5.0.0
+        with:
+          cmd: vsce-package
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/*  # Ensure all tags are fetched
+          LATEST_TAG=$(git tag | sort -V | tail -n1)
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No tags found. Exiting..."
+            exit 1
+          fi
+          echo "Latest tag: $LATEST_TAG"
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: upload vsix as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: t200logs-${{steps.get_latest_tag.outputs.tag}}.vsix
+          path: ${{github.workspace}}/out/t200logs.vsix
+
+    
+
