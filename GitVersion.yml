@@ -1,30 +1,36 @@
 mode: ContinuousDeployment
-next-version: 0.1.18
 branches:
   main:
     regex: ^main$
     tag: ''
-    increment: Minor    
+    # Automatically increment the minor version for features and the patch version for fixes and dependabot updates
+    increment: Inherit # Set to Inherit to dynamically decide based on the source branch
     source-branches: ['features', 'fixes', 'dependabot']
+  
   features:
     regex: ^features/
     tag: 'feature-{BranchName}'
-    increment: None
+    increment: Minor # Bump minor version when merging features into main
     source-branches: ['main']
+
   fixes:
     regex: ^fixes/
     tag: 'fix-{BranchName}'
-    increment: None
+    increment: Patch # Bump patch version when merging fixes into main
     source-branches: ['main']
+
   dependabot:
     regex: ^dependabot/
-    tag: 'dependabot'
-    increment: None
+    tag: 'dependabot-{BranchName}'
+    increment: Patch # Bump patch version for dependabot merges into main
     source-branches: ['main']
+
   pull-request:
     regex: ^(pull|pull\-requests|pr)[/-]
-    tag: 'pr'
+    tag: 'pr-{BranchName}'
     increment: None
+    
 ignore:
   sha: []
-merge-message-formats: {}
+merge-message-formats:
+  main: "Merge branch '{SOURCE_BRANCH}' into 'main' including the following commits: {COMMITS}"
