@@ -37,6 +37,7 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Fetch the current branch
@@ -45,9 +46,15 @@ jobs:
       - name: Log base and head commits
         run: |
           echo "Base branch: ${{ github.base_ref }}"
-          echo "Base commit: $(git rev-parse origin/${{ github.base_ref }})"
-          echo "Head commit: $(git rev-parse HEAD)"
-          echo "Head branch: ${{ github.ref }}"
+          echo "Ref branch: ${{ github.ref }}"
+          echo "Head ref": ${{ github.head_ref }}
+
+      - name: Log commits
+        run: |
+          BASE_COMMIT=$(git rev-parse origin/${{ github.base_ref }})
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          echo "Base commit: $BASE_COMMIT"
+          echo "Head commit: $HEAD_COMMIT"
 
       - name: Echo the commit message of the last commit
         run: |
