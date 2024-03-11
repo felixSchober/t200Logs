@@ -130,6 +130,8 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
      */
     private handleKeywordHighlightChange(event: KeywordHighlightChangeEvent, respond: PostMessageEventRespondFunction) {
         this.logger.info("handleKeywordHighlightChange", undefined, { event: JSON.stringify(event) });
+        this.filterMessagesToRespondTo.push(respond);
+
         if (event.isChecked) {
             const highlight: KeywordHighlightWithRegex = {
                 ...event.keywordDefinition,
@@ -146,13 +148,13 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
             this.keywords = this.keywords.filter(k => k.keyword !== event.keywordDefinition.keyword);
             this.removeKeywordHighlight(event.keywordDefinition.keyword);
         }
-        this.filterMessagesToRespondTo.push(respond);
     }
 
     /**
      * Acknowledges all the messages that are waiting for a response.
      */
     private acknowledgeMessage() {
+        this.logger.info(`acknowledgeMessage called. Length: ${this.filterMessagesToRespondTo.length}`);
         while (this.filterMessagesToRespondTo.length > 0) {
             const respond = this.filterMessagesToRespondTo.pop();
             if (respond) {
