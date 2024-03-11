@@ -1,13 +1,24 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
+import { VSCodeCheckbox, VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
-import { VSCodeTextField, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react";
+
 import { Flex } from "../../common/Flex";
-import { useSendAndReceive } from "../../service/useSendAndReceive";
 import { useDebounce } from "../../common/useDebounce";
-import { useMessageSubscription } from "../../service/useMessageSubscription";
 import { useLogger } from "../../service/useLogger";
+import { useMessageSubscription } from "../../service/useMessageSubscription";
+import { useSendAndReceive } from "../../service/useSendAndReceive";
 
 type TimeFilterState = {
+    /**
+     *
+     */
     from: string;
+    /**
+     *
+     */
     till: string;
 };
 
@@ -56,13 +67,14 @@ export const TimeFilter: React.FC = () => {
             const value = target.checked;
             const name = target.name;
             switch (name) {
-                case "filter_session_id":
+                case "filter_session_id": {
                     const sessionId = summary?.summary?.sessionId;
                     if (!sessionId) {
                         return;
                     }
                     sendSessionIdFilter({ isChecked: value, sessionId: sessionId });
                     break;
+                }
                 default:
                     break;
             }
@@ -130,7 +142,7 @@ export const TimeFilter: React.FC = () => {
     return (
         <Flex direction="row" wrap="wrap" justifyContent="flex-start">
             <VSCodeCheckbox checked={filterOutElementsWithoutTime} name="error" onChange={onCheckboxChange}>
-                Filter out entries that don't have a time
+                Filter out entries that don&apos;t have a time
             </VSCodeCheckbox>
             <Flex direction="row" wrap="wrap" hFill justifyContent="space-between" style={{ marginTop: "1rem" }}>
                 <VSCodeTextField placeholder="YYYY-MM-DD HH:MM" name="from" value={timeFilter.from} onChange={onTextFieldChange}>
@@ -147,6 +159,5 @@ export const TimeFilter: React.FC = () => {
             </VSCodeCheckbox>
         </Flex>
     );
-
-
 };
+

@@ -1,29 +1,34 @@
-import * as React from "react";
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { VSCodeButton, VSCodeCheckbox, VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
-import { Flex } from "../../common/Flex";
-import { useSendAndReceive } from "../../service/useSendAndReceive";
+import * as React from "react";
 import { v4 as uuid } from "uuid";
+
+import { Flex } from "../../common/Flex";
 import { useLogger } from "../../service/useLogger";
 import { useMessageSubscription } from "../../service/useMessageSubscription";
+import { useSendAndReceive } from "../../service/useSendAndReceive";
 
 type KeywordDefinition = {
     /**
-     * The unique identifier for the keyword
+     * The unique identifier for the keyword.
      */
     id: string;
 
     /**
-     * The keyword to filter on
+     * The keyword to filter on.
      */
     keyword: string;
 
     /**
-     * Whether the keyword is enabled
+     * Whether the keyword is enabled.
      */
     isChecked: boolean;
 
     /**
-     * Whether the keyword is a custom keyword that was added by the user through the UI
+     * Whether the keyword is a custom keyword that was added by the user through the UI.
      */
     isCustom: boolean;
 };
@@ -76,7 +81,7 @@ export const KeywordFilter: React.FC = () => {
                 return [...prev];
             });
         },
-        [log, logError]
+        [log, logError, send]
     );
 
     const onTextFieldChange = React.useCallback((event: Event | React.FormEvent<HTMLElement>) => {
@@ -85,7 +90,7 @@ export const KeywordFilter: React.FC = () => {
         setNewKeywordField(value);
     }, []);
 
-    const onAddKeyword = () => {
+    const onAddKeyword = React.useCallback(() => {
         // skip if the field is empty
         if (!newKeywordField) {
             return;
@@ -96,7 +101,7 @@ export const KeywordFilter: React.FC = () => {
 
         log("onAddKeyword", `Sending keyword '${newKeywordField}' to the extension backend`);
         send({ id: newKeyword.id, isChecked: true, value: newKeyword.keyword });
-    };
+    }, [newKeywordField, setKeywords, log, send]);
 
     const onTextFieldKeyDown = React.useCallback(
         (event: React.KeyboardEvent<HTMLElement>) => {
@@ -165,13 +170,4 @@ export const KeywordFilter: React.FC = () => {
         </Flex>
     );
 };
-
-
-
-
-
-
-
-
-
 

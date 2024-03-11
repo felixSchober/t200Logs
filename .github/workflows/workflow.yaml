@@ -176,7 +176,7 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: borales/actions-yarn@v5.0.0
         with:
-          cmd: lint    
+          cmd: lint
 
       - name: install vsce
         run: npm install -g vsce

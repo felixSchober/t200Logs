@@ -1,56 +1,60 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import * as React from "react";
 
 type FlexProps = {
     /**
-     * The flex direction
+     * The flex direction.
      */
     direction: "row" | "column";
 
     /**
-     * The flex grow
+     * The flex grow.
      */
     grow?: number;
 
     /**
-     * The flex shrink
+     * The flex shrink.
      */
     shrink?: number;
 
     /**
-     * The flex wrap
+     * The flex wrap.
      */
     wrap?: "wrap" | "nowrap" | "wrap-reverse";
 
     /**
-     * The flex align items
+     * The flex align items.
      */
     alignItems?: "flex-start" | "flex-end" | "center" | "baseline" | "stretch";
 
     /**
-     * The flex justify content
+     * The flex justify content.
      */
     justifyContent?: "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly";
 
     /**
-     * When true, the flex container will fill the horizontal space
+     * When true, the flex container will fill the horizontal space.
      */
     hFill?: boolean;
 
     /**
-     * The children
+     * The children.
      */
     children: React.ReactNode;
 
     /**
-     * Optional style
+     * Optional style.
      */
     style?: React.CSSProperties;
 };
 
 /**
- * A simple flex component that uses the flexbox layout
- * @param props The flex props
- * @returns A simple flex component
+ * A simple flex component that uses the flexbox layout.
+ * @param props The flex props.
+ * @returns A simple flex component.
  */
 export const Flex: React.FC<FlexProps> = props => {
     const style: React.CSSProperties = {

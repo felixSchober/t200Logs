@@ -1,6 +1,12 @@
-import * as React from "react";
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { VSCodePanelTab, VSCodePanelView } from "@vscode/webview-ui-toolkit/react";
+import * as React from "react";
+
 import { useSendAndReceive } from "../../service/useSendAndReceive";
+
 import { SummaryGrid } from "./SummaryGrid";
 
 export const InfoPanelView: React.FC = () => {

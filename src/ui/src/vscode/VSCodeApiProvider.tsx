@@ -1,12 +1,27 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import * as React from "react";
 import { WebviewApi } from "vscode-webview";
-import { PostMessageService } from "../service/PostMessageService";
+
 import { ExtensionStateManager } from "../service/ExtensionStateManager";
+import { PostMessageService } from "../service/PostMessageService";
+
 import { ExtensionState, INITIAL_EXTENSION_STATE } from "./ExtensionState";
 
 export type VSCodeApiContextProps<TState> = {
+    /**
+     *
+     */
     api: WebviewApi<TState>;
+    /**
+     *
+     */
     messageService: PostMessageService<TState>;
+    /**
+     *
+     */
     stateService: ExtensionStateManager<TState>;
 };
 const createContext = <TState,>() => {
@@ -16,18 +31,21 @@ const createContext = <TState,>() => {
 export const VSCodeApiContext = createContext<ExtensionState>();
 
 type VSCodeApiProviderProps<TState> = {
+    /**
+     *
+     */
     children: React.ReactNode;
 
     /**
-     * The vscode api to provide to the children
+     * The vscode api to provide to the children.
      */
     api: WebviewApi<TState>;
 };
 
 /**
- * A provider for the vscode api
- * @param param0 Vscode api provider and children
- * @returns A wrapper around the vscode api
+ * A provider for the vscode api.
+ * @param props Vscode api provider and children.
+ * @returns A wrapper around the vscode api.
  */
 export const VSCodeApiProvider = (props: VSCodeApiProviderProps<ExtensionState>) => {
     const { api, children } = props;
@@ -55,10 +73,4 @@ export const VSCodeApiProvider = (props: VSCodeApiProviderProps<ExtensionState>)
 
     return <VSCodeApiContext.Provider value={providerValues}>{children}</VSCodeApiContext.Provider>;
 };
-
-
-
-
-
-
 

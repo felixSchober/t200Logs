@@ -1,10 +1,15 @@
-import * as React from "react";
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
+import * as React from "react";
+
 import { useSendAndReceive } from "../../service/useSendAndReceive";
 
 /**
- * A button that opens the logs viewer
- * @returns A button that opens the logs viewer
+ * A button that opens the logs viewer.
+ * @returns A button that opens the logs viewer.
  */
 export const OpenLogsViewerButton: React.FC = () => {
     const { isPending, send } = useSendAndReceive("openLogsDocument", "messageAck");

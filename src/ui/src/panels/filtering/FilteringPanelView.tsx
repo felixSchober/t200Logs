@@ -1,12 +1,18 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
+import { VSCodeBadge, VSCodeDivider, VSCodePanelTab, VSCodePanelView } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
-import { VSCodeDivider, VSCodePanelTab, VSCodePanelView, VSCodeBadge } from "@vscode/webview-ui-toolkit/react";
-import { OpenLogsViewerButton } from "./OpenLogsViewerButton";
+
 import { Flex } from "../../common/Flex";
-import { LogLevelFilter } from "./LogLevelFilter";
-import { TimeFilter } from "./TimeFilter";
 import { useMessageSubscription } from "../../service/useMessageSubscription";
-import { KeywordFilter } from "./KeywordFilter";
+
 import { DisplaySettings } from "./DisplaySettings";
+import { KeywordFilter } from "./KeywordFilter";
+import { LogLevelFilter } from "./LogLevelFilter";
+import { OpenLogsViewerButton } from "./OpenLogsViewerButton";
+import { TimeFilter } from "./TimeFilter";
 
 export const FilteringPanelView: React.FC = () => {
     const activeFilters = useMessageSubscription("updateNumberOfActiveFilters");

@@ -3,15 +3,19 @@
  */
 
 import * as React from "react";
-import { VSCodeApiProvider } from "./vscode/VSCodeApiProvider";
-import { PanelRoot } from "./PanelRoot";
 
-const vscodeApi = acquireVsCodeApi();
+import { PanelRoot } from "./PanelRoot";
+import { ExtensionState } from "./vscode/ExtensionState";
+import { VSCodeApiProvider } from "./vscode/VSCodeApiProvider";
+
+// eslint-disable-next-line no-undef
+const vscodeApi = acquireVsCodeApi<ExtensionState>();
 
 export const App: React.FC = () => {
     return (
         <VSCodeApiProvider api={vscodeApi}>
-          <PanelRoot />
+            <PanelRoot />
         </VSCodeApiProvider>
-      )
+    );
+
 };
