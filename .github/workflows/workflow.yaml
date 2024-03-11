@@ -192,6 +192,9 @@ jobs:
       - name: execute gitversion
         id: gitversion # step id used as reference for output values
         uses: gittools/actions/gitversion/execute@v0.13.2
+        with:
+            useConfigFile: true
+            additionalArguments: "/b ${{ github.head_ref }}"
         
       - name: print gitversion
         run: |
