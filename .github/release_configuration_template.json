@@ -1,28 +1,31 @@
 {
     "categories": [
     {
-        "title": "🚀 Features",
+        "title": "## 🚀 Features",
         "labels": [
             "type: feature request",
             "type: enhancement",
             "type: epic"
-        ]
+        ],
+        "empty_content": "- no matching PRs"
     },
     {
-        "title": "🐛 Bug Fixes",
+        "title": "## 🐛 Bug Fixes",
         "labels": [
             "type: bug"
-        ]
+        ],
+        "empty_content": "- no matching PRs"
     },
     {
-        "title": "🧪 Maintenance",
+        "title": "## 🧪 Maintenance",
         "labels": [
             "dependencies",
             "type: chore",
             "type: ci",
             "type: dependencies",
             "documentation"
-        ]
+        ],
+        "empty_content": "- no matching PRs"
     }
     ],
     "ignore_labels": [
@@ -31,18 +34,16 @@
     "invalid",
     "wontfix"
     ],
-    "change_template": "- $TITLE @$AUTHOR (#$NUMBER)",
-    "no_changes_template": "No changes in this category.",
-    "version_template": "$RESOLVED_VERSION",
-    "configuration": {
-        "issue_resolver": {
-            "pattern": "((?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved) #([0-9]+))",
-            "url": "https://github.com/felixSchober/t200Logs/issues/$NUMBER"
-        },
-    "pr_resolver": {
-        "pattern": "#([0-9]+)",
-        "url": "https://github.com/felixSchober/t200Logs/pulls/$NUMBER"
-    }
-    }
+    "template": "#{{CHANGELOG}}",
+    "pr_template": "- #{{TITLE}}",
+    "label_extractor": [
+        {
+            "pattern": "^(build|bump|BUMP|Bump|bumps|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
+            "target": "$1"
+        }
+    ],
+    "base_branches": [
+        "dev"
+    ]
 }
   
