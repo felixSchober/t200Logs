@@ -174,7 +174,7 @@ jobs:
           git config --local user.email ${{env.BUMP_AUTHOR_MAIL}}
           git config --local user.name ${{env.BUMP_AUTHOR_NAME}}
           git tag -a v${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }} through PR ${{ github.event.pull_request.number }}"
-          git push origin ${{ steps.gitversion.outputs.majorMinorPatch }}
+          git push origin
 
       - name: Create PR comment with new version
         uses: mshick/add-pr-comment@v2
