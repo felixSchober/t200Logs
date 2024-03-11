@@ -1204,12 +1204,13 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             case "skylib":
             case "tscalling":
                 return "🖥️";
+            case "HAR":
+                return "📡";
             default:
                 return "🌐";
         }
     }
 }
-
 
 
 
