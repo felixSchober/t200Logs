@@ -95,6 +95,7 @@ jobs:
     needs: 
       - detect_ci_trigger
       - build_changelog
+      - build
     if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
