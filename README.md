@@ -80,6 +80,10 @@ Automated build and release of the extension
 
 - no changes
 
+### 0.1.18
+
+- no changes
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
