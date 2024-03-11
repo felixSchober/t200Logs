@@ -177,6 +177,7 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.USER_PAT }} # This is a user PAT with repo scope to allow the action to push the version bump commit to the repo
                                          # If we'd use the default GITHUB_TOKEN, the action would not retrigger itself and the required status checks would not be run
 
