@@ -165,8 +165,6 @@ jobs:
               ],
             }
 
-    
-
   version_bump:
     name: Bump version
     runs-on: ubuntu-latest
@@ -179,6 +177,7 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.USER_PAT }} # This is a user PAT with repo scope to allow the action to push the version bump commit to the repo
                                          # If we'd use the default GITHUB_TOKEN, the action would not retrigger itself and the required status checks would not be run
 
@@ -186,13 +185,16 @@ jobs:
         run: git fetch --prune --unshallow
 
       - name: install gitversion tool
-        uses: gittools/actions/gitversion/setup@v0.11.0
+        uses: gittools/actions/gitversion/setup@v0.13.2
         with:
             versionSpec: '5.x'
       
       - name: execute gitversion
         id: gitversion # step id used as reference for output values
-        uses: gittools/actions/gitversion/execute@v0.11.0
+        uses: gittools/actions/gitversion/execute@v0.13.2
+        with:
+            useConfigFile: true
+            additionalArguments: "/b ${{ github.head_ref }}"
         
       - name: print gitversion
         run: |
@@ -249,6 +251,13 @@ jobs:
           git config --local user.name ${{env.BUMP_AUTHOR_NAME}}
           git tag -a ${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }}"
           git push origin ${{ steps.gitversion.outputs.majorMinorPatch }}
+
+      - name: Create PR comment with new version
+        if: github.event_name == 'pull_request'
+        uses: mshick/add-pr-comment@v2
+        with:
+              message: ${{needs.build_changelog.outputs.changelog_pr}}
+              message-id: "bump-version"
 
   cicd:
     name: CI/CD
