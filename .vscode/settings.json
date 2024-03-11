@@ -15,6 +15,9 @@
     "typescript.tsc.autoDetect": "off",
     "editor.formatOnSave": true,
     "cSpell.words": ["codicon", "codicons", "guids", "skylib", "tsbuildinfo", "tscalling", "vsix"],
-    "debug.javascript.unmapMissingSources": true
+    "debug.javascript.unmapMissingSources": true,
+    "[markdown]": {
+        "editor.formatOnSave": false
+    }
 
 }

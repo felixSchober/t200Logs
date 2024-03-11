@@ -133,13 +133,53 @@ jobs:
           files: '${{github.workspace}}/src/ui/package.json'
           patch-syntax: |
             = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
+
+      - name: update metadata in root package.json
+        uses: onlyutkarsh/patch-files-action@v1.0.5
+        with:
+          files: '${{github.workspace}}/package.json'
+          patch-syntax: |
+            = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
+
+      - name: Build change log
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          commitMode: true
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}",
+              "categories": [
+                {
+                    "title": "## Feature",
+                    "labels": ["feat", "feature"]
+                },
+                {
+                    "title": "## Fix",
+                    "labels": ["fix", "bug"]
+                },
+                {
+                    "title": "## Other",
+                    "labels": []
+                }
+              ],
+              "label_extractor": [
+                {
+                  "pattern": "^(build|bump|Bump|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
+                  "target": "$1"
+                }
+              ],
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
       
       - name: add version in CHANGELOG.md
         uses: cschleiden/replace-tokens@v1
         with:
-          files: '${{github.workspace}}/CHANGELOG.md'
+          files: '${{github.workspace}}/README.md'
         env:
-          VERSION: "${{ steps.gitversion.outputs.majorMinorPatch }}"
+          NEW_VERSION: "${{ steps.gitversion.outputs.majorMinorPatch }}"
+          CHANGES: "${{ steps.changelog.outputs.changelog }}\n\n### #{NEW_VERSION}#\n\n#{CHANGES}#"
 
         # If we are in a PR, commit the changes to the branch
       - name: commit and push changes

@@ -64,3 +64,7 @@ Automated build and release of the extension
 ### 0.1.9
 
 - Adds support for HAR files
+
+### #{NEW_VERSION}#
+
+#{CHANGES}#
