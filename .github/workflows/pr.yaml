@@ -70,6 +70,8 @@ jobs:
     needs: detect_ci_trigger
     outputs:
       changelog_pr: ${{ steps.changelog_pr.outputs.changelog }}
+      changelog_failed: ${{ steps.changelog_pr.outputs.failed }}
+      
     if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
@@ -84,10 +86,13 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v4
         with:
           commitMode: true
-          configuration: ${{ github.workspace }}/.github/release_configuration_template.json
-
+          includeOpen: true
+          configuration: .github/release_configuration_template.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: print changelog
+        run: echo "${{ steps.changelog_pr.outputs.changelog }}"
 
   version_bump:
     name: PR - Bump version
@@ -152,7 +157,11 @@ jobs:
           patch-syntax: |
             = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
 
+      - name: Print changelog failed
+        run: echo "changelog_failed=${{ needs.build_changelog.outputs.changelog_failed }}"
+
       - name: add version in CHANGELOG.md
+        if: ${{ needs.build_changelog.outputs.changelog_failed }} == 'false'
         uses: cschleiden/replace-tokens@v1
         with:
           files: '${{github.workspace}}/README.md'
@@ -176,10 +185,10 @@ jobs:
           git tag -a v${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }} through PR ${{ github.event.pull_request.number }}"
           git push origin
 
-      - name: Create PR comment with new version
+      - name: create PR comment with new version
         uses: mshick/add-pr-comment@v2
         with:
-              message: ${{needs.build_changelog.outputs.changelog_pr}}
+              message: Version bump to ${{ steps.gitversion.outputs.majorMinorPatch }}\n\n${{needs.build_changelog.outputs.changelog_pr}}
               message-id: "bump-version"
 
   build:
