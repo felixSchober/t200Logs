@@ -83,12 +83,96 @@ jobs:
           else
             echo "execute_jobs=true" >> $GITHUB_OUTPUT
           fi
+
+  build_changelog:
+    name: Build changelog
+    runs-on: ubuntu-latest
+    needs: detect_ci_trigger
+    outputs:
+      changelog_pr: ${{ steps.changelog_pr.outputs.changelog }}
+      changelog_release: ${{ steps.changelog_release.outputs.changelog }}
+    if: needs.detect_ci_trigger.outputs.execute_pr == 'true' || needs.detect_ci_trigger.outputs.execute_push == 'true'
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+        
+      - name: fetch all history and tags from all branches
+        run: git fetch --prune --unshallow
+
+      - name: Generate changelog for PR build
+        if: github.event_name == 'pull_request'
+        id: changelog_pr
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          commitMode: true
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}",
+              "categories": [
+                {
+                    "title": "## Feature",
+                    "labels": ["feat", "feature"]
+                },
+                {
+                    "title": "## Fix",
+                    "labels": ["fix", "bug"]
+                },
+                {
+                    "title": "## Other",
+                    "labels": []
+                }
+              ],
+              "label_extractor": [
+                {
+                  "pattern": "^(build|bump|Bump|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
+                  "target": "$1"
+                }
+              ],
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Generate changelog for release build
+        if: github.event_name == 'push'
+        id: changelog_release
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          commitMode: true
+          configuration: ${{ github.workspace }}/.github/release_configuration_template.json
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}",
+              "categories": [
+                {
+                    "title": "## Feature",
+                    "labels": ["feat", "feature"]
+                },
+                {
+                    "title": "## Fix",
+                    "labels": ["fix", "bug"]
+                },
+                {
+                    "title": "## Other",
+                    "labels": []
+                }
+              ],
+              "label_extractor": [
+                {
+                  "pattern": "^(build|bump|Bump|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
+                  "target": "$1"
+                }
+              ],
+            }
+
     
 
   version_bump:
     name: Bump version
     runs-on: ubuntu-latest
-    needs: detect_ci_trigger
+    needs: 
+      - detect_ci_trigger
+      - build_changelog
     if: github.event_name == 'pull_request' && needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
@@ -141,37 +225,7 @@ jobs:
           patch-syntax: |
             = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
 
-      - name: Build change log
-        id: changelog
-        uses: mikepenz/release-changelog-builder-action@v4
-        with:
-          commitMode: true
-          configurationJson: |
-            {
-              "template": "#{{CHANGELOG}}",
-              "categories": [
-                {
-                    "title": "## Feature",
-                    "labels": ["feat", "feature"]
-                },
-                {
-                    "title": "## Fix",
-                    "labels": ["fix", "bug"]
-                },
-                {
-                    "title": "## Other",
-                    "labels": []
-                }
-              ],
-              "label_extractor": [
-                {
-                  "pattern": "^(build|bump|Bump|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
-                  "target": "$1"
-                }
-              ],
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
+  
       
       - name: add version in CHANGELOG.md
         uses: cschleiden/replace-tokens@v1
@@ -179,7 +233,7 @@ jobs:
           files: '${{github.workspace}}/README.md'
         env:
           NEW_VERSION: "${{ steps.gitversion.outputs.majorMinorPatch }}"
-          CHANGES: "${{ steps.changelog.outputs.changelog }}\n\n### #{NEW_VERSION}#\n\n#{CHANGES}#"
+          CHANGES: "${{ needs.build_changelog.outputs.changelog_pr }}\n\n### #{NEW_VERSION}#\n\n#{CHANGES}#"
 
         # If we are in a PR, commit the changes to the branch
       - name: commit and push changes
@@ -194,7 +248,9 @@ jobs:
   cicd:
     name: CI/CD
     runs-on: ubuntu-latest
-    needs: detect_ci_trigger
+    needs: 
+      - detect_ci_trigger
+      - build_changelog
     if: needs.detect_ci_trigger.outputs.execute_pr == 'true' || needs.detect_ci_trigger.outputs.execute_push == 'true'
 
     steps:
@@ -252,14 +308,6 @@ jobs:
           name: t200logs-${{steps.get_latest_tag.outputs.tag}}.vsix
           path: ${{github.workspace}}/out/t200logs.vsix
 
-      - uses: release-drafter/release-drafter@v5
-        # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
-        # with:
-        #   config-name: my-config.yml
-        #   disable-autolabeler: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: create a release
         id: create_release
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -269,6 +317,7 @@ jobs:
         with:
           tag_name: ${{steps.get_latest_tag.outputs.tag}}
           release_name: ${{steps.get_latest_tag.outputs.tag}}
+          body: ${{ needs.build_changelog.outputs.changelog_release }}
     
       - name: Upload Release Asset
         id: upload-release-asset 
