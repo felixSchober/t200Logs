@@ -76,6 +76,47 @@ Automated build and release of the extension
 
 - Fix severity highlight application
 
+### 0.1.19
+
+### ## 📦 Uncategorized
+
+- specify the commit author name in the ci/cd workflow
+   - PR: #0
+- use release job
+   - PR: #0
+- fix: move tags by force pushing
+   - PR: #0
+- BUMP version to 0.1.18
+   - PR: #0
+- Merge pull request #38 from felixSchober/fixes/fix-keyword-ack-messages
+   - PR: #0
+- fix regeneration of severity highlighting
+   - PR: #0
+- fix: update PR template
+   - PR: #0
+- fix: cleanup readme
+   - PR: #0
+- BUMP version to 0.1.18
+   - PR: #0
+- bump gittools version
+   - PR: #0
+- BUMP version to 0.1.18
+   - PR: #0
+- fix GitVersion to use the right bumping logic
+   - PR: #0
+- BUMP version to 0.1.18
+   - PR: #0
+- checkout head.ref in bump version workflow job
+   - PR: #0
+- BUMP version to 0.1.18
+   - PR: #0
+- fix: supply branch name to gitversion
+   - PR: #0
+- BUMP version to 0.1.19
+   - PR: #0
+
+
+
 ### #{NEW_VERSION}#
 
-### #{CHANGES}#
+#{CHANGES}#
