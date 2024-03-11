@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "name": "@t200logs/common",
     "devDependencies": {
-        "typescript": "5.3.3"
+        "typescript": "5.4.2"
     },
     "dependencies": {
         "zod": "^3.22.4"
