@@ -26,6 +26,7 @@ env:
 
 permissions:
   contents: write
+  pull-requests: write
     
 jobs:
   detect_ci_trigger:
@@ -209,6 +210,14 @@ jobs:
         with:
           name: t200logs-${{steps.get_latest_tag.outputs.tag}}.vsix
           path: ${{github.workspace}}/out/t200logs.vsix
+
+      - uses: release-drafter/release-drafter@v5
+        # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
+        # with:
+        #   config-name: my-config.yml
+        #   disable-autolabeler: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: create a release
         id: create_release
