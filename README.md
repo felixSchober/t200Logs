@@ -74,6 +74,61 @@ Automated build and release of the extension
 
 
 
+### 0.1.18
+
+## 📦 Uncategorized
+
+- Merge support for HAR files
+   - PR: #0
+- add extra detection step
+   - PR: #0
+- BUMP version to 0.1.15
+   - PR: #0
+- Merge pull request #26 from felixSchober/har-file
+   - PR: #0
+- Bump typescript from 4.9.5 to 5.4.2
+   - PR: #0
+- do not skip on main push
+   - PR: #0
+- fix tagging issue
+   - PR: #0
+- update gitversion
+   - PR: #0
+- add PR template
+   - PR: #0
+- add workflow to auto assign the author of a PR
+   - PR: #0
+- use release drafter
+   - PR: #0
+- Feat: Repo organisation
+   - PR: #0
+- auto tag
+   - PR: #0
+- add template for feature request
+   - PR: #0
+- actions: Create auto labeller and templates
+   - PR: #0
+- Merge pull request #33 from felixSchober/dependabot/npm_and_yarn/typescript-5.4.2
+   - PR: #0
+- fix eslint issues in ui
+   - PR: #0
+- make sure timeout out messages are not blocking pending
+   - PR: #0
+- add to list of messages to reply to before executing actions
+   - PR: #0
+- specify node version
+   - PR: #0
+- BUMP version to 0.1.15
+   - PR: #0
+- build the change log
+   - PR: #0
+- fix next version
+   - PR: #0
+- BUMP version to 0.1.18
+   - PR: #0
+
+
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
