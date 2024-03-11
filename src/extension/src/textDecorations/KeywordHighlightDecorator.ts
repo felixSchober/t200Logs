@@ -69,6 +69,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
             });
             // we have to wait for vscode to be ready before we can apply the decorations
             setTimeout(() => {
+                this.logger.info("onTextDocumentGenerationFinishedEvent.timeout");
                 void this.applyAllKeywordDecorations(newContent);
             }, 1000);
         });

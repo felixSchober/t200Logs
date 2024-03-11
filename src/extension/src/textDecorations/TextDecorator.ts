@@ -47,6 +47,7 @@ export class TextDecorator implements vscode.Disposable {
         onTextDocumentGenerationFinishedEvent: vscode.Event<string>,
         logger: ITelemetryLogger
     ) {
+        this.logger = logger.createLoggerScope("TextDecorator");
         this.errorTextDecoration = vscode.window.createTextEditorDecorationType({
             backgroundColor: "rgba(255, 0, 0, 0.2)",
         });
@@ -57,10 +58,29 @@ export class TextDecorator implements vscode.Disposable {
 
         onTextDocumentGenerationFinishedEvent((newContent: string) => {
             this.logger.info("onTextDocumentGenerationFinishedEvent", undefined, { newContentLength: "" + newContent.length });
+            
+
+            const shouldRegenerateIsoDates = this.isReadableIsoDatesEnabled;
+            const shouldRegenerateSeverityLevelHighlighting = this.isSeverityLevelHighlightingEnabled;
+            if (shouldRegenerateIsoDates) {
+                this.removeReadableIsoDates();
+            }
+            if (shouldRegenerateSeverityLevelHighlighting) {
+                this.removeSeverityLevelHighlighting();
+            }
+            this.removeSeverityLevelHighlighting();
+
             // we have to wait for vscode to be ready before we can apply the decorations
             setTimeout(() => {
-                this.applySeverityLevelHighlighting(newContent);
-                this.applyReadableIsoDates(newContent);
+                this.logger.info("onTextDocumentGenerationFinishedEvent.timeout");
+
+                if (shouldRegenerateSeverityLevelHighlighting) {
+                    this.applySeverityLevelHighlighting(true);
+                }
+
+                if (shouldRegenerateIsoDates) {
+                    this.applyReadableIsoDates(true);
+                }
             }, 2000);
         });
 
@@ -90,8 +110,6 @@ export class TextDecorator implements vscode.Disposable {
                 this.logger.info("displaySettingsChanged.noChange", undefined);
             }
         });
-
-        this.logger = logger.createLoggerScope("TextDecorator");
     }
     /**
      * Disposes the text decorator.
@@ -111,7 +129,7 @@ export class TextDecorator implements vscode.Disposable {
         if (!this.isSeverityLevelHighlightingEnabled) {
             this.removeSeverityLevelHighlighting();
         } else {
-            this.applySeverityLevelHighlighting(null, true);
+            this.applySeverityLevelHighlighting(true);
         }
     }
 
@@ -141,10 +159,9 @@ export class TextDecorator implements vscode.Disposable {
      * Applies the highlighting of the severity level in the logs viewer.
      * This applies the highlighting to the entire document.
      * To toggle the highlighting, use the {@link toggleSeverityLevelHighlighting} method.
-     * @param content New content to apply the decoration to. If `null` the method will take the content from the active text editor. (This is useful because after filtering the content read by the vscode API will not yet be updated.).
      * @param wasTurnedOn Flag indicating whether the highlighting is being toggled. If true, the method will ignore the current state of the highlighting and apply it anyway. If `false`, the method will only apply the highlighting if it is already applied.
      */
-    public applySeverityLevelHighlighting(content: string | null, wasTurnedOn: boolean = false) {
+    private applySeverityLevelHighlighting(wasTurnedOn: boolean = false) {
         // apply the highlighting if
         // - the highlighting has not been applied before. Called by the internal toggle method.
         // - the highlighting has been applied before. We need to re-apply it because the filter has been changed.
@@ -156,7 +173,7 @@ export class TextDecorator implements vscode.Disposable {
         if (this.isSeverityLevelHighlightingEnabled || wasTurnedOn) {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
-                const text = content ?? editor.document.getText();
+                const text = editor.document.getText();
                 this.logger.info("applySeverityLevelHighlighting.apply.start", undefined, { documentLength: "" + text.length });
 
                 const errorDecorationsArray: vscode.DecorationOptions[] = [];
@@ -260,7 +277,7 @@ export class TextDecorator implements vscode.Disposable {
         if (!this.isReadableIsoDatesEnabled) {
             this.removeReadableIsoDates();
         } else {
-            this.applyReadableIsoDates(null, true);
+            this.applyReadableIsoDates(true);
         }
     }
 
@@ -277,10 +294,9 @@ export class TextDecorator implements vscode.Disposable {
 
     /**
      * Applies the addition of human-readable dates in the logs viewer.
-     * @param content New content to apply the decoration to. If `null` the method will take the content from the active text editor. (This is useful because after filtering the content read by the vscode API will not yet be updated.).
      * @param wasTurnedOn Flag indicating whether the highlighting is being toggled. If true, the method will ignore the current state of the highlighting and apply it anyway. If `false`, the method will only apply the highlighting if it is already applied.
      */
-    public applyReadableIsoDates(content: string | null, wasTurnedOn: boolean = false) {
+    private applyReadableIsoDates(wasTurnedOn: boolean = false) {
         this.logger.info("applyReadableIsoDates", undefined, {
             wasTurnedOn: "" + wasTurnedOn,
             currentState: "" + this.isReadableIsoDatesEnabled,
@@ -288,7 +304,7 @@ export class TextDecorator implements vscode.Disposable {
         if (this.isReadableIsoDatesEnabled || wasTurnedOn) {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
-                const text = content ?? editor.document.getText();
+                const text = editor.document.getText();
                 const decorationsArray: vscode.DecorationOptions[] = [];
 
                 let match;
