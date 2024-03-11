@@ -1,17 +1,22 @@
-import * as React from "react";
-import { VSCodeDataGrid, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { SummaryInfo } from "@t200logs/common";
-import { KeyValueGridRow } from "../../common/KeyValueGridRow";
+import { VSCodeDataGrid, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
+import * as React from "react";
+
 import { Flex } from "../../common/Flex";
+import { KeyValueGridRow } from "../../common/KeyValueGridRow";
 
 type SummaryGridProps = {
     /**
-     * The summary info
+     * The summary info.
      */
     info: SummaryInfo | undefined;
 
     /**
-     * When true, the summary is loading
+     * When true, the summary is loading.
      */
     isPending: boolean;
 };

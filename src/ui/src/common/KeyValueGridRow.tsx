@@ -1,14 +1,18 @@
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
+import { VSCodeDataGridCell, VSCodeDataGridRow } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
-import { VSCodeDataGridRow, VSCodeDataGridCell } from "@vscode/webview-ui-toolkit/react";
 
 type KeyValueGridRowProps = {
     /**
-     * The label
+     * The label.
      */
     label: string;
 
     /**
-     * The value
+     * The value.
      */
     value: string | null;
 };

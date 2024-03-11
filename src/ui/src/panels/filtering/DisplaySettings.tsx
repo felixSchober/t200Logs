@@ -1,10 +1,15 @@
-import * as React from "react";
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ */
+
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react";
+import * as React from "react";
+
 import { Flex } from "../../common/Flex";
-import { useSendAndReceive } from "../../service/useSendAndReceive";
 import { useDebounce } from "../../common/useDebounce";
-import { useLogger } from "../../service/useLogger";
 import { useExtensionState } from "../../service/useExtensionState";
+import { useLogger } from "../../service/useLogger";
+import { useSendAndReceive } from "../../service/useSendAndReceive";
 import { INITIAL_EXTENSION_STATE } from "../../vscode/ExtensionState";
 
 export const DisplaySettings: React.FC = () => {
@@ -42,7 +47,7 @@ export const DisplaySettings: React.FC = () => {
             }
             log("onCheckboxChange", `New display setting ${name} is ${value}`);
         },
-        [log, logError]
+        [log, logError, setDisplaySettings]
     );
 
     React.useEffect(() => {
@@ -92,17 +97,4 @@ export const DisplaySettings: React.FC = () => {
         </Flex>
     );
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
 

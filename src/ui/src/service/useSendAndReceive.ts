@@ -53,9 +53,14 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
                     command: messageId,
                     data,
                 };
-                const response = await messageService.sendAndReceive(command, responseId, timeout);
-                setIsPending(false);
-                setResponse(response);
+                try {
+                    const response = await messageService.sendAndReceive(command, responseId, timeout);
+                    setResponse(response);
+                } catch (error) {
+                    console.error(error);
+                } finally {              
+                    setIsPending(false);
+                }
             };
             void sendAndWait();
         },
