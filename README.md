@@ -76,6 +76,10 @@ Automated build and release of the extension
 
 - Fix severity highlight application
 
+### 0.1.19
+
+### 
+
 ### #{NEW_VERSION}#
 
-### #{CHANGES}#
+#{CHANGES}#
