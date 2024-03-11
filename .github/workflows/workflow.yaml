@@ -189,6 +189,7 @@ jobs:
             tagging_message: v${{ steps.gitversion.outputs.majorMinorPatch }}
             commit_user_email: ${{env.BUMP_AUTHOR_MAIL}}
             commit_user_name: ${{env.BUMP_AUTHOR_NAME}}
+            commit_author: ${{env.BUMP_AUTHOR_NAME}} <${{env.BUMP_AUTHOR_MAIL}}>
 
   cicd:
     name: CI/CD
