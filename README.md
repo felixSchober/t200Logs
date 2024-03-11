@@ -72,6 +72,10 @@ Automated build and release of the extension
 - Fix performance issues with large logs
 - Improve pipelines and generation of releases
 
+### 0.1.18
+
+### - no changes
+
 ### #{NEW_VERSION}#
 
-### #{CHANGES}#
+#{CHANGES}#
