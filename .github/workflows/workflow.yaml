@@ -225,8 +225,6 @@ jobs:
           patch-syntax: |
             = /version => "${{ steps.gitversion.outputs.majorMinorPatch }}"
 
-  
-      
       - name: add version in CHANGELOG.md
         uses: cschleiden/replace-tokens@v1
         with:
@@ -240,10 +238,17 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
             commit_message: ${{ env.BUMP_MESSAGE_PREFIX}} ${{ steps.gitversion.outputs.majorMinorPatch }}
-            tagging_message: v${{ steps.gitversion.outputs.majorMinorPatch }}
             commit_user_email: ${{env.BUMP_AUTHOR_MAIL}}
             commit_user_name: ${{env.BUMP_AUTHOR_NAME}}
             commit_author: ${{env.BUMP_AUTHOR_NAME}} <${{env.BUMP_AUTHOR_MAIL}}>
+
+      - name: tag the commit
+        if: github.event_name == 'pull_request'
+        run: |
+          git config --local user.email ${{env.BUMP_AUTHOR_MAIL}}
+          git config --local user.name ${{env.BUMP_AUTHOR_NAME}}
+          git tag -a ${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }}"
+          git push origin ${{ steps.gitversion.outputs.majorMinorPatch }}
 
   cicd:
     name: CI/CD
