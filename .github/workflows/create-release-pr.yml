@@ -1,0 +1,43 @@
+name: Create Release Branch
+
+on:
+  workflow_dispatch:
+
+env:
+  BUMP_AUTHOR_MAIL: "t1000@felix-schober.de"
+  BUMP_AUTHOR_NAME: "T1000 BOT"
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Git
+      run: |
+        git config --global user.name ${{ env.BUMP_AUTHOR_NAME }}
+        git config --global user.email ${{ env.BUMP_AUTHOR_MAIL }}
+
+    - name: Fetch tags
+      run: git fetch --tags
+
+    - name: Get last tag
+      id: get-last-tag
+      run: |
+        LAST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+
+    - name: Create new release branch from last tag
+      run: |
+        LAST_TAG=${{ steps.get-last-tag.outputs.last_tag }}
+        echo "Last tag: $LAST_TAG"
+        IFS='.' read -ra ADDR <<< "$LAST_TAG"
+        MAJOR=${ADDR[0]}
+        MINOR=${ADDR[1]}
+        PATCH=${ADDR[2]}
+        NEW_BRANCH="releases/$MAJOR.$MINOR.$PATCH"
+        echo "Creating new branch: $NEW_BRANCH"
+        git checkout -b $NEW_BRANCH
+        git push origin $NEW_BRANCH
+
