@@ -12,6 +12,7 @@ categories:
       - "type: chore"
       - "type: ci"
       - "type: documentation"
+      - "type: dependencies"
 change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
 change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
 template: |
