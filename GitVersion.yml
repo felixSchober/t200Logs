@@ -1,6 +1,30 @@
-mode: ContinuousDelivery
-next-version: 0.0.4
-branches: {}
+mode: ContinuousDeployment
+next-version: 0.1.15
+branches:
+  main:
+    regex: ^main$
+    tag: ''
+    increment: Minor    
+    source-branches: ['features', 'fixes', 'dependabot']
+  features:
+    regex: ^features/
+    tag: 'feature-{BranchName}'
+    increment: None
+    source-branches: ['main']
+  fixes:
+    regex: ^fixes/
+    tag: 'fix-{BranchName}'
+    increment: None
+    source-branches: ['main']
+  dependabot:
+    regex: ^dependabot/
+    tag: 'dependabot'
+    increment: None
+    source-branches: ['main']
+  pull-request:
+    regex: ^(pull|pull\-requests|pr)[/-]
+    tag: 'pr'
+    increment: None
 ignore:
   sha: []
 merge-message-formats: {}
