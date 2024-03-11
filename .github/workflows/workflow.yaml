@@ -18,15 +18,47 @@ on:
       - 'GitVersion.yml'
       - '.eslintrc.json'
       - 'test/**'
+  
+env:
+  BUMP_MESSAGE_PREFIX: "BUMP version to"
 
 permissions:
   contents: write
     
 jobs:
+  detect_ci_trigger:
+    name: Detect CI trigger
+    runs-on: ubuntu-latest
+    outputs:
+      skip_next_jobs: ${{ steps.check_skip.outputs.skip }}
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+
+      - name: Echo the prefix of the commit message
+        run: echo ${{env.BUMP_MESSAGE_PREFIX}}
+
+      - name: Echo the commit message of the last commit
+        run: git log -1 --pretty=format:%s
+
+      - name: Check the last commit message for BUMP version
+        id: check_skip
+        run: |
+          git fetch origin ${{ github.head_ref }} --depth=1
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=format:%s)
+          if [[ "$LAST_COMMIT_MESSAGE" == *"${{env.BUMP_MESSAGE_PREFIX}}"* ]]; then
+            echo "::set-output name=skip::true"
+          else
+            echo "::set-output name=skip::false"
+          fi
+
+
+
   version_bump:
     name: Bump version
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && !contains(github.event.head_commit.message, 'BUMP version to')
+    needs: detect_ci_trigger
+    if: github.event_name == 'pull_request' && needs.detect_ci_trigger.outputs.skip_next_jobs == 'false'
 
     steps:
       - name: checkout repo
@@ -82,13 +114,14 @@ jobs:
       - name: commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-            commit_message: BUMP version to ${{ steps.gitversion.outputs.majorMinorPatch }}
+            commit_message: ${{ env.BUMP_MESSAGE_PREFIX}} ${{ steps.gitversion.outputs.majorMinorPatch }}
             tagging_message: v${{ steps.gitversion.outputs.majorMinorPatch }}
 
   cicd:
     name: CI/CD
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message , 'BUMP version to')"
+    needs: detect_ci_trigger
+    if: needs.detect_ci_trigger.outputs.skip_next_jobs == 'false'
 
     steps:
       - name: checkout repo
@@ -108,9 +141,7 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: borales/actions-yarn@v5.0.0
         with:
-          cmd: lint
-
-      
+          cmd: lint    
 
       - name: install vsce
         run: npm install -g vsce
@@ -125,11 +156,15 @@ jobs:
         with:
           cmd: vsce-package
 
+      - name: get last tag
+        id: get_last_tag
+        run: echo ::set-output name=tag::$(git describe --tags --abbrev=0)
+
       - name: upload vsix as artifact
         uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         with:
-          name: t200logs-${{steps.gitversion.outputs.majorMinorPatch}}.vsix
+          name: t200logs-${{steps.get_last_tag.outputs}}.vsix
           path: ${{github.workspace}}/out/t200logs.vsix
 
       - name: create a release
@@ -139,8 +174,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          tag_name: v${{ steps.gitversion.outputs.majorMinorPatch }}
-          release_name: v${{ steps.gitversion.outputs.majorMinorPatch }}
+          tag_name: ${{steps.get_last_tag.outputs}}
+          release_name: ${{steps.get_last_tag.outputs}}
     
       - name: Upload Release Asset
         id: upload-release-asset 
@@ -151,5 +186,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           asset_path: ${{github.workspace}}/out/t200logs.vsix
-          asset_name: t200logs-${{steps.gitversion.outputs.majorMinorPatch}}.vsix
+          asset_name: t200logs-${{steps.get_last_tag.outputs}}.vsix
           asset_content_type: application/zip
