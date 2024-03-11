@@ -4,11 +4,11 @@
 
 ## Fixes Issues
 
-- Closes #
-- Closes #
+- Closes
 
 ## Self Checklist
 
-- [ ] Added relevant comments, esp in complex areas
-- [ ] Updated docs (for bug fixes / features)
-- [ ] Created issues for follow-up changes or refactoring needed
+- [ ] Made sure that PR title has correct prefix (e.g. chore:, fix:, feat:, etc.)
+- [ ] The code is rebased on the latest main branch
+- [ ] Readme change log is clean
+- [ ] Commit messages are descriptive and contain the correct prefix
