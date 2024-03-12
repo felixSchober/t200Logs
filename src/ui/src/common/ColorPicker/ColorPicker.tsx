@@ -5,8 +5,8 @@
 import * as React from "react";
 import { ChromePicker, ColorResult } from "react-color";
 
-import { createRandomColor } from "./createRandomColor";
-import { useDebounce } from "./useDebounce";
+import { createRandomColor } from "../createRandomColor";
+import { useDebounce } from "../useDebounce";
 
 type ColorPickerProps = {
     /**
