@@ -25,23 +25,17 @@
             "type: dependencies",
             "documentation"
         ],
-        "empty_content": "- no matching PRs"
+        "empty_content": "- no matching changes"
     }
     ],
     "ignore_labels": [
-    "duplicate",
-    "question",
-    "invalid",
-    "wontfix"
+        "duplicate",
+        "question",
+        "invalid",
+        "wontfix"
     ],
-    "template": "#{{CHANGELOG}}",
+    "template": "#{{CHANGELOG}}\n\n### 📦 Uncategorized\n\n${{UNCATEGORIZED}}",
     "pr_template": "- #{{TITLE}}",
-    "label_extractor": [
-        {
-            "pattern": "^(build|bump|BUMP|Bump|bumps|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
-            "target": "$1"
-        }
-    ],
     "base_branches": [
         "dev"
     ]
