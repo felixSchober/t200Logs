@@ -1,7 +1,7 @@
 {
     "categories": [
     {
-        "title": "## 🚀 Features",
+        "title": "#### 🚀 Features",
         "labels": [
             "type: feature request",
             "type: enhancement",
@@ -10,14 +10,14 @@
         "empty_content": "- no matching PRs"
     },
     {
-        "title": "## 🐛 Bug Fixes",
+        "title": "#### 🐛 Bug Fixes",
         "labels": [
             "type: bug"
         ],
         "empty_content": "- no matching PRs"
     },
     {
-        "title": "## 🧪 Maintenance",
+        "title": "#### 🧪 Maintenance",
         "labels": [
             "dependencies",
             "type: chore",
@@ -34,7 +34,7 @@
         "invalid",
         "wontfix"
     ],
-    "template": "#{{CHANGELOG}}\n\n### 📦 Uncategorized\n\n${{UNCATEGORIZED}}",
+    "template": "#{{CHANGELOG}}\n\n#### 📦 Uncategorized\n\n${{UNCATEGORIZED}}",
     "pr_template": "- #{{TITLE}}",
     "base_branches": [
         "dev"
