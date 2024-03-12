@@ -120,6 +120,27 @@ Automated build and release of the extension
 - BUMP version to 0.1.19
 
 
+### 0.2.0
+
+
+
+#### 📦 Uncategorized
+
+- Merge pull request #38 from felixSchober/fixes/fix-keyword-ack-messages
+- fix regeneration of severity highlighting
+- fix: update PR template
+- fix: cleanup readme
+- BUMP version to 0.1.18
+- bump gittools version
+- BUMP version to 0.1.18
+- fix GitVersion to use the right bumping logic
+- BUMP version to 0.1.18
+- checkout head.ref in bump version workflow job
+- BUMP version to 0.1.18
+- fix: supply branch name to gitversion
+- BUMP version to 0.1.19
+
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
