@@ -81,6 +81,17 @@ jobs:
       - name: fetch all history and tags from all branches
         run: git fetch --prune --unshallow
 
+      - name: Get latest tag
+        id: latest_tag
+        run: |
+            LATEST_TAG=$(git tag --sort=-v:refname | tail -1)
+            if [ -z "$LATEST_TAG" ]; then
+              echo "No latest release found. Exiting..."
+              exit 1
+            fi
+            echo "Latest release tag: $LATEST_TAG"
+            echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT       
+
       - name: Generate changelog for PR build
         id: changelog_pr
         uses: mikepenz/release-changelog-builder-action@v5.0.0-a02
@@ -89,6 +100,7 @@ jobs:
           commitMode: true
           includeOpen: true
           configuration: .github/release_configuration_template.json
+          fromTag: ${{ steps.latest_tag.outputs.LATEST_TAG }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
@@ -183,7 +195,7 @@ jobs:
         run: |
           git config --local user.email ${{env.BUMP_AUTHOR_MAIL}}
           git config --local user.name ${{env.BUMP_AUTHOR_NAME}}
-          git tag -a v${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }} through PR ${{ github.event.pull_request.number }}"
+          git tag -a ${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }} through PR ${{ github.event.pull_request.number }}"
           git push origin
 
       - name: create PR comment with new version
