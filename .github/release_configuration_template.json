@@ -5,16 +5,16 @@
         "labels": [
             "type: feature request",
             "type: enhancement",
-            "type: epic"
-        ],
-        "empty_content": "- no matching PRs"
+            "type: epic",
+            "feat:"
+        ]
     },
     {
         "title": "#### 🐛 Bug Fixes",
         "labels": [
-            "type: bug"
-        ],
-        "empty_content": "- no matching PRs"
+            "type: bug",
+            "fix:"
+        ]
     },
     {
         "title": "#### 🧪 Maintenance",
@@ -23,9 +23,9 @@
             "type: chore",
             "type: ci",
             "type: dependencies",
-            "documentation"
-        ],
-        "empty_content": "- no matching changes"
+            "documentation",
+            "bump"
+        ]
     }
     ],
     "ignore_labels": [

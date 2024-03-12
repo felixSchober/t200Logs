@@ -67,7 +67,7 @@ Automated build and release of the extension
 
 ### 0.1.18
 
-## 📦 Uncategorized
+#### 📦 Uncategorized
 
 - Fix performance issues with large logs
 - Improve pipelines and generation of releases
@@ -80,37 +80,7 @@ Automated build and release of the extension
 
 #### 🚀 Features
 
-- no matching PRs
-
-#### 🐛 Bug Fixes
-
-- no matching PRs
-
-#### 🧪 Maintenance
-
-- no matching changes
-
-
-
-#### 📦 Uncategorized
-
-- specify the commit author name in the ci/cd workflow
-- use release job
-- fix: move tags by force pushing
-- BUMP version to 0.1.18
-- Merge pull request #38 from felixSchober/fixes/fix-keyword-ack-messages
-- fix regeneration of severity highlighting
-- fix: update PR template
-- fix: cleanup readme
-- BUMP version to 0.1.18
-- bump gittools version
-- BUMP version to 0.1.18
-- fix GitVersion to use the right bumping logic
-- BUMP version to 0.1.18
-- checkout head.ref in bump version workflow job
-- BUMP version to 0.1.18
-- fix: supply branch name to gitversion
-- BUMP version to 0.1.19
+- improve release process
 
 
 ### 0.1.19
