@@ -2,9 +2,10 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const CopyPlugin = require("copy-webpack-plugin");
 const path = require("path");
+
+const CopyPlugin = require("copy-webpack-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = (env) => {
     console.log("T200 UI", env);
@@ -84,10 +85,10 @@ module.exports = (env) => {
                     test: /\.styles.ts$/,
                     exclude: /node_modules/,
                     use: {
-                        loader: '@griffel/webpack-loader',
+                        loader: "@griffel/webpack-loader",
                         options: {
                             babelOptions: {
-                                presets: ['@babel/preset-typescript'],
+                                presets: ["@babel/preset-typescript"],
                             },
                         },
                     },
