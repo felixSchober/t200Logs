@@ -36,7 +36,6 @@ export async function activate(context: vscode.ExtensionContext) {
     const configurationManager = new ConfigurationManager(telemetryReporter);
     telemetryReporter.startLogging(configurationManager.shouldShowWelcomeMessage);
 
-    setupFoldingRangeProvider(context);
 
     if (!logContentProvider || !postMessageService || !onCodeLensFilterApplied) {
         await telemetryReporter.info("extension.activate().serviceInitialization");
@@ -49,10 +48,15 @@ export async function activate(context: vscode.ExtensionContext) {
             telemetryReporter
         );
 
+        configurationManager.addPostMessageService(postMessageService);
+
         disposableServices.push(onCodeLensFilterApplied);
         disposableServices.push(postMessageService);
         disposableServices.push(logContentProvider);
+        disposableServices.push(configurationManager);
     }
+
+    setupFoldingRangeProvider(context);
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, logContentProvider));
 

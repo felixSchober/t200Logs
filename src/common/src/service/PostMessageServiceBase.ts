@@ -68,6 +68,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.filterCheckboxStateChange,
             eventListeners: [],
         },
+        updateFilterCheckboxState: {
+            commandSchema: MessageSchemaMap.updateFilterCheckboxState,
+            eventListeners: [],
+        },
         logErrorMessage: {
             commandSchema: MessageSchemaMap.logErrorMessage,
             eventListeners: [],
@@ -134,6 +138,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
         },
         setKeywordHighlightsFromConfiguration: {
             commandSchema: MessageSchemaMap.setKeywordHighlightsFromConfiguration,
+            eventListeners: [],
+        },
+        updateKeywordHighlightConfiguration: {
+            commandSchema: MessageSchemaMap.updateKeywordHighlightConfiguration,
             eventListeners: [],
         },
         webviewReady: {

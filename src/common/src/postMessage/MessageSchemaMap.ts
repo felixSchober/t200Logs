@@ -8,6 +8,9 @@ import { LogLevelSchema } from "../Events";
 import { SummaryInfoSchema } from "../model";
 import { KeywordHighlightSchema } from "../model/Keywords";
 
+
+const ConfigurationUpdateSchema = z.union([z.literal("add"), z.literal("remove"), z.literal("update")]);
+
 /**
  * Maps a command id to a schema for the data that is sent with the command.
  */
@@ -49,6 +52,27 @@ export const MessageSchemaMap = {
          * The state of the filter checkbox.
          */
         isChecked: z.boolean(),
+    }),
+    updateFilterCheckboxState: z.object({
+        /**
+         * The id of the filter checkbox.
+         */
+        id: z.string(),
+
+        /**
+         * The value of the filter checkbox.
+         */
+        value: z.string(),
+
+        /**
+         * The state of the filter checkbox.
+         */
+        isChecked: z.boolean(),
+
+        /**
+         * The type of update to perform.
+         */
+        updateType: ConfigurationUpdateSchema,
     }),
     filterLogLevel: z.object({
         /**
@@ -185,6 +209,18 @@ export const MessageSchemaMap = {
             isChecked: z.boolean(),
         })
     ),
+    updateKeywordHighlightConfiguration: z.object({
+        /**
+         * The type of update to perform.
+         */
+        updateType: ConfigurationUpdateSchema,
+
+        /**
+         * The keyword to highlight.
+         */
+        keywordDefinition: KeywordHighlightSchema,
+
+    }),
     webviewReady: z.undefined(),
 } as const;
 

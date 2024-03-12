@@ -11,6 +11,7 @@ export const CommandIdSchema = z.union([
     z.literal("logMessage"),
     z.literal("logErrorMessage"),
     z.literal("filterCheckboxStateChange"),
+    z.literal("updateFilterCheckboxState"),
     z.literal("filterLogLevel"),
     z.literal("filterTime"),
     z.literal("filterSessionId"),
@@ -26,6 +27,7 @@ export const CommandIdSchema = z.union([
     z.literal("messageAck"),
     z.literal("setKeywordFiltersFromConfiguration"),
     z.literal("setKeywordHighlightsFromConfiguration"),
+    z.literal("updateKeywordHighlightConfiguration"),
     z.literal("webviewReady"),
 ]);
 

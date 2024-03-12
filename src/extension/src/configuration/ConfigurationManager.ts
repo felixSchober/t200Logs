@@ -2,8 +2,8 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-import { KeywordFilter, KeywordHighlightWithIsChecked } from "@t200logs/common";
-import { workspace } from "vscode";
+import { IPostMessageService, KeywordFilter, KeywordHighlightWithIsChecked } from "@t200logs/common";
+import { Disposable, workspace } from "vscode";
 
 import {
     EXTENSION_ID,
@@ -17,11 +17,16 @@ import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 /**
  * Manages the configuration for the extension.
  */
-export class ConfigurationManager {
+export class ConfigurationManager implements Disposable{
     private _keywordHighlights: KeywordHighlightWithIsChecked[] | undefined;
     private _keywordFilters: KeywordFilter[] | undefined;
     private _shouldShowWelcomeMessage: boolean | undefined;
     private readonly logger: ScopedILogger;
+
+    /**
+     * List of functions which will unregister the listeners.
+     */
+    private readonly unregisterListeners: (() => void)[] = [];
 
     /**
      * Creates a new configuration manager for the given workspace folder.
@@ -29,6 +34,107 @@ export class ConfigurationManager {
      */
     constructor(logger: ITelemetryLogger) {
         this.logger = logger.createLoggerScope("ConfigurationManager");
+    }
+    
+
+    /**
+     * Sets up the listeners for the post message service.
+     * @param postMessageService The post message service to use for listening to configuration changes.
+     */
+    public addPostMessageService(postMessageService: IPostMessageService) {
+        this.logger.info("addPostMessageService");
+        const unregisterFilterChangedHandler = postMessageService.registerMessageHandler("updateFilterCheckboxState", (data, respond) => {
+            this.logger.info("updateFilterCheckboxState", `filter ${data.updateType} -> ${data.value}`, {event: JSON.stringify(data)});
+            const currentFilters = this.keywordFilters;
+
+            // check if the keyword is already present in the list
+            const index = currentFilters.findIndex(kw => kw.keyword === data.value);
+
+            switch (data.updateType) {
+                case "add":
+                    if (index === -1) {
+                        currentFilters.push({
+                            keyword: data.value,
+                            isChecked: true,
+                        });
+                    } else {
+                        this.logger.logException("updateFilterCheckboxState.add", new Error(`Keyword ${data.value} already exists`));
+                    }
+                    break;
+                case "remove":
+                    if (index !== -1) {
+                        currentFilters.splice(index, 1);
+                    } else {
+                        this.logger.logException("updateFilterCheckboxState.remove", new Error(`Keyword ${data.value} does not exist`));
+                    }
+                    break;
+                case "update":
+                    if (index !== -1) {
+                        currentFilters[index] = {
+                            keyword: data.value,
+                            isChecked: true,
+                        };
+                    } else {
+                        this.logger.logException("updateFilterCheckboxState.update", new Error(`Keyword ${data.value} does not exist`));
+                    }
+                    break;
+            }
+
+            this.keywordFilters = currentFilters;
+            respond({command: "messageAck", data: undefined});
+        });
+        this.unregisterListeners.push(unregisterFilterChangedHandler);
+
+        const unregisterHighlightChangedHandler = postMessageService.registerMessageHandler("updateKeywordHighlightConfiguration", (data, respond) => {
+            this.logger.info("updateKeywordHighlightConfiguration", undefined, {event: JSON.stringify(data)});
+            const currentHighlights = this.keywordHighlights;
+
+            // check if the keyword is already present in the list
+            const index = currentHighlights.findIndex(kw => kw.keyword === data.keywordDefinition.keyword);
+
+            switch (data.updateType) {
+                case "add":
+                    if (index === -1) {
+                        currentHighlights.push({
+                            ...data.keywordDefinition,
+                            isChecked: true,
+                        });
+                    } else {
+                        this.logger.logException("updateKeywordHighlightConfiguration.add", new Error(`Keyword ${data.keywordDefinition.keyword} already exists`));
+                    }
+                    break;
+                case "remove":
+                    if (index !== -1) {
+                        currentHighlights.splice(index, 1);
+                    } else {
+                        this.logger.logException("updateKeywordHighlightConfiguration.remove", new Error(`Keyword ${data.keywordDefinition.keyword} does not exist`));
+                    }
+                    break;
+                case "update":
+                    if (index !== -1) {
+                        currentHighlights[index] = {
+                            ...data.keywordDefinition,
+                            isChecked: true,
+                        };
+                    } else {
+                        this.logger.logException("updateKeywordHighlightConfiguration.update", new Error(`Keyword ${data.keywordDefinition.keyword} does not exist`));
+                    }
+                    break;
+            }
+
+            this.keywordHighlights = currentHighlights;
+            respond({command: "messageAck", data: undefined});
+        });
+        this.unregisterListeners.push(unregisterHighlightChangedHandler);
+    }
+
+    /**
+     * Disposes of the resources used by the configuration manager.
+     */
+    dispose() {
+        for (const unregisterListener of this.unregisterListeners) {
+            unregisterListener();
+        }
     }
 
     /**
