@@ -83,8 +83,9 @@ jobs:
 
       - name: Generate changelog for PR build
         id: changelog_pr
-        uses: mikepenz/release-changelog-builder-action@v4
+        uses: mikepenz/release-changelog-builder-action@v5.0.0-a02
         with:
+          mode: "COMMIT"
           commitMode: true
           includeOpen: true
           configuration: .github/release_configuration_template.json
