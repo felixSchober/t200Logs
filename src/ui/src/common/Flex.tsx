@@ -49,6 +49,11 @@ type FlexProps = {
      * Optional style.
      */
     style?: React.CSSProperties;
+
+    /**
+     * Optional class name.
+     */
+    className?: string;
 };
 
 /**
@@ -69,8 +74,13 @@ export const Flex: React.FC<FlexProps> = props => {
         ...props.style,
     };
 
-    return <div style={style}>{props.children}</div>;
+    return (
+        <div style={style} className={props.className}>
+            {props.children}
+        </div>
+    );
 };
+
 
 
 

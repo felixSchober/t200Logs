@@ -2,21 +2,17 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-import {
-    VSCodeBadge,
-    VSCodeButton,
-    VSCodeCheckbox,
-    VSCodePanelTab,
-    VSCodePanelView,
-    VSCodeTextField,
-} from "@vscode/webview-ui-toolkit/react";
+import { VSCodeBadge, VSCodeButton, VSCodeCheckbox, VSCodePanelTab, VSCodePanelView } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 import { v4 as uuid } from "uuid";
 
+import { ColorPicker } from "../../common/ColorPicker";
 import { Flex } from "../../common/Flex";
 import { useLogger } from "../../service/useLogger";
 import { useMessageSubscription } from "../../service/useMessageSubscription";
 import { useSendAndReceive } from "../../service/useSendAndReceive";
+
+import { NewKeywordHighlight } from "./NewKeywordHighlight";
 
 type KeywordHighlightDefinition = {
     /**
@@ -45,14 +41,9 @@ type KeywordHighlightDefinition = {
     isCustom: boolean;
 };
 
-const createColor = () => {
-    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-};
-
 export const KeywordHighlightView: React.FC = () => {
     const { log, logError } = useLogger("KeywordHighlightView");
     const [keywords, setKeywords] = React.useState<KeywordHighlightDefinition[]>([]);
-    const [newKeywordField, setNewKeywordField] = React.useState("");
 
     const { send, isPending } = useSendAndReceive("keywordHighlightStateChange", "messageAck", 4000);
     const activeKeywords = useMessageSubscription("updateNumberOfHighlightedKeywords");
@@ -99,38 +90,25 @@ export const KeywordHighlightView: React.FC = () => {
         [log, logError, send]
     );
 
-    const onTextFieldChange = React.useCallback((event: Event | React.FormEvent<HTMLElement>) => {
-        const target = event.target as HTMLInputElement;
-        const value = target.value;
-        setNewKeywordField(value);
-    }, []);
-
-    const onAddKeyword = React.useCallback(() => {
-        // skip if the field is empty
-        if (!newKeywordField) {
-            return;
-        }
-        const newKeyword: KeywordHighlightDefinition = {
-            id: uuid(),
-            keyword: newKeywordField,
-            isChecked: true,
-            isCustom: true,
-            color: createColor(),
-        };
-        setKeywords(prev => [...prev, newKeyword]);
-        setNewKeywordField("");
-
-        log("onAddKeyword", `Sending highlight '${newKeywordField}' to the extension backend`);
-        send({ isChecked: true, keywordDefinition: newKeyword });
-    }, [newKeywordField, setNewKeywordField, setKeywords, log, send]);
-
-    const onTextFieldKeyDown = React.useCallback(
-        (event: React.KeyboardEvent<HTMLElement>) => {
-            if (event.key === "Enter") {
-                onAddKeyword();
+    const onAddKeyword = React.useCallback(
+        (keyword: string, color: string) => {
+            // skip if the field is empty
+            if (!keyword) {
+                return;
             }
+            const newKeyword: KeywordHighlightDefinition = {
+                id: uuid(),
+                keyword,
+                isChecked: true,
+                isCustom: true,
+                color,
+            };
+            setKeywords(prev => [...prev, newKeyword]);
+
+            log("onAddKeyword", `Sending highlight '${keyword}' to the extension backend`);
+            send({ isChecked: true, keywordDefinition: newKeyword });
         },
-        [onAddKeyword]
+        [setKeywords, log, send]
     );
 
     const onRemoveKeyword = React.useCallback(
@@ -141,6 +119,29 @@ export const KeywordHighlightView: React.FC = () => {
                 log("onRemoveKeyword", `Removing highlight enabled '${keyword.keyword}' with id: ${keyword.id}`);
                 send({ isChecked: false, keywordDefinition: keyword });
             }
+        },
+        [setKeywords, log, send]
+    );
+
+    const getOnKeywordColorChange = React.useCallback(
+        (keyword: KeywordHighlightDefinition) => {
+            return (color: string) => {
+                setKeywords(prev => {
+                    const kw = prev.find(kw => kw.id === keyword.id);
+                    if (kw) {
+                        kw.color = color;
+                        log("onKeywordColorChange", `Changing color '${color}' for highlight '${keyword.keyword}'`);
+
+                        // only send something to the backend if the keyword is enabled
+                        if (kw.isChecked) {
+                            // we first need to disable the keyword and then re-enable it with the new color
+                            send({ isChecked: false, keywordDefinition: kw });
+                            send({ isChecked: true, keywordDefinition: kw });
+                        }
+                    }
+                    return [...prev];
+                });
+            };
         },
         [setKeywords, log, send]
     );
@@ -166,15 +167,11 @@ export const KeywordHighlightView: React.FC = () => {
                                         onChange={onCheckboxChange}>
                                         {keyword.keyword}
                                     </VSCodeCheckbox>
-                                    <span
-                                        style={{
-                                            backgroundColor: keyword.color,
-                                            width: "1rem",
-                                            height: "1rem",
-                                            borderRadius: "50%",
-                                            marginLeft: "auto",
-                                            alignSelf: "center",
-                                        }}></span>
+                                    <ColorPicker
+                                        initialColor={keyword.color}
+                                        onColorChange={getOnKeywordColorChange(keyword)}
+                                        key={`kw_${keyword.id}_color`}
+                                    />
                                     <VSCodeButton
                                         style={{ marginLeft: "1rem" }}
                                         appearance="icon"
@@ -189,27 +186,16 @@ export const KeywordHighlightView: React.FC = () => {
                             );
                         })}
 
-                        <Flex direction="row" wrap="wrap" justifyContent="flex-start" style={{ marginTop: "2rem" }}>
-                            <VSCodeTextField
-                                value={newKeywordField}
-                                onChange={onTextFieldChange}
-                                placeholder="\.*REGEX.*/"
-                                disabled={isPending}
-                                onKeyDown={onTextFieldKeyDown}>
-                                Add a new keyword
-                            </VSCodeTextField>
-                            <VSCodeButton
-                                onClick={onAddKeyword}
-                                disabled={isPending}
-                                style={{ marginLeft: "auto", maxHeight: "26px", alignSelf: "flex-end" }}>
-                                Add
-                                <span slot="start" className="codicon codicon-add"></span>
-                            </VSCodeButton>
-                        </Flex>
+                        <NewKeywordHighlight isPending={isPending} onAddNewKeyword={onAddKeyword} />
                     </Flex>
                 </Flex>
             </VSCodePanelView>
         </>
     );
 };
+
+
+
+
+
 

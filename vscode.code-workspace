@@ -6,6 +6,9 @@
     ],
     "settings": {
         "typescript.tsc.autoDetect": "off",
-        "debug.javascript.unmapMissingSources": true
+        "debug.javascript.unmapMissingSources": true,
+        "cSpell.words": ["griffel"],
     }
+
+
 }

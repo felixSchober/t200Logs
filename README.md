@@ -67,7 +67,7 @@ Automated build and release of the extension
 
 ### 0.1.18
 
-## 📦 Uncategorized
+#### 📦 Uncategorized
 
 - Fix performance issues with large logs
 - Improve pipelines and generation of releases
@@ -75,6 +75,13 @@ Automated build and release of the extension
 ### 0.1.18
 
 - Fix severity highlight application
+
+### 0.1.19
+
+#### 🚀 Features
+
+- improve release process
+
 
 ### 0.1.19
 
@@ -113,28 +120,12 @@ Automated build and release of the extension
 - BUMP version to 0.1.19
 
 
-### 0.1.19
-
-#### 🚀 Features
-
-- no matching PRs
-
-#### 🐛 Bug Fixes
-
-- no matching PRs
-
-#### 🧪 Maintenance
-
-- no matching changes
+### 0.2.0
 
 
 
 #### 📦 Uncategorized
 
-- specify the commit author name in the ci/cd workflow
-- use release job
-- fix: move tags by force pushing
-- BUMP version to 0.1.18
 - Merge pull request #38 from felixSchober/fixes/fix-keyword-ack-messages
 - fix regeneration of severity highlighting
 - fix: update PR template
