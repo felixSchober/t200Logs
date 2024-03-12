@@ -131,7 +131,13 @@ export const KeywordHighlightView: React.FC = () => {
                     if (kw) {
                         kw.color = color;
                         log("onKeywordColorChange", `Changing color '${color}' for highlight '${keyword.keyword}'`);
-                        send({ isChecked: true, keywordDefinition: kw });
+
+                        // only send something to the backend if the keyword is enabled
+                        if (kw.isChecked) {
+                            // we first need to disable the keyword and then re-enable it with the new color
+                            send({ isChecked: false, keywordDefinition: kw });
+                            send({ isChecked: true, keywordDefinition: kw });
+                        }
                     }
                     return [...prev];
                 });
@@ -187,6 +193,7 @@ export const KeywordHighlightView: React.FC = () => {
         </>
     );
 };
+
 
 
 

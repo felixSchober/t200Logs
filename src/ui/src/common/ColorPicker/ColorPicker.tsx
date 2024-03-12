@@ -2,11 +2,14 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+import { mergeClasses } from "@griffel/react";
 import * as React from "react";
 import { ChromePicker, ColorResult } from "react-color";
 
 import { createRandomColor } from "../createRandomColor";
 import { useDebounce } from "../useDebounce";
+
+import { useStyles } from "./ColorPicker.styles";
 
 type ColorPickerProps = {
     /**
@@ -22,9 +25,9 @@ type ColorPickerProps = {
     onColorChange: (color: string) => void;
 
     /**
-     * Optional style properties.
+     * Optional className to apply to the swatch.
      */
-    style?: React.CSSProperties;
+    className?: string;
 };
 
 /**
@@ -36,10 +39,19 @@ export const ColorPicker: React.FC<ColorPickerProps> = props => {
     const { onColorChange } = props;
 
     const [pickerOpen, setPickerOpen] = React.useState(false);
-    const [color, setColor] = React.useState(props.initialColor ?? createRandomColor());
-    const [previousColor, setPreviousColor] = React.useState(color);
+    const [color, setColor] = React.useState(props.initialColor ?? createRandomColor(true));
+    const [, setPreviousColor] = React.useState(color);
     const wrapperRef = React.useRef(null);
-    const debouncedColor = useDebounce(color);
+    const debouncedColor = useDebounce(color, 1000);
+    const classes = useStyles();
+
+    React.useEffect(() => {
+        // react to changes in the initial color
+        // in case the initial color is null, generate a random color
+        const initialColor = props.initialColor ?? createRandomColor(true);
+
+        setColor(prev => (prev === initialColor ? prev : initialColor));
+    }, [props.initialColor]);
 
     const onSwatchClick = React.useCallback(() => {
         setPickerOpen(prev => !prev);
@@ -53,11 +65,15 @@ export const ColorPicker: React.FC<ColorPickerProps> = props => {
     }, []);
 
     React.useEffect(() => {
-        if (debouncedColor !== previousColor) {
-            setPreviousColor(debouncedColor);
+        setPreviousColor(prev => {
+            if (prev === debouncedColor) {
+                return prev;
+            }
+
             onColorChange(debouncedColor);
-        }
-    }, [onColorChange, previousColor, debouncedColor]);
+            return debouncedColor;
+        });
+    }, [onColorChange, debouncedColor]);
 
     const onPickerColorChange = React.useCallback(
         (color: ColorResult) => {
@@ -71,32 +87,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = props => {
         <>
             <span
                 onClick={onSwatchClick}
+                className={mergeClasses(classes.swatch, props.className)}
                 style={{
                     backgroundColor: color,
-                    width: "1rem",
-                    height: "1rem",
-                    borderRadius: "50%",
-                    marginLeft: "auto",
-                    alignSelf: "center",
-                    cursor: "pointer",
-                    ...props.style,
                 }}></span>
             {pickerOpen ? (
-                <div
-                    style={{
-                        position: "absolute",
-                        zIndex: "2",
-                    }}>
-                    <div
-                        ref={wrapperRef}
-                        onClick={onPickerClose}
-                        style={{
-                            position: "fixed",
-                            top: "0px",
-                            right: "0px",
-                            bottom: "0px",
-                            left: "0px",
-                        }}>
+                <div className={classes.popover}>
+                    <div className={classes.cover} ref={wrapperRef} onClick={onPickerClose}>
                         <ChromePicker color={color} onChange={onPickerColorChange} />
                     </div>
                 </div>
@@ -104,4 +101,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = props => {
         </>
     );
 };
+
+
+
+
+
+
+
+
+
+
 

@@ -10,6 +10,8 @@ import { Flex } from "../../common/Flex";
 import { createRandomColor } from "../../common/createRandomColor";
 import { useLogger } from "../../service/useLogger";
 
+import { useStyles } from "./NewKeywordHighlight.styles";
+
 type NewKeywordHighlightProps = {
     /**
      * Whether the component is in a pending state.
@@ -30,6 +32,7 @@ type NewKeywordHighlightProps = {
 export const NewKeywordHighlight: React.FC<NewKeywordHighlightProps> = props => {
     const { isPending, onAddNewKeyword } = props;
 
+    const classes = useStyles();
     const logger = useLogger("NewKeywordHighlight");
     const [newKeywordField, setNewKeywordField] = React.useState("");
     const [newKeywordColor, setNewKeywordColor] = React.useState<string | null>(null);
@@ -41,7 +44,7 @@ export const NewKeywordHighlight: React.FC<NewKeywordHighlightProps> = props => 
     }, []);
 
     const onAddCurrentKeyword = React.useCallback(() => {
-        let color = newKeywordColor ?? createRandomColor();
+        let color = newKeywordColor ?? createRandomColor(true);
 
         logger.log("onAddCurrentKeyword", `Added new keyword ${newKeywordField} with color ${color}`);
         onAddNewKeyword(newKeywordField, color);
@@ -66,7 +69,7 @@ export const NewKeywordHighlight: React.FC<NewKeywordHighlightProps> = props => 
     }, []);
 
     return (
-        <Flex direction="row" wrap="wrap" justifyContent="flex-start" style={{ marginTop: "2rem" }}>
+        <Flex direction="row" wrap="wrap" justifyContent="flex-start" className={classes.container}>
             <VSCodeTextField
                 value={newKeywordField}
                 onInput={onTextFieldChange}
@@ -75,16 +78,12 @@ export const NewKeywordHighlight: React.FC<NewKeywordHighlightProps> = props => 
                 onKeyDown={onTextFieldKeyDown}>
                 Add a new keyword
             </VSCodeTextField>
-            <ColorPicker initialColor={null} onColorChange={onColorChange} style={{ maxHeight: "26px", alignSelf: "flex-end" }} />
-            <VSCodeButton
-                onClick={onAddCurrentKeyword}
-                disabled={isPending}
-                style={{ marginLeft: "auto", maxHeight: "26px", alignSelf: "flex-end" }}>
+            <ColorPicker initialColor={newKeywordColor} onColorChange={onColorChange} className={classes.colorPicker} />
+            <VSCodeButton onClick={onAddCurrentKeyword} disabled={isPending} className={classes.removeButton}>
                 Add
                 <span slot="start" className="codicon codicon-add"></span>
             </VSCodeButton>
         </Flex>
     );
+
 };
-
-
