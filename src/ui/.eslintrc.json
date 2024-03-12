@@ -1,6 +1,6 @@
 {
-    "extends": ["../../.eslintrc.json", "plugin:react/recommended", "plugin:react-hooks/recommended"],
-    "plugins": ["@typescript-eslint", "header", "import", "jsdoc", "react", "react-hooks", "promise", "security"],
+    "extends": ["../../.eslintrc.json", "plugin:react/recommended", "plugin:react-hooks/recommended", "plugin:@griffel/recommended"],
+    "plugins": ["@typescript-eslint", "header", "import", "jsdoc", "react", "react-hooks", "promise", "security", "@griffel"],
     "root": false,
     "env": {
         "browser": true,
@@ -115,6 +115,7 @@
         }
     ]
 }
+
 
 
 

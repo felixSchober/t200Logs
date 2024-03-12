@@ -81,6 +81,18 @@ module.exports = (env) => {
                     ]
                 },
                 {
+                    test: /\.styles.ts$/,
+                    exclude: /node_modules/,
+                    use: {
+                        loader: '@griffel/webpack-loader',
+                        options: {
+                            babelOptions: {
+                                presets: ['@babel/preset-typescript'],
+                            },
+                        },
+                    },
+                },
+                {
                     test: /\.css$/,
                     use: ["style-loader", "css-loader"]
                 },
