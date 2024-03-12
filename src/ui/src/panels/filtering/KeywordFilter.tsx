@@ -153,7 +153,7 @@ export const KeywordFilter: React.FC = () => {
             <Flex direction="row" wrap="wrap" justifyContent="flex-start" style={{ marginTop: "2rem" }}>
                 <VSCodeTextField
                     value={newKeywordField}
-                    onChange={onTextFieldChange}
+                    onInput={onTextFieldChange}
                     placeholder="\.*REGEX.*/"
                     disabled={isPending}
                     onKeyDown={onTextFieldKeyDown}>
@@ -170,4 +170,5 @@ export const KeywordFilter: React.FC = () => {
         </Flex>
     );
 };
+
 
