@@ -189,7 +189,7 @@ jobs:
       - name: create PR comment with new version
         uses: mshick/add-pr-comment@v2
         with:
-              message: Version bump to ${{ steps.gitversion.outputs.majorMinorPatch }}\n\n${{needs.build_changelog.outputs.changelog_pr}}
+              message: ${{needs.build_changelog.outputs.changelog_pr}}
               message-id: "bump-version"
 
   build:
