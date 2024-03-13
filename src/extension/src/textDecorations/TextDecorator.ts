@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 import { ERROR_REGEX, WARN_REGEX, WEB_DATE_REGEX_GLOBAL } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
+import { getEditor } from "../utils/getEditor";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 /**
@@ -137,7 +138,7 @@ export class TextDecorator implements vscode.Disposable {
      * Removes the highlighting of the severity level in the logs viewer.
      */
     private removeSeverityLevelHighlighting() {
-        const editor = vscode.window.activeTextEditor;
+        const editor = getEditor();
         if (editor) {
             editor.setDecorations(this.errorTextDecoration, []);
             editor.setDecorations(this.warnTextDecoration, []);
@@ -147,10 +148,7 @@ export class TextDecorator implements vscode.Disposable {
             this.logger.logException(
                 "removeSeverityLevelHighlighting",
                 new Error("No active text editor"),
-                "No active text editor",
-                undefined,
-                true,
-                "Severity level highlighting"
+                "No active text editor"
             );
         }
     }
@@ -171,7 +169,7 @@ export class TextDecorator implements vscode.Disposable {
             currentState: "" + this.isSeverityLevelHighlightingEnabled,
         });
         if (this.isSeverityLevelHighlightingEnabled || wasTurnedOn) {
-            const editor = vscode.window.activeTextEditor;
+            const editor = getEditor();
             if (editor) {
                 const text = editor.document.getText();
                 this.logger.info("applySeverityLevelHighlighting.apply.start", undefined, { documentLength: "" + text.length });
@@ -257,10 +255,7 @@ export class TextDecorator implements vscode.Disposable {
                 this.logger.logException(
                     "applySeverityLevelHighlighting",
                     new Error("No active text editor"),
-                    "No active text editor",
-                    undefined,
-                    true,
-                    "Severity level highlighting"
+                    "No active text editor"
                 );
             }
         } else {
@@ -285,7 +280,7 @@ export class TextDecorator implements vscode.Disposable {
      * Removes the addition of human-readable dates in the logs viewer.
      */
     private removeReadableIsoDates() {
-        const editor = vscode.window.activeTextEditor;
+        const editor = getEditor();
         if (editor) {
             editor.setDecorations(this.isoDateTextDecoration, []);
             this.isReadableIsoDatesEnabled = false;
@@ -302,7 +297,7 @@ export class TextDecorator implements vscode.Disposable {
             currentState: "" + this.isReadableIsoDatesEnabled,
         });
         if (this.isReadableIsoDatesEnabled || wasTurnedOn) {
-            const editor = vscode.window.activeTextEditor;
+            const editor = getEditor();
             if (editor) {
                 const text = editor.document.getText();
                 const decorationsArray: vscode.DecorationOptions[] = [];
@@ -336,10 +331,7 @@ export class TextDecorator implements vscode.Disposable {
                 this.logger.logException(
                     "applyReadableIsoDates",
                     new Error("No active text editor"),
-                    "No active text editor",
-                    undefined,
-                    true,
-                    "Readable ISO dates"
+                    "No active text editor"
                 );
             }
         } else {

@@ -8,6 +8,9 @@ import { LogLevelSchema } from "../Events";
 import { SummaryInfoSchema } from "../model";
 import { KeywordHighlightSchema } from "../model/Keywords";
 
+
+const ConfigurationUpdateSchema = z.union([z.literal("add"), z.literal("remove"), z.literal("update")]);
+
 /**
  * Maps a command id to a schema for the data that is sent with the command.
  */
@@ -50,6 +53,27 @@ export const MessageSchemaMap = {
          */
         isChecked: z.boolean(),
     }),
+    updateFilterCheckboxState: z.object({
+        /**
+         * The id of the filter checkbox.
+         */
+        id: z.string(),
+
+        /**
+         * The value of the filter checkbox.
+         */
+        value: z.string(),
+
+        /**
+         * The state of the filter checkbox.
+         */
+        isChecked: z.boolean(),
+
+        /**
+         * The type of update to perform.
+         */
+        updateType: ConfigurationUpdateSchema,
+    }),
     filterLogLevel: z.object({
         /**
          * The log level to filter.
@@ -61,6 +85,11 @@ export const MessageSchemaMap = {
          */
         isChecked: z.boolean(),
     }),
+    /**
+     * Message sent from the extension to the webview to set the log levels from the configuration with disabled (unchecked) state.
+     * E.g. ["info", "warning"] means that debug and error are enabled (checked) and info and warning are disabled (unchecked).
+     */
+    setLogLevelFromConfiguration: z.array(LogLevelSchema),
     filterTime: z.object({
         /**
          * The time filter.
@@ -185,7 +214,40 @@ export const MessageSchemaMap = {
             isChecked: z.boolean(),
         })
     ),
+    updateKeywordHighlightConfiguration: z.object({
+        /**
+         * The type of update to perform.
+         */
+        updateType: ConfigurationUpdateSchema,
+
+        /**
+         * The keyword to highlight.
+         */
+        keywordDefinition: KeywordHighlightSchema,
+
+    }),
+    /**
+     * Message sent from the webview to the extension to indicate that the webview is ready.
+     * After receiving this message, the extension can send messages to the webview.
+     */
     webviewReady: z.undefined(),
+
+    /**
+     * Message sent from the webview to the extension to indicate that there is no workspace folder.
+     */
+    noWorkspace: z.undefined(),
+
+    /**
+     * Message sent from the webview to the extension to select a workspace folder.
+     * Sent after the user has clicked the button to open logs.
+     * The data is the type of workspace folder to select.
+     */
+    selectWorkspaceFolder: z.union([z.literal("any"), z.literal("t21")]),
+
+    /**
+     * Message sent from the extension to the webview to indicate that the workspace is ready.
+     */
+    workspaceReady: z.undefined(),
 } as const;
 
 

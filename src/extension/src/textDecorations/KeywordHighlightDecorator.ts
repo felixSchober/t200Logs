@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 import { ConfigurationManager } from "../configuration/ConfigurationManager";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
+import { getEditor } from "../utils/getEditor";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 
 /**
@@ -172,7 +173,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
      * @param keyword The keyword to remove.
      */
     private removeKeywordHighlight(keyword: string) {
-        const editor = vscode.window.activeTextEditor;
+        const editor = getEditor();
         if (!editor) {
             this.logger.logException("removeKeywordHighlight", new Error("No active text editor"), "No active text editor");
             return;
@@ -203,7 +204,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
             return;
         }
 
-        const editor = vscode.window.activeTextEditor;
+        const editor = getEditor();
         if (!editor) {
             this.logger.logException("applyAllKeywordDecorations", new Error("No active text editor"), "No active text editor");
             return;
@@ -254,7 +255,7 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
             keywordRegex: keyword.regex.source,
         });
 
-        const editor = vscode.window.activeTextEditor;
+        const editor = getEditor();
         if (!editor) {
             this.logger.logException("applyKeywordDecoration", new Error("No active text editor"), "No active text editor");
             return;

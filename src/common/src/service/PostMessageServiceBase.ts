@@ -68,6 +68,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.filterCheckboxStateChange,
             eventListeners: [],
         },
+        updateFilterCheckboxState: {
+            commandSchema: MessageSchemaMap.updateFilterCheckboxState,
+            eventListeners: [],
+        },
         logErrorMessage: {
             commandSchema: MessageSchemaMap.logErrorMessage,
             eventListeners: [],
@@ -94,6 +98,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
         },
         filterLogLevel: {
             commandSchema: MessageSchemaMap.filterLogLevel,
+            eventListeners: [],
+        },
+        setLogLevelFromConfiguration: {
+            commandSchema: MessageSchemaMap.setLogLevelFromConfiguration,
             eventListeners: [],
         },
         filterNoEventTime: {
@@ -136,8 +144,24 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.setKeywordHighlightsFromConfiguration,
             eventListeners: [],
         },
+        updateKeywordHighlightConfiguration: {
+            commandSchema: MessageSchemaMap.updateKeywordHighlightConfiguration,
+            eventListeners: [],
+        },
         webviewReady: {
             commandSchema: MessageSchemaMap.webviewReady,
+            eventListeners: [],
+        },
+        noWorkspace: {
+            commandSchema: MessageSchemaMap.noWorkspace,
+            eventListeners: [],
+        },
+        selectWorkspaceFolder: {
+            commandSchema: MessageSchemaMap.selectWorkspaceFolder,
+            eventListeners: [],
+        },
+        workspaceReady: {
+            commandSchema: MessageSchemaMap.workspaceReady,
             eventListeners: [],
         },
     };

@@ -40,6 +40,7 @@ export const KeywordFilter: React.FC = () => {
     const [keywords, setKeywords] = React.useState<KeywordDefinition[]>(predefinedKeywords);
     const [newKeywordField, setNewKeywordField] = React.useState("");
     const { send, isPending } = useSendAndReceive("filterCheckboxStateChange", "updateNumberOfActiveFilters");
+    const { send: sendConfigUpdate } = useSendAndReceive("updateFilterCheckboxState", "messageAck");
     const keywordsFromConfiguration = useMessageSubscription("setKeywordFiltersFromConfiguration");
 
     React.useEffect(() => {
@@ -50,7 +51,7 @@ export const KeywordFilter: React.FC = () => {
                         keyword: kw.value,
                         isCustom: false,
                         id: uuid(),
-                        isChecked: false,
+                        isChecked: kw.isChecked,
                     };
                 });
                 return [...prev, ...newKeywords];
@@ -75,13 +76,14 @@ export const KeywordFilter: React.FC = () => {
                         `Sending keyword '${keyword.keyword}' with id: ${keywordId} and value: ${value} to the extension backend`
                     );
                     send({ id: keywordId, isChecked: value, value: keyword.keyword });
+                    sendConfigUpdate({ id: keywordId, isChecked: value, value: keyword.keyword, updateType: "update" });
                 } else {
                     logError("onCheckboxChange", `Could not find keyword with id '${keywordId}' and name '${name}'`);
                 }
                 return [...prev];
             });
         },
-        [log, logError, send]
+        [log, logError, send, sendConfigUpdate]
     );
 
     const onTextFieldChange = React.useCallback((event: Event | React.FormEvent<HTMLElement>) => {
@@ -101,7 +103,8 @@ export const KeywordFilter: React.FC = () => {
 
         log("onAddKeyword", `Sending keyword '${newKeywordField}' to the extension backend`);
         send({ id: newKeyword.id, isChecked: true, value: newKeyword.keyword });
-    }, [newKeywordField, setKeywords, log, send]);
+        sendConfigUpdate({ id: newKeyword.id, isChecked: true, value: newKeyword.keyword, updateType: "add" });
+    }, [newKeywordField, setKeywords, log, send, sendConfigUpdate]);
 
     const onTextFieldKeyDown = React.useCallback(
         (event: React.KeyboardEvent<HTMLElement>) => {
@@ -120,8 +123,9 @@ export const KeywordFilter: React.FC = () => {
                 log("onRemoveKeyword", `Removing keyword enabled '${keyword.keyword}' with id: ${keyword.id}`);
                 send({ id: keyword.id, isChecked: false, value: keyword.keyword });
             }
+            sendConfigUpdate({ id: keyword.id, isChecked: false, value: keyword.keyword, updateType: "remove" });
         },
-        [setKeywords, log, send]
+        [setKeywords, log, send, sendConfigUpdate]
     );
 
     return (
@@ -170,5 +174,9 @@ export const KeywordFilter: React.FC = () => {
         </Flex>
     );
 };
+
+
+
+
 
 

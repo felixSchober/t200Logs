@@ -46,6 +46,7 @@ export const KeywordHighlightView: React.FC = () => {
     const [keywords, setKeywords] = React.useState<KeywordHighlightDefinition[]>([]);
 
     const { send, isPending } = useSendAndReceive("keywordHighlightStateChange", "messageAck", 4000);
+    const { send: sendConfigUpdate } = useSendAndReceive("updateKeywordHighlightConfiguration", "messageAck");
     const activeKeywords = useMessageSubscription("updateNumberOfHighlightedKeywords");
     const keywordsFromConfiguration = useMessageSubscription("setKeywordHighlightsFromConfiguration");
 
@@ -81,13 +82,14 @@ export const KeywordHighlightView: React.FC = () => {
                         `Sending highlight '${keyword.keyword}' with id: ${keywordId} and value: ${value} to the extension backend`
                     );
                     send({ isChecked: value, keywordDefinition: keyword });
+                    sendConfigUpdate({ keywordDefinition: keyword, updateType: "update" });
                 } else {
                     logError("onCheckboxChange", `Could not find highlight with id '${keywordId}' and name '${name}'`);
                 }
                 return [...prev];
             });
         },
-        [log, logError, send]
+        [log, logError, send, sendConfigUpdate]
     );
 
     const onAddKeyword = React.useCallback(
@@ -107,8 +109,9 @@ export const KeywordHighlightView: React.FC = () => {
 
             log("onAddKeyword", `Sending highlight '${keyword}' to the extension backend`);
             send({ isChecked: true, keywordDefinition: newKeyword });
+            sendConfigUpdate({ keywordDefinition: newKeyword, updateType: "add" });
         },
-        [setKeywords, log, send]
+        [setKeywords, log, send, sendConfigUpdate]
     );
 
     const onRemoveKeyword = React.useCallback(
@@ -119,8 +122,9 @@ export const KeywordHighlightView: React.FC = () => {
                 log("onRemoveKeyword", `Removing highlight enabled '${keyword.keyword}' with id: ${keyword.id}`);
                 send({ isChecked: false, keywordDefinition: keyword });
             }
+            sendConfigUpdate({ keywordDefinition: keyword, updateType: "remove" });
         },
-        [setKeywords, log, send]
+        [setKeywords, log, sendConfigUpdate, send]
     );
 
     const getOnKeywordColorChange = React.useCallback(
@@ -138,12 +142,13 @@ export const KeywordHighlightView: React.FC = () => {
                             send({ isChecked: false, keywordDefinition: kw });
                             send({ isChecked: true, keywordDefinition: kw });
                         }
+                        sendConfigUpdate({ keywordDefinition: kw, updateType: "update" });
                     }
                     return [...prev];
                 });
             };
         },
-        [setKeywords, log, send]
+        [setKeywords, log, send, sendConfigUpdate]
     );
 
     return (
@@ -193,9 +198,4 @@ export const KeywordHighlightView: React.FC = () => {
         </>
     );
 };
-
-
-
-
-
 

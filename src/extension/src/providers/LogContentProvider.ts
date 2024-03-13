@@ -4,11 +4,13 @@
 
 import * as fs from "fs/promises";
 
-import type { IPostMessageService, LogLevel, PostMessageEventRespondFunction, TimeFilterChangedEvent } from "@t200logs/common";
+import { type IPostMessageService, type LogLevel, type PostMessageEventRespondFunction, type TimeFilterChangedEvent } from "@t200logs/common";
 import * as vscode from "vscode";
 
 import { ConfigurationManager } from "../configuration/ConfigurationManager";
+import { DocumentLocationManager } from "../configuration/DocumentLocationManager";
 import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../constants/regex";
+import { PostMessageDisposableService } from "../service/PostMessageDisposableService";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
@@ -46,7 +48,7 @@ const EPOCH_DATE = new Date(0);
 /**
  * A content provider that transforms the content of a log file.
  */
-export class LogContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
+export class LogContentProvider extends PostMessageDisposableService implements vscode.TextDocumentContentProvider {
     /**
      * Filter out log entries that are before this date.
      * This field is the string representation of a date.
@@ -182,12 +184,6 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
     ];
 
     /**
-     * A list of handler registrations.
-     * This list contains the functions to unregister the handlers.
-     */
-    private readonly handlerRegistrations: (() => void)[] = [];
-
-    /**
      * A list of functions that should be called after {@link provideTextDocumentContent} is finished.
      */
     private readonly filterMessagesToRespondTo: PostMessageEventRespondFunction[] = [];
@@ -225,18 +221,30 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
     private readonly harFileProvider: HarFileProvider;
 
     /**
+     * After we generate the content for the first time we want to update the cursor position in case the user wants
+     * to resume reading from where they left off.
+     * 
+     * We will only do this once after the content is generated.
+     * After we've updated the cursor position we will set this to null.
+     */
+    private cursorPositionAfterContentGeneration: number | null;
+
+    /**
      * Creates a new instance of the LogContentProvider class.
      * @param onFilterChangeEvent The event that is fired a filter changes through the code lens.
      * @param postMessageService The post message service to use for communication with the extension.
      * @param configurationManager The configuration manager.
+     * @param documentLocationManager The document location manager to set the cursor position.
      * @param logger The logger.
      */
     constructor(
         private readonly onFilterChangeEvent: vscode.Event<TimeFilterChangedEvent>,
         private readonly postMessageService: IPostMessageService,
         private readonly configurationManager: ConfigurationManager,
+        private readonly documentLocationManager: DocumentLocationManager,
         logger: ITelemetryLogger
     ) {
+        super();
         this.registerMessageHandlers();
 
         // set the "timeFilterFrom" to a second after timestamp 0.
@@ -247,8 +255,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
         this.registerFileWatcherEvents();
 
         this.setupKeywordFiltersFromConfiguration();
+        this.setupLogLevelFiltersFromConfiguration();
+        this.setupTimeFiltersFromConfiguration();
 
         this.harFileProvider = new HarFileProvider(logger);
+        this.cursorPositionAfterContentGeneration = configurationManager.restoredCursorPosition;
     }
 
     /**
@@ -273,6 +284,38 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
     }
 
     /**
+     * Sets up the log level filters from the configuration.
+     */
+    private setupLogLevelFiltersFromConfiguration() {
+        this.logger.info("setupLogLevelFiltersFromConfiguration");
+
+        this.disabledLogLevels = this.configurationManager.disabledLogLevels;
+
+        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
+        this.postMessageService.sendAndForget({
+            command: "setLogLevelFromConfiguration",
+            data: this.disabledLogLevels,
+        });
+    }
+
+    /**
+     * Sets up the time filters from the configuration.
+     */
+    private setupTimeFiltersFromConfiguration() {
+        this.logger.info("setupTimeFiltersFromConfiguration");
+        
+        if (this.configurationManager.enabledTimeFilters.fromDate !== undefined) {
+            this.logger.info("setupTimeFiltersFromConfiguration.fromDate", undefined, { fromDate: this.configurationManager.enabledTimeFilters.fromDate?.toString() });
+            this.timeFilterFrom = this.configurationManager.enabledTimeFilters.fromDate;
+        }
+
+        if (this.configurationManager.enabledTimeFilters.tillDate !== undefined) {
+            this.logger.info("setupTimeFiltersFromConfiguration.tillDate", undefined, { tillDate: this.configurationManager.enabledTimeFilters.tillDate?.toString() });
+            this.timeFilterTill = this.configurationManager.enabledTimeFilters.tillDate;
+        }
+    }
+
+    /**
      * Registers the filter events for the log content provider.
      * This method is called in the constructor.
      *
@@ -289,7 +332,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             this.filterMessagesToRespondTo.push(respond);
             this.triggerDocumentChange();
         });
-        this.handlerRegistrations.push(filterCheckboxStateChange);
+        this.unregisterListeners.push(filterCheckboxStateChange);
 
         const filterLogLevel = this.postMessageService.registerMessageHandler("filterLogLevel", (event, respond) => {
             if (event.isChecked) {
@@ -302,7 +345,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             this.filterMessagesToRespondTo.push(respond);
             this.triggerDocumentChange();
         });
-        this.handlerRegistrations.push(filterLogLevel);
+        this.unregisterListeners.push(filterLogLevel);
 
         const filterTime = this.postMessageService.registerMessageHandler("filterTime", (event, respond) => {
             if (event.fromDate || event.fromDate === "") {
@@ -319,7 +362,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             this.filterMessagesToRespondTo.push(respond);
             this.triggerDocumentChange();
         });
-        this.handlerRegistrations.push(filterTime);
+        this.unregisterListeners.push(filterTime);
 
         const filterRemoveEntriesWithNoEventTime = this.postMessageService.registerMessageHandler("filterNoEventTime", (event, respond) => {
             if (event.removeEntriesWithNoEventTime === true) {
@@ -332,7 +375,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             this.filterMessagesToRespondTo.push(respond);
             this.triggerDocumentChange();
         });
-        this.handlerRegistrations.push(filterRemoveEntriesWithNoEventTime);
+        this.unregisterListeners.push(filterRemoveEntriesWithNoEventTime);
 
         const filterSessionId = this.postMessageService.registerMessageHandler("filterSessionId", (event, respond) => {
             if (event.isChecked) {
@@ -362,7 +405,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
             this.filterMessagesToRespondTo.push(respond);
             this.triggerDocumentChange();
         });
-        this.handlerRegistrations.push(filterSessionId);
+        this.unregisterListeners.push(filterSessionId);
 
         this.onFilterChangeEvent(event => {
             if (event.fromDate || event.fromDate === "") {
@@ -428,22 +471,15 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                 });
             }
         });
-        this.handlerRegistrations.push(displaySettingsChanged);
+        this.unregisterListeners.push(displaySettingsChanged);
     }
 
     /**
      * Disposes of the LogContentProvider.
      */
-    dispose() {
+    public override dispose() {
+        super.dispose();
         this.watcher.dispose();
-
-        // pop all the handler registrations
-        while (this.handlerRegistrations.length > 0) {
-            const handler = this.handlerRegistrations.pop();
-            if (handler) {
-                handler();
-            }
-        }
     }
 
     /**
@@ -679,6 +715,20 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider, v
                 });
                 this.onTextDocumentGenerationFinished.fire(content);
                 this.respondToMessages();
+
+                // update the cursor position if we have a position to update
+                // we have to wait for the content to be generated before we can update the cursor position
+                const cursorPosition = this.cursorPositionAfterContentGeneration;
+                if (cursorPosition) {
+                    setTimeout(() => {
+                        this.logger.info("provideTextDocumentContent.setCursor", undefined, {
+                            cursorPositionAfterContentGeneration: "" + cursorPosition,
+                        });
+                        this.documentLocationManager.setCursor(cursorPosition);
+                        this.cursorPositionAfterContentGeneration = null;
+                    }, 1000);
+                }
+
                 return content;
             }
         );

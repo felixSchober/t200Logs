@@ -5,14 +5,16 @@
 import type { FilterChangedEvent, TimeFilterChangedEvent } from "@t200logs/common";
 import * as vscode from "vscode";
 
-import { ExtensionPostMessageService } from "./ExtensionPostMessageService";
 import { ConfigurationManager } from "./configuration/ConfigurationManager";
+import { DocumentLocationManager } from "./configuration/DocumentLocationManager";
 import { EXTENSION_ID } from "./constants/constants";
 import { SummaryInfoProvider } from "./info/SummaryInfoProvider";
 import { DateRange, FilterTimeRangeLensProvider } from "./providers/FilterTimeRangeLensProvider";
 import { LogContentProvider } from "./providers/LogContentProvider";
 import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
+import { ExtensionPostMessageService } from "./service/ExtensionPostMessageService";
+import { WorkspaceService } from "./service/WorkspaceService";
 import { DevLogger } from "./telemetry";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
 import { KeywordHighlightDecorator } from "./textDecorations/KeywordHighlightDecorator";
@@ -33,10 +35,12 @@ export async function activate(context: vscode.ExtensionContext) {
     console.log("Extension activated");
     await setupLogging(context);
 
-    const configurationManager = new ConfigurationManager(telemetryReporter);
+    const workspaceService = new WorkspaceService(telemetryReporter);
+    const documentLocationManager = new DocumentLocationManager(telemetryReporter);
+    const configurationManager = new ConfigurationManager(telemetryReporter, workspaceService, documentLocationManager);
+    await configurationManager.initialize();
     telemetryReporter.startLogging(configurationManager.shouldShowWelcomeMessage);
 
-    setupFoldingRangeProvider(context);
 
     if (!logContentProvider || !postMessageService || !onCodeLensFilterApplied) {
         await telemetryReporter.info("extension.activate().serviceInitialization");
@@ -46,13 +50,22 @@ export async function activate(context: vscode.ExtensionContext) {
             onCodeLensFilterApplied.event,
             postMessageService,
             configurationManager,
-            telemetryReporter
+            documentLocationManager,
+            telemetryReporter            
         );
+
+        configurationManager.addPostMessageService(postMessageService);
+        workspaceService.addPostMessageService(postMessageService);
 
         disposableServices.push(onCodeLensFilterApplied);
         disposableServices.push(postMessageService);
         disposableServices.push(logContentProvider);
+        disposableServices.push(configurationManager);
+        disposableServices.push(workspaceService);
+        disposableServices.push(documentLocationManager);
     }
+
+    setupFoldingRangeProvider(context);
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(LogContentProvider.documentScheme, logContentProvider));
 
