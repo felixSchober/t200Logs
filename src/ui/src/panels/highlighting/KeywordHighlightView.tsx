@@ -82,13 +82,14 @@ export const KeywordHighlightView: React.FC = () => {
                         `Sending highlight '${keyword.keyword}' with id: ${keywordId} and value: ${value} to the extension backend`
                     );
                     send({ isChecked: value, keywordDefinition: keyword });
+                    sendConfigUpdate({ keywordDefinition: keyword, updateType: "update" });
                 } else {
                     logError("onCheckboxChange", `Could not find highlight with id '${keywordId}' and name '${name}'`);
                 }
                 return [...prev];
             });
         },
-        [log, logError, send]
+        [log, logError, send, sendConfigUpdate]
     );
 
     const onAddKeyword = React.useCallback(
@@ -197,11 +198,4 @@ export const KeywordHighlightView: React.FC = () => {
         </>
     );
 };
-
-
-
-
-
-
-
 
