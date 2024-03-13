@@ -14,6 +14,7 @@ import {
 import { WEB_DATE_REGEX } from "../constants/regex";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
+import { getEditor } from "../utils/getEditor";
 
 import { LogContentProvider } from "./LogContentProvider";
 
@@ -67,7 +68,7 @@ export class LogFoldingRangeProvider implements FoldingRangeProvider {
         this.logger.info("provideFoldingRanges.end", undefined, { foldingRangesCount: "" + foldingRanges.length });
 
         // Set the decorations
-        const activeEditor = vscodeWindow.activeTextEditor;
+        const activeEditor = getEditor();
         if (activeEditor) {
             activeEditor.setDecorations(this.decorationType, decorations);
         } else {
