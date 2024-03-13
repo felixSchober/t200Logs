@@ -5,7 +5,6 @@
 import type { FilterChangedEvent, TimeFilterChangedEvent } from "@t200logs/common";
 import * as vscode from "vscode";
 
-import { ExtensionPostMessageService } from "./ExtensionPostMessageService";
 import { ConfigurationManager } from "./configuration/ConfigurationManager";
 import { EXTENSION_ID } from "./constants/constants";
 import { SummaryInfoProvider } from "./info/SummaryInfoProvider";
@@ -13,6 +12,7 @@ import { DateRange, FilterTimeRangeLensProvider } from "./providers/FilterTimeRa
 import { LogContentProvider } from "./providers/LogContentProvider";
 import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
+import { ExtensionPostMessageService } from "./service/ExtensionPostMessageService";
 import { DevLogger } from "./telemetry";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
 import { KeywordHighlightDecorator } from "./textDecorations/KeywordHighlightDecorator";

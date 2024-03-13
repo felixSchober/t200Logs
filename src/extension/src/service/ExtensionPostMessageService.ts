@@ -5,8 +5,8 @@
 import { PostMessageServiceBase } from "@t200logs/common";
 import { Disposable, Webview } from "vscode";
 
-import { ScopedILogger } from "./telemetry/ILogger";
-import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
+import { ScopedILogger } from "../telemetry/ILogger";
+import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 
 /**
  * The post message service for the extension.

@@ -6,7 +6,7 @@ import * as fs from "fs";
 
 import { CancellationToken, Uri as VscodeUri, Webview, WebviewView, WebviewViewProvider, WebviewViewResolveContext } from "vscode";
 
-import { ExtensionPostMessageService } from "../ExtensionPostMessageService";
+import { ExtensionPostMessageService } from "../service/ExtensionPostMessageService";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
