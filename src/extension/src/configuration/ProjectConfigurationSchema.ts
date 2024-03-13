@@ -137,7 +137,6 @@ export const emptyProjectConfiguration: ProjectConfiguration = {
  * @returns The new version of the project configuration.
  */
 const upgradeFrom100 = (old: z.infer<typeof ProjectConfigurationSchema100>): ProjectConfiguration => {
-    debugger;
     const disabledLogLevels = ALL_LOG_LEVELS.filter(l => !old.enabledLogLevels.includes(l));
     return {
         ...old,
