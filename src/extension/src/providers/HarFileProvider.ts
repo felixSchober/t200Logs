@@ -5,7 +5,7 @@
 import * as fs from "fs/promises";
 
 import { HarEntry, HarSchema, JwtSchema } from "@t200logs/common";
-import { CancellationToken, Disposable, Uri, workspace } from "vscode";
+import { CancellationToken, Uri, workspace } from "vscode";
 
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
@@ -15,13 +15,8 @@ import { LogEntry } from "./LogEntry";
 /**
  *
  */
-export class HarFileProvider implements Disposable {
+export class HarFileProvider {
     private readonly logger: ScopedILogger;
-
-    /**
-     * List of post message handler registrations that need to be cleaned up when the provider is disposed.
-     */
-    private readonly handlerRegistrations: Array<() => void> = [];
 
     /**
      * Cache of all converted, unsorted HAR file entries.
@@ -252,15 +247,6 @@ export class HarFileProvider implements Disposable {
 
         result += "] ";
         return result;
-    }
-
-    /**
-     * Disposes all child disposables of the service.
-     */
-    dispose() {
-        for (const unregister of this.handlerRegistrations) {
-            unregister();
-        }
     }
 }
 

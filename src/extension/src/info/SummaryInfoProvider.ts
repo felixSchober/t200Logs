@@ -8,6 +8,7 @@ import { IPostMessageService, PostMessageEventRespondFunction, SummaryInfo, Summ
 import * as vscode from "vscode";
 
 import { GUID_REGEX } from "../constants/regex";
+import { PostMessageDisposableService } from "../service/PostMessageDisposableService";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 
@@ -50,13 +51,8 @@ const userRegex = /(\S+@\S+)\s+(\S+)\s+(\S+)\s+TId:([0-9a-f-]+)\s+OId:([0-9a-f-]
 /**
  * SummaryInfoProvider is a class that provides the ability to get summary information from teh summary.txt file.
  */
-export class SummaryInfoProvider implements vscode.Disposable {
+export class SummaryInfoProvider extends PostMessageDisposableService {
     private readonly logger: ScopedILogger;
-
-    /**
-     * The handler registration.
-     */
-    private readonly unregisterHandler: () => void;
 
     /**
      * Initializes a new instance of the SummaryInfoProvider class.
@@ -64,17 +60,13 @@ export class SummaryInfoProvider implements vscode.Disposable {
      * @param logger The logger.
      */
     constructor(postMessageService: IPostMessageService, logger: ITelemetryLogger) {
+        super();
         this.logger = logger.createLoggerScope("SummaryInfoProvider");
 
-        this.unregisterHandler = postMessageService.registerMessageHandler("getSummary", (_, respond) => {
+        const unregisterSummaryListener = postMessageService.registerMessageHandler("getSummary", (_, respond) => {
             void this.handleGetSummaryRequest(respond);
         });
-    }
-    /**
-     * Disposes the summary info provider.
-     */
-    dispose() {
-        this.unregisterHandler();
+        this.unregisterListeners.push(unregisterSummaryListener);
     }
 
     /**
