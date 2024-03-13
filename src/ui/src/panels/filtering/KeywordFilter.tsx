@@ -51,7 +51,7 @@ export const KeywordFilter: React.FC = () => {
                         keyword: kw.value,
                         isCustom: false,
                         id: uuid(),
-                        isChecked: false,
+                        isChecked: kw.isChecked,
                     };
                 });
                 return [...prev, ...newKeywords];
@@ -76,13 +76,14 @@ export const KeywordFilter: React.FC = () => {
                         `Sending keyword '${keyword.keyword}' with id: ${keywordId} and value: ${value} to the extension backend`
                     );
                     send({ id: keywordId, isChecked: value, value: keyword.keyword });
+                    sendConfigUpdate({ id: keywordId, isChecked: value, value: keyword.keyword, updateType: "update" });
                 } else {
                     logError("onCheckboxChange", `Could not find keyword with id '${keywordId}' and name '${name}'`);
                 }
                 return [...prev];
             });
         },
-        [log, logError, send]
+        [log, logError, send, sendConfigUpdate]
     );
 
     const onTextFieldChange = React.useCallback((event: Event | React.FormEvent<HTMLElement>) => {
@@ -173,6 +174,9 @@ export const KeywordFilter: React.FC = () => {
         </Flex>
     );
 };
+
+
+
 
 
 

@@ -85,6 +85,11 @@ export const MessageSchemaMap = {
          */
         isChecked: z.boolean(),
     }),
+    /**
+     * Message sent from the extension to the webview to set the log levels from the configuration with disabled (unchecked) state.
+     * E.g. ["info", "warning"] means that debug and error are enabled (checked) and info and warning are disabled (unchecked).
+     */
+    setLogLevelFromConfiguration: z.array(LogLevelSchema),
     filterTime: z.object({
         /**
          * The time filter.
@@ -221,7 +226,28 @@ export const MessageSchemaMap = {
         keywordDefinition: KeywordHighlightSchema,
 
     }),
+    /**
+     * Message sent from the webview to the extension to indicate that the webview is ready.
+     * After receiving this message, the extension can send messages to the webview.
+     */
     webviewReady: z.undefined(),
+
+    /**
+     * Message sent from the webview to the extension to indicate that there is no workspace folder.
+     */
+    noWorkspace: z.undefined(),
+
+    /**
+     * Message sent from the webview to the extension to select a workspace folder.
+     * Sent after the user has clicked the button to open logs.
+     * The data is the type of workspace folder to select.
+     */
+    selectWorkspaceFolder: z.union([z.literal("any"), z.literal("t21")]),
+
+    /**
+     * Message sent from the extension to the webview to indicate that the workspace is ready.
+     */
+    workspaceReady: z.undefined(),
 } as const;
 
 

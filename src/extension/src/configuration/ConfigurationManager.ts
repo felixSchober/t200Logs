@@ -3,7 +3,7 @@
  */
 
 import { IPostMessageService, KeywordFilter, KeywordHighlightWithIsChecked } from "@t200logs/common";
-import { Disposable, workspace } from "vscode";
+import { workspace } from "vscode";
 
 import {
     EXTENSION_ID,
@@ -11,29 +11,45 @@ import {
     KEYWORD_HIGHLIGHT_CONFIGURATION_SETTING_NAME,
     WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME,
 } from "../constants/constants";
+import { PostMessageDisposableService } from "../service/PostMessageDisposableService";
+import { WorkspaceService } from "../service/WorkspaceService";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
+
+import { DocumentLocationManager } from "./DocumentLocationManager";
+import { ProjectConfigurationManager } from "./ProjectConfigurationManager";
 
 /**
  * Manages the configuration for the extension.
  */
-export class ConfigurationManager implements Disposable{
+export class ConfigurationManager extends PostMessageDisposableService {
     private _keywordHighlights: KeywordHighlightWithIsChecked[] | undefined;
     private _keywordFilters: KeywordFilter[] | undefined;
     private _shouldShowWelcomeMessage: boolean | undefined;
-    private readonly logger: ScopedILogger;
 
-    /**
-     * List of functions which will unregister the listeners.
-     */
-    private readonly unregisterListeners: (() => void)[] = [];
+    private readonly projectConfiguration: ProjectConfigurationManager;
+    private readonly logger: ScopedILogger;
 
     /**
      * Creates a new configuration manager for the given workspace folder.
      * @param logger The logger to use for logging.
+     * @param workspaceService The workspace service to use for getting the workspace folder.
+     * @param documentLocationManager The document location manager to use for listening to configuration changes.
      */
-    constructor(logger: ITelemetryLogger) {
+    constructor(logger: ITelemetryLogger, workspaceService: WorkspaceService, documentLocationManager: DocumentLocationManager) {
+        super();
         this.logger = logger.createLoggerScope("ConfigurationManager");
+        this.projectConfiguration = new ProjectConfigurationManager(logger, workspaceService, documentLocationManager);
+    }
+
+    /**
+     * Initializes the configuration manager.
+     */
+    public async initialize() {
+        this.logger.info("initialize");
+        this.loadSettings();
+        await this.projectConfiguration.initialize();
+        this.logger.info("initialize.done");
     }
     
 
@@ -43,6 +59,7 @@ export class ConfigurationManager implements Disposable{
      */
     public addPostMessageService(postMessageService: IPostMessageService) {
         this.logger.info("addPostMessageService");
+        this.projectConfiguration.addPostMessageService(postMessageService);
         const unregisterFilterChangedHandler = postMessageService.registerMessageHandler("updateFilterCheckboxState", (data, respond) => {
             this.logger.info("updateFilterCheckboxState", `filter ${data.updateType} -> ${data.value}`, {event: JSON.stringify(data)});
             const currentFilters = this.keywordFilters;
@@ -129,23 +146,38 @@ export class ConfigurationManager implements Disposable{
     }
 
     /**
-     * Disposes of the resources used by the configuration manager.
-     */
-    dispose() {
-        for (const unregisterListener of this.unregisterListeners) {
-            unregisterListener();
-        }
-    }
-
-    /**
      * Returns the configuration of keyword highlights to use for highlighting.
      * @returns The configuration of keyword highlights to use for highlighting.
      */
     public get keywordHighlights(): KeywordHighlightWithIsChecked[] {
         if (!this._keywordHighlights) {
-            this.loadConfiguration();
+            this.loadSettings();
         }
-        return this._keywordHighlights || [];
+
+        const enabledProjectHighlights = this.projectConfiguration.configuration.enabledKeywordHighlights;
+
+        const definitions = this._keywordHighlights || enabledProjectHighlights;
+        const allHighlights: KeywordHighlightWithIsChecked[] = [];
+
+        // merge the project configuration with the settings configuration
+        // enable all the highlights that are enabled in the project configuration
+        // and disable all the highlights that are disabled in the project configuration
+        for (const highlight of definitions) {
+            const projectHighlight = enabledProjectHighlights.find(kw => kw.keyword === highlight.keyword);
+            if (projectHighlight) {
+                allHighlights.push({
+                    ...highlight,
+                    isChecked: true
+                });
+            } else {
+                allHighlights.push({
+                    ...highlight,
+                    isChecked: false
+                });
+            }
+        }
+
+        return allHighlights;
     }
 
     /**
@@ -153,7 +185,7 @@ export class ConfigurationManager implements Disposable{
      */
     public set keywordHighlights(value: KeywordHighlightWithIsChecked[]) {
         this._keywordHighlights = value;
-        void this.storeConfiguration();
+        void this.storeSettings();
     }
 
     /**
@@ -162,9 +194,30 @@ export class ConfigurationManager implements Disposable{
      */
     public get keywordFilters(): KeywordFilter[] {
         if (!this._keywordFilters) {
-            this.loadConfiguration();
+            this.loadSettings();
         }
-        return this._keywordFilters || [];
+        const enabledProjectFilters = this.projectConfiguration.configuration.enabledKeywordFilters;
+        const settingsFilters = this._keywordFilters || [];
+        // merge the project configuration with the settings configuration
+        // enable all the filters that are enabled in the project configuration
+        // and disable all the filters that are disabled in the project configuration
+        const keywordsToIterateOver = new Set([...enabledProjectFilters, ...settingsFilters.map(kw => kw.keyword)]);
+
+        for (const keyword of keywordsToIterateOver) {
+            const projectFilter = enabledProjectFilters.includes(keyword);
+            const settingsFilter = settingsFilters.find(kw => kw.keyword === keyword);
+            if (settingsFilter) {
+                settingsFilter.isChecked = projectFilter;
+            } else {
+                // if the keyword is not present in the settings configuration, add it
+                settingsFilters.push({
+                    keyword,
+                    isChecked: projectFilter,
+                });
+            }
+        }
+
+        return settingsFilters;
     }
 
     /**
@@ -172,7 +225,34 @@ export class ConfigurationManager implements Disposable{
      */
     public set keywordFilters(value: KeywordFilter[]) {
         this._keywordFilters = value;
-        void this.storeConfiguration();
+        void this.storeSettings();
+    }
+
+    /**
+     * Returns a list of disabled log levels.
+     * @returns A list of disabled log levels.
+     */
+    public get disabledLogLevels() {
+        return this.projectConfiguration.configuration.disabledLogLevels;
+    }
+
+    /**
+     * Returns the time filters that are enabled for the project.
+     * @returns An object containing the time filters that are enabled for the project.
+     */
+    public get enabledTimeFilters() {
+        return this.projectConfiguration.configuration.enabledTimeFilters;
+    }
+
+    /**
+     * The saved cursor position from the last session.
+     * 
+     * Important: Do not use this property more than once. Changing the cursor position during the same session 
+     * is a bad user experience. This property is only used to restore the cursor position from the last session.
+     * @returns The saved cursor position from the last session.
+     */
+    public get restoredCursorPosition() {
+        return this.projectConfiguration.configuration.cursorPosition;
     }
 
     /**
@@ -181,7 +261,7 @@ export class ConfigurationManager implements Disposable{
      */
     public get shouldShowWelcomeMessage(): boolean {
         if (this._shouldShowWelcomeMessage === undefined) {
-            this.loadConfiguration();
+            this.loadSettings();
         }
         return this._shouldShowWelcomeMessage || true;
     }
@@ -191,13 +271,21 @@ export class ConfigurationManager implements Disposable{
      */
     public set shouldShowWelcomeMessage(value: boolean) {
         this._shouldShowWelcomeMessage = value;
-        void this.storeConfiguration();
+        void this.storeSettings();
     }
 
     /**
-     * Loads the configuration from the workspace.
+     * Disposes the configuration manager.
      */
-    private loadConfiguration() {
+    public override dispose() {
+        super.dispose();
+        this.projectConfiguration.dispose();
+    }
+
+    /**
+     * Loads the settings configuration from the workspace.
+     */
+    private loadSettings() {
         this.logger.info("loadConfiguration.start");
         const configuration = workspace.getConfiguration(EXTENSION_ID);
 
@@ -207,9 +295,9 @@ export class ConfigurationManager implements Disposable{
     }
 
     /**
-     * Stores the configuration to the workspace.
+     * Stores the settings configuration to the workspace.
      */
-    private async storeConfiguration() {
+    private async storeSettings() {
         this.logger.info("storeConfiguration.start", undefined, {
             keywordHighlights: this._keywordHighlights?.map(kw => `${kw.keyword} - ${kw.color}`).join(", "),
             keywordFilters: this._keywordFilters?.map(kw => `${kw.keyword} - ${kw.isChecked}`).join(", "),

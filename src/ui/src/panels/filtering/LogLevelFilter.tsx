@@ -6,6 +6,7 @@ import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 
 import { Flex } from "../../common/Flex";
+import { useMessageSubscription } from "../../service/useMessageSubscription";
 import { useSendAndReceive } from "../../service/useSendAndReceive";
 
 export const LogLevelFilter: React.FC = () => {
@@ -14,6 +15,30 @@ export const LogLevelFilter: React.FC = () => {
     const [infoFilterEnabled, setInfoFilterEnabled] = React.useState(true);
     const [debugFilterEnabled, setDebugFilterEnabled] = React.useState(true);
     const { send } = useSendAndReceive("filterLogLevel", "updateNumberOfActiveFilters");
+    const disabledConfigurationLogLevels = useMessageSubscription("setLogLevelFromConfiguration");
+
+    React.useEffect(() => {
+        if (disabledConfigurationLogLevels) {
+            for (const logLevel of disabledConfigurationLogLevels) {
+                switch (logLevel) {
+                    case "error":
+                        setErrorFilterEnabled(false);
+                        break;
+                    case "warning":
+                        setWarningFilterEnabled(false);
+                        break;
+                    case "info":
+                        setInfoFilterEnabled(false);
+                        break;
+                    case "debug":
+                        setDebugFilterEnabled(false);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }, [disabledConfigurationLogLevels]);
 
     const onCheckboxChange = React.useCallback(
         (event: Event | React.FormEvent<HTMLElement>) => {

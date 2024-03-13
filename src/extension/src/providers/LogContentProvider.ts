@@ -4,10 +4,11 @@
 
 import * as fs from "fs/promises";
 
-import type { IPostMessageService, LogLevel, PostMessageEventRespondFunction, TimeFilterChangedEvent } from "@t200logs/common";
+import { type IPostMessageService, type LogLevel, type PostMessageEventRespondFunction, type TimeFilterChangedEvent } from "@t200logs/common";
 import * as vscode from "vscode";
 
 import { ConfigurationManager } from "../configuration/ConfigurationManager";
+import { DocumentLocationManager } from "../configuration/DocumentLocationManager";
 import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../constants/regex";
 import { PostMessageDisposableService } from "../service/PostMessageDisposableService";
 import { ScopedILogger } from "../telemetry/ILogger";
@@ -220,16 +221,27 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private readonly harFileProvider: HarFileProvider;
 
     /**
+     * After we generate the content for the first time we want to update the cursor position in case the user wants
+     * to resume reading from where they left off.
+     * 
+     * We will only do this once after the content is generated.
+     * After we've updated the cursor position we will set this to null.
+     */
+    private cursorPositionAfterContentGeneration: number | null;
+
+    /**
      * Creates a new instance of the LogContentProvider class.
      * @param onFilterChangeEvent The event that is fired a filter changes through the code lens.
      * @param postMessageService The post message service to use for communication with the extension.
      * @param configurationManager The configuration manager.
+     * @param documentLocationManager The document location manager to set the cursor position.
      * @param logger The logger.
      */
     constructor(
         private readonly onFilterChangeEvent: vscode.Event<TimeFilterChangedEvent>,
         private readonly postMessageService: IPostMessageService,
         private readonly configurationManager: ConfigurationManager,
+        private readonly documentLocationManager: DocumentLocationManager,
         logger: ITelemetryLogger
     ) {
         super();
@@ -243,8 +255,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         this.registerFileWatcherEvents();
 
         this.setupKeywordFiltersFromConfiguration();
+        this.setupLogLevelFiltersFromConfiguration();
+        this.setupTimeFiltersFromConfiguration();
 
         this.harFileProvider = new HarFileProvider(logger);
+        this.cursorPositionAfterContentGeneration = configurationManager.restoredCursorPosition;
     }
 
     /**
@@ -266,6 +281,38 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             command: "setKeywordFiltersFromConfiguration",
             data: this.configurationManager.keywordFilters.map(kw => ({ value: kw.keyword, isChecked: kw.isChecked })),
         });
+    }
+
+    /**
+     * Sets up the log level filters from the configuration.
+     */
+    private setupLogLevelFiltersFromConfiguration() {
+        this.logger.info("setupLogLevelFiltersFromConfiguration");
+
+        this.disabledLogLevels = this.configurationManager.disabledLogLevels;
+
+        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
+        this.postMessageService.sendAndForget({
+            command: "setLogLevelFromConfiguration",
+            data: this.disabledLogLevels,
+        });
+    }
+
+    /**
+     * Sets up the time filters from the configuration.
+     */
+    private setupTimeFiltersFromConfiguration() {
+        this.logger.info("setupTimeFiltersFromConfiguration");
+        
+        if (this.configurationManager.enabledTimeFilters.fromDate !== undefined) {
+            this.logger.info("setupTimeFiltersFromConfiguration.fromDate", undefined, { fromDate: this.configurationManager.enabledTimeFilters.fromDate?.toString() });
+            this.timeFilterFrom = this.configurationManager.enabledTimeFilters.fromDate;
+        }
+
+        if (this.configurationManager.enabledTimeFilters.tillDate !== undefined) {
+            this.logger.info("setupTimeFiltersFromConfiguration.tillDate", undefined, { tillDate: this.configurationManager.enabledTimeFilters.tillDate?.toString() });
+            this.timeFilterTill = this.configurationManager.enabledTimeFilters.tillDate;
+        }
     }
 
     /**
@@ -668,6 +715,20 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 });
                 this.onTextDocumentGenerationFinished.fire(content);
                 this.respondToMessages();
+
+                // update the cursor position if we have a position to update
+                // we have to wait for the content to be generated before we can update the cursor position
+                const cursorPosition = this.cursorPositionAfterContentGeneration;
+                if (cursorPosition) {
+                    setTimeout(() => {
+                        this.logger.info("provideTextDocumentContent.setCursor", undefined, {
+                            cursorPositionAfterContentGeneration: "" + cursorPosition,
+                        });
+                        this.documentLocationManager.setCursor(cursorPosition);
+                        this.cursorPositionAfterContentGeneration = null;
+                    }, 1000);
+                }
+
                 return content;
             }
         );

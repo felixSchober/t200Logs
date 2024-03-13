@@ -100,6 +100,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.filterLogLevel,
             eventListeners: [],
         },
+        setLogLevelFromConfiguration: {
+            commandSchema: MessageSchemaMap.setLogLevelFromConfiguration,
+            eventListeners: [],
+        },
         filterNoEventTime: {
             commandSchema: MessageSchemaMap.filterNoEventTime,
             eventListeners: [],
@@ -146,6 +150,18 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
         },
         webviewReady: {
             commandSchema: MessageSchemaMap.webviewReady,
+            eventListeners: [],
+        },
+        noWorkspace: {
+            commandSchema: MessageSchemaMap.noWorkspace,
+            eventListeners: [],
+        },
+        selectWorkspaceFolder: {
+            commandSchema: MessageSchemaMap.selectWorkspaceFolder,
+            eventListeners: [],
+        },
+        workspaceReady: {
+            commandSchema: MessageSchemaMap.workspaceReady,
             eventListeners: [],
         },
     };
