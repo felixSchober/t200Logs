@@ -1054,6 +1054,8 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 return "📡";
             case "web":
                 return "🌐";
+            case "unknown":
+                return "❓";
         }
     }
 

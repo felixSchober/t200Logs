@@ -7,7 +7,7 @@ import { z } from "zod";
 /**
  * Schema for the different types of log files.
  */
-const LogFileTypeSchema = z.union([z.literal("web"), z.literal("desktop"), z.literal("har")]);
+const LogFileTypeSchema = z.union([z.literal("web"), z.literal("desktop"), z.literal("har"), z.literal("unknown")]);
 
 /**
  * The different types of log files.

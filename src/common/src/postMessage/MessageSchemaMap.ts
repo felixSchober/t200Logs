@@ -257,8 +257,9 @@ export const MessageSchemaMap = {
 
     /**
      * Message sent from the extension to the webview to update the file list from the configuration (e.g. Which files are checked).
+     * If a file is part of the array it should be marked as filtered out (unchecked).
      */
-    setFileListFromConfiguration: z.array(LogFileNameWithStateSchema),
+    setFileListFromConfiguration: z.array(z.string()),
 
     /**
      * Message sent from the webview to the extension to update the file filter checkbox state.

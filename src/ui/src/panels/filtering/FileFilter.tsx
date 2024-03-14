@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react";
+import { VSCodeCheckbox, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 
 import { Flex } from "../../common/Flex";
@@ -18,6 +18,8 @@ export const FileFilter: React.FC = () => {
     const { send } = useSendAndReceive("updateFileFilterCheckboxState", "messageAck");
     const fileStateFromConfiguration = useMessageSubscription("setFileListFromConfiguration");
     const fileList = useMessageSubscription("setFileList");
+
+    const isPending = fileList === null;
 
     // Updates the state when the file list is received from the logs content provider.
     // This is always the source of truth for the file list.
@@ -46,26 +48,33 @@ export const FileFilter: React.FC = () => {
         // This is tricky because the configuration might have a different set of files than the current state.
         // To make sure we don't remove or add files we will do a outer join on the file names.
         // If a file is in the state and not in the configuration, we will keep the state.
-        // If a file is in the configuration and not in the state, we will add it to the state.
+        // If a file is in the configuration and not in the state, we will add it to the state but it will be disabled (no log entries).
         if (fileStateFromConfiguration && fileStateFromConfiguration.length > 0) {
             setFiles(prev => {
                 const newState: LogFileListWithState = [...prev];
 
-                for (const file of fileStateFromConfiguration) {
-                    const existingFile = newState.find(f => f.fileName === file.fileName);
+                for (const fileName of fileStateFromConfiguration) {
+                    const existingFile = newState.find(f => f.fileName === fileName);
 
                     // If the file is in the state, we will just update the state.
                     if (existingFile) {
-                        existingFile.isEnabled = file.isEnabled;
+                        existingFile.isEnabled = false;
                     } else {
-                        newState.push(file);
+                        // file not in state - add a new file to the state with dummy values
+                        newState.push({
+                            fileName,
+                            fileType: "unknown",
+                            isEnabled: false,
+                            numberOfEntries: 0,
+                            numberOfFilteredEntries: 0,
+                        });
                     }
                 }
 
                 // now, we iterate over the prev state and add any files that are not in the configuration
                 // this is the outer join part
                 for (const file of prev) {
-                    if (!fileStateFromConfiguration.find(f => f.fileName === file.fileName)) {
+                    if (!fileStateFromConfiguration.find(f => f === file.fileName)) {
                         newState.push(file);
                     }
                 }
@@ -100,6 +109,7 @@ export const FileFilter: React.FC = () => {
 
     return (
         <Flex direction="column" wrap="wrap" justifyContent="space-evenly">
+            {isPending && <VSCodeProgressRing />}
             {files.map(file => {
                 return (
                     <Flex key={`file_${file.fileName}`} direction="row" wrap="wrap" justifyContent="flex-start">
@@ -116,4 +126,6 @@ export const FileFilter: React.FC = () => {
         </Flex>
     );
 };
+
+
 

@@ -145,7 +145,12 @@ export class LogContentFilters extends PostMessageDisposableService {
         this.setupKeywordFiltersFromConfiguration();
         this.setupLogLevelFiltersFromConfiguration();
         this.setupTimeFiltersFromConfiguration();
+        this.setupFileFiltersFromConfiguration();
         this.registerFilterEvents();
+
+        // send the initial number of active filters to the webview
+        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
+        
     }
 
     /**
@@ -167,7 +172,6 @@ export class LogContentFilters extends PostMessageDisposableService {
     private setupKeywordFiltersFromConfiguration() {
         this.keywordFilters = this.configurationManager.keywordFilters.filter(kw => kw.isChecked).map(kw => kw.keyword);
         this.logger.info("setupKeywordFiltersFromConfiguration");
-        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
         this.postMessageService.sendAndForget({
             command: "setKeywordFiltersFromConfiguration",
             data: this.configurationManager.keywordFilters.map(kw => ({ value: kw.keyword, isChecked: kw.isChecked })),
@@ -182,7 +186,6 @@ export class LogContentFilters extends PostMessageDisposableService {
 
         this.disabledLogLevels = this.configurationManager.disabledLogLevels;
 
-        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
         this.postMessageService.sendAndForget({
             command: "setLogLevelFromConfiguration",
             data: this.disabledLogLevels,
@@ -208,6 +211,22 @@ export class LogContentFilters extends PostMessageDisposableService {
             });
             this.timeFilterTill = this.configurationManager.enabledTimeFilters.tillDate;
         }
+    }
+
+    /**
+     * Sets up the file filters from the configuration.
+     */
+    private setupFileFiltersFromConfiguration() {
+        this.logger.info("setupFileFiltersFromConfiguration");
+
+        for (const disabledFile of this.configurationManager.disabledFiles) {
+            this._disabledFiles.set(disabledFile, { isEnabled: false });
+        }
+
+        this.postMessageService.sendAndForget({
+            command: "setFileListFromConfiguration",
+            data: this.configurationManager.disabledFiles,
+        });
     }
 
     /**
