@@ -283,69 +283,13 @@ Automated build and release of the extension
 #### 🚀 Features
 
 - feat: improve release process
-- feat: add worklfow that creates a new release branch
-- feat: add color picker to keyword highlight page
-- feat: add griffel package to ui
-- feat: improve createRandomColor to not create dark colors
-- feat: support class names in Flex component
-- feat: improve color picker styling
-- feat: update keyword and filter highlight in configuration for extension
-- feat: send update when checkbox state is changed
-- feat: add document location manager to store cursor positon
-- feat: store editor state in config file
+- feat: add workflow that creates a new release branch
 
 #### 🐛 Bug Fixes
 
-- fix: move tags by force pushing
-- fix: update PR template
-- fix: cleanup readme
-- fix GitVersion to use the right bumping logic
-- fix: supply branch name to gitversion
-- fix: run version bump after build
-- fix: remove origin target
-- fix: print change log and make sure we always post a comment
-- fix: removes bump message from PR changelog comment
-- fix: use right headings & cleanup readme
-- fix: format webpack config
-- fix: Readme cleanup
-- fix: use public registry
-- fix: include from tag for changelog
-- fix: Create abstract helper base that disposes post message listeners
-- fix: Add getEditor which only returns the correct editor instead of just the active editor
-- fix: make sure tags are force pushed
 - fix: add inline source maps for local builds. Removes source maps for prod builds
 - fix: use correct regex to replace codicon font path with correct vscode path
 - fix: update readme
-
-#### 🧪 Maintenance
-
-- chore: add more workspace extension reccomendations
-- chore: move color picker component to own folder
-- chore: move post message service to /service
-
-
-#### 📦 Changes
-- specify the commit author name in the ci/cd workflow
-- use release job
-- Merge pull request #38 from felixSchober/fixes/fix-keyword-ack-messages
-- fix regeneration of severity highlighting
-- checkout head.ref in bump version workflow job
-- Merge pull request #42 from felixSchober/fixes/reapply-severity-highlight
-- update release configuration template
-- try new pre alpha
-- remove bloat and add uncategorized
-- Merge pull request #45 from felixSchober/fixes/how-to-release
-- Bump the eslint group with 3 updates
-- fix: use personal PAT to create release branch
-- Merge pull request #46 from felixSchober/dependabot/npm_and_yarn/eslint-32f668daad
-- fix: Use onInput instead of onChange
-- fix: turn off no-unused-vars rule and replace by @typescript-eslint/no-unused-vars
-- fix: downgrade griffel eslint to 1.5.1
-- feat: Add color picker
-- ignore: remove debugger statement
-- feat: Persist the log debugging state between logging sessions
-- build(deps): bump gittools/actions from 0.13.2 to 1.1.1
-- bump gittools/actions from 0.13.2 to 1.1.1
 
 
 ### #{NEW_VERSION}#
