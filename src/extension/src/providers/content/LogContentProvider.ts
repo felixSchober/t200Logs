@@ -13,7 +13,7 @@ import {
 import { LogFile, LogFileList, LogFileType } from "@t200logs/common/src/model/LogFileList";
 import * as vscode from "vscode";
 
-import { ConfigurationManager } from "../../configuration/ConfigurationManager";
+import { ConfigurationManager } from "../../configuration";
 import { DocumentLocationManager } from "../../configuration/DocumentLocationManager";
 import { EPOCH_DATE } from "../../constants/constants";
 import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../../constants/regex";

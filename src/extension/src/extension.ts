@@ -5,7 +5,7 @@
 import type { FilterChangedEvent, TimeFilterChangedEvent } from "@t200logs/common";
 import * as vscode from "vscode";
 
-import { ConfigurationManager } from "./configuration/ConfigurationManager";
+import { ConfigurationManager } from "./configuration";
 import { DocumentLocationManager } from "./configuration/DocumentLocationManager";
 import { EXTENSION_ID } from "./constants/constants";
 import { SummaryInfoProvider } from "./info/SummaryInfoProvider";

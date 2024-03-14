@@ -5,7 +5,7 @@
 import { IPostMessageService, LogLevel, PostMessageEventRespondFunction, TimeFilterChangedEvent } from "@t200logs/common";
 import * as vscode from "vscode";
 
-import { ConfigurationManager } from "../../configuration/ConfigurationManager";
+import { ConfigurationManager } from "../../configuration";
 import { EPOCH_DATE } from "../../constants/constants";
 import { PostMessageDisposableService } from "../../service/PostMessageDisposableService";
 import { ScopedILogger } from "../../telemetry/ILogger";
