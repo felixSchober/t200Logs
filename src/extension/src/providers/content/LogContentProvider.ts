@@ -804,7 +804,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             if (shouldStay) {
                 // Filter out log entries based on the keywords
                 const filteredLogsEntries = logs.filter(entry => {
-                    return entry.isMarker || (this.matchesKeywordFilter(entry.text) && this.matchesLogLevel(entry.text, logLevelRegex));
+                    return entry.isMarker || (this.matchesKeywordFilter(entry.text) && this.matchesLogLevel(entry.text, logLevelRegex) && this.matchesFileFilter(entry.service));
                 });
 
                 filteredLogs.set(timestamp, filteredLogsEntries);
@@ -891,6 +891,26 @@ export class LogContentProvider extends PostMessageDisposableService implements 
 
         return true;
     }
+
+    /**
+     * Checks if the given service name should be filtered out based on the file filters.
+     * @param serviceName The name of the service to get the file type for.
+     * @returns `true` if the log entry should stay, `false` if it should be filtered out.
+     */
+    private matchesFileFilter(serviceName: string | undefined): boolean {
+        // keep markers and entries without a service name
+        if (!serviceName) {
+            return true;
+        }
+
+        const filterState = this.filters.disabledFiles.get(serviceName)?.isEnabled;
+
+        // if the filter is not set, keep the entry
+        // if the filter is set, keep the entry if `isEnabled` is true
+        // if the filter is set, filter the entry if `isEnabled` is false
+        return filterState === undefined || filterState;
+    }
+
 
     /**
      * Groups the given log entries by second.

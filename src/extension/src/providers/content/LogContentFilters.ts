@@ -13,7 +13,18 @@ import { ITelemetryLogger } from "../../telemetry/ITelemetryLogger";
 
 import { LogEntry } from "./LogEntry";
 
-
+/**
+ * A file filter that can be used to filter out log entries from a file.
+ * If the file is in the set and the `isEnabled` field is `true`, the file is not filtered out.
+ * If the file is in the set and the `isEnabled` field is `false`, the file is filtered out.
+ * If the file is not in the set, the file is not filtered out.
+ */
+type FileFilter = {
+    /**
+     * Whether the file should be filtered out or not.
+     */
+    isEnabled: boolean;
+};
 
 /**
  * Filters for the LogContentProvider class.
@@ -33,7 +44,7 @@ export class LogContentFilters extends PostMessageDisposableService {
     /**
      * Sets both {@link _timeFilterFrom} and {@link timeFilterFromDate}.
      */
-    public set timeFilterFrom(value: string | null) {
+    private set timeFilterFrom(value: string | null) {
         this._timeFilterFrom = value;
         if (this._timeFilterFrom && !isNaN(Date.parse(this._timeFilterFrom))) {
             this.timeFilterFromDate = new Date(this._timeFilterFrom);
@@ -70,6 +81,19 @@ export class LogContentFilters extends PostMessageDisposableService {
             this.timeFilterTillDate = null;
         }
         this.postMessageService.sendAndForget({ command: "updateTimeFilters", data: { tillDate: value ?? null } });
+    }
+
+    /**
+     * List of files that are filtered out.
+     */
+    private readonly _disabledFiles: Map<string, FileFilter> = new Map();
+
+    /**
+     * Gets the list of files that are filtered out.
+     * @returns The list of files that are filtered out.
+     */
+    public get disabledFiles(): Map<string, FileFilter> {
+        return this._disabledFiles;
     }
 
     /**
@@ -130,6 +154,7 @@ export class LogContentFilters extends PostMessageDisposableService {
     public reset() {
         this.keywordFilters = [];
         this.disabledLogLevels = [];
+        this._disabledFiles.clear();
         this.sessionId = null;
         this.timeFilterFrom = this.minimumDate;
         this.timeFilterTill = null;
@@ -249,6 +274,8 @@ export class LogContentFilters extends PostMessageDisposableService {
      * They are dispatched by the {@link ExtensionPostMessageService}.
      */
     private registerFilterEvents() {
+
+        // FILTER KEYWORD
         const filterCheckboxStateChange = this.postMessageService.registerMessageHandler("filterCheckboxStateChange", (event, respond) => {
             if (event.isChecked) {
                 this.keywordFilters.push(event.value);
@@ -260,6 +287,7 @@ export class LogContentFilters extends PostMessageDisposableService {
         });
         this.unregisterListeners.push(filterCheckboxStateChange);
 
+        // FILTER LOG LEVEL
         const filterLogLevel = this.postMessageService.registerMessageHandler("filterLogLevel", (event, respond) => {
             if (event.isChecked) {
                 this.disabledLogLevels = this.disabledLogLevels.filter(level => level !== event.logLevel);
@@ -273,6 +301,7 @@ export class LogContentFilters extends PostMessageDisposableService {
         });
         this.unregisterListeners.push(filterLogLevel);
 
+        // FILTER TIME
         const filterTime = this.postMessageService.registerMessageHandler("filterTime", (event, respond) => {
             if (event.fromDate || event.fromDate === "") {
                 if (event.fromDate === "") {
@@ -290,6 +319,7 @@ export class LogContentFilters extends PostMessageDisposableService {
         });
         this.unregisterListeners.push(filterTime);
 
+        // FILTER REMOVE ENTRIES WITH NO EVENT TIME
         const filterRemoveEntriesWithNoEventTime = this.postMessageService.registerMessageHandler("filterNoEventTime", (event, respond) => {
             if (event.removeEntriesWithNoEventTime === true) {
                 this.minimumDate = new Date(1000).toISOString();
@@ -303,6 +333,7 @@ export class LogContentFilters extends PostMessageDisposableService {
         });
         this.unregisterListeners.push(filterRemoveEntriesWithNoEventTime);
 
+        // FILTER SESSION ID
         const filterSessionId = this.postMessageService.registerMessageHandler("filterSessionId", (event, respond) => {
             if (event.isChecked) {
                 this.sessionId = event.sessionId;
@@ -333,6 +364,16 @@ export class LogContentFilters extends PostMessageDisposableService {
         });
         this.unregisterListeners.push(filterSessionId);
 
+        // FILTER FILE
+        const filterFile = this.postMessageService.registerMessageHandler("updateFileFilterCheckboxState", (event, respond) => {
+            this.disabledFiles.set(event.fileName, { isEnabled: event.isEnabled });
+            
+            this.filterMessagesToRespondTo.push(respond);
+            this.triggerDocumentChange();
+        });
+        this.unregisterListeners.push(filterFile);
+
+        // FILTER TIME THROUGH CODE LENS
         this.onFilterChangeEvent(event => {
             if (event.fromDate || event.fromDate === "") {
                 if (event.fromDate === "") {
@@ -373,8 +414,9 @@ export class LogContentFilters extends PostMessageDisposableService {
         const numberOfKeywordFilters = this.keywordFilters.length;
         const numberOfTimeFilters = (this._timeFilterFrom ? 1 : 0) + (this._timeFilterTill ? 1 : 0);
         const logLevelFilter = this.disabledLogLevels.length;
+        const fileFilter = this._disabledFiles.size;
 
-        return numberOfKeywordFilters + numberOfTimeFilters + logLevelFilter;
+        return numberOfKeywordFilters + numberOfTimeFilters + logLevelFilter + fileFilter;
     }
 }
 
