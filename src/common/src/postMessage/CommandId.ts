@@ -35,6 +35,7 @@ export const CommandIdSchema = z.union([
     z.literal("noWorkspace"),
     z.literal("selectWorkspaceFolder"),
     z.literal("workspaceReady"),
+    z.literal("setFileList"),
 ]);
 
 

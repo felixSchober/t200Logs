@@ -4,7 +4,13 @@
 
 import * as fs from "fs/promises";
 
-import { type IPostMessageService, type LogLevel, type PostMessageEventRespondFunction, type TimeFilterChangedEvent } from "@t200logs/common";
+import {
+    type IPostMessageService,
+    type LogLevel,
+    type PostMessageEventRespondFunction,
+    type TimeFilterChangedEvent,
+} from "@t200logs/common";
+import { LogFile, LogFileList, LogFileType } from "@t200logs/common/src/model/LogFileList";
 import * as vscode from "vscode";
 
 import { ConfigurationManager } from "../configuration/ConfigurationManager";
@@ -172,6 +178,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     private additionalStringsToRemove: RegExp[] = [];
 
+    /**
+     * Strings to replace in the log entries.
+     */
     private readonly stringReplacementMap = [
         {
             searchString: "AuthenticationService: [Auth]",
@@ -223,7 +232,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     /**
      * After we generate the content for the first time we want to update the cursor position in case the user wants
      * to resume reading from where they left off.
-     * 
+     *
      * We will only do this once after the content is generated.
      * After we've updated the cursor position we will set this to null.
      */
@@ -303,14 +312,18 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     private setupTimeFiltersFromConfiguration() {
         this.logger.info("setupTimeFiltersFromConfiguration");
-        
+
         if (this.configurationManager.enabledTimeFilters.fromDate !== undefined) {
-            this.logger.info("setupTimeFiltersFromConfiguration.fromDate", undefined, { fromDate: this.configurationManager.enabledTimeFilters.fromDate?.toString() });
+            this.logger.info("setupTimeFiltersFromConfiguration.fromDate", undefined, {
+                fromDate: this.configurationManager.enabledTimeFilters.fromDate?.toString(),
+            });
             this.timeFilterFrom = this.configurationManager.enabledTimeFilters.fromDate;
         }
 
         if (this.configurationManager.enabledTimeFilters.tillDate !== undefined) {
-            this.logger.info("setupTimeFiltersFromConfiguration.tillDate", undefined, { tillDate: this.configurationManager.enabledTimeFilters.tillDate?.toString() });
+            this.logger.info("setupTimeFiltersFromConfiguration.tillDate", undefined, {
+                tillDate: this.configurationManager.enabledTimeFilters.tillDate?.toString(),
+            });
             this.timeFilterTill = this.configurationManager.enabledTimeFilters.tillDate;
         }
     }
@@ -718,20 +731,91 @@ export class LogContentProvider extends PostMessageDisposableService implements 
 
                 // update the cursor position if we have a position to update
                 // we have to wait for the content to be generated before we can update the cursor position
-                const cursorPosition = this.cursorPositionAfterContentGeneration;
-                if (cursorPosition) {
-                    setTimeout(() => {
-                        this.logger.info("provideTextDocumentContent.setCursor", undefined, {
-                            cursorPositionAfterContentGeneration: "" + cursorPosition,
-                        });
-                        this.documentLocationManager.setCursor(cursorPosition);
-                        this.cursorPositionAfterContentGeneration = null;
-                    }, 1000);
-                }
+                this.updateCursorPosition(token);
+                
+                this.updateFileList(logEntries, filteredLogEntires, token);
 
                 return content;
             }
         );
+    }
+
+    /**
+     * Updates the cursor position after the content is generated.
+     * @param token The cancellation token.
+     */
+    private updateCursorPosition(token: vscode.CancellationToken) {
+        const cursorPosition = this.cursorPositionAfterContentGeneration;
+        if (cursorPosition) {
+            setTimeout(() => {
+                this.logger.info("provideTextDocumentContent.setCursor", undefined, {
+                    cursorPositionAfterContentGeneration: "" + cursorPosition,
+                });
+                throwIfCancellation(token);
+                this.documentLocationManager.setCursor(cursorPosition);
+                this.cursorPositionAfterContentGeneration = null;
+            }, 1000);
+        }
+    }
+
+    /**
+     * Sends a message to the webview to update the file list after the content is generated.
+     * @param nonFilteredLogEntries The log entries before filtering and grouping.
+     * @param filteredLogEntries Map of the log entries after filtering and grouping. The key is the timestamp in seconds and the value is the log entries for that second.
+     * @param token The cancellation token.
+     */
+    private updateFileList(nonFilteredLogEntries: LogEntry[], filteredLogEntries: Map<number, LogEntry[]>, token: vscode.CancellationToken): void {
+        this.logger.info("updateFileList");
+        throwIfCancellation(token);
+        const files: Record<string, LogFile> = {};
+        const fileKeys: string[] = [];
+        
+        for (const logEntry of nonFilteredLogEntries) {
+            const serviceName = logEntry.service;
+            if (!serviceName) {
+                continue; // skip log entries without a service name
+            }
+
+            if (!files[serviceName]) {
+                throwIfCancellation(token);
+                files[serviceName] = {
+                    fileName: serviceName,
+                    fileType: this.getFileTypeFromService(serviceName),
+                    numberOfEntries: 0,
+                    numberOfFilteredEntries: 0,
+                };
+                fileKeys.push(serviceName);
+            }
+            files[serviceName].numberOfEntries++;
+        }
+        this.logger.info("updateFileList.nonFiltered", undefined, { fileCount: "" + fileKeys.length });
+        throwIfCancellation(token);
+
+        // go over the filtered log entries and update the number of filtered entries for each file
+        for (const [, logEntries] of filteredLogEntries) {
+            for (const logEntry of logEntries) {
+                const serviceName = logEntry.service;
+                if (!serviceName) {
+                    continue; // skip log entries without a service name
+                }
+
+                if (!files[serviceName]) {
+                    // this should never happen because we already went over all unfiltered the log entries
+                    this.logger.logException(
+                        "updateFileList.missingService",
+                        new Error(`Service name not found in the list of files: ${serviceName}`),
+                        "Service name not found in the list of files."
+                    );
+                    continue;
+                }
+                files[serviceName].numberOfFilteredEntries++;
+            }
+        }
+        this.logger.info("updateFileList.filtered");
+        throwIfCancellation(token);
+
+        const fileList: LogFileList = fileKeys.map(key => files[key]);
+        this.postMessageService.sendAndForget({ command: "setFileList", data: fileList });
     }
 
     /**
@@ -1245,67 +1329,37 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @returns The substituted file name.
      */
     private substituteFileNames(service: string): string {
-        switch (service) {
-            case "Launcher":
-            case "MSTeams":
-            case "TeamsNotificationCenter":
-            case "TeamsRespawnService":
-            case "TeamsSwitcher":
-            case "skylib":
-            case "tscalling":
+        const fileType = this.getFileTypeFromService(service);
+        switch (fileType) {
+            case "desktop":
                 return "🖥️";
-            case "HAR":
+            case "har":
                 return "📡";
-            default:
+            case "web":
                 return "🌐";
         }
     }
+
+    /**
+     * Gets the file type for the given service.
+     * @param service The service name to get the file type for.
+     * @returns The file type for the service.
+     */
+    private getFileTypeFromService(service: string): LogFileType {
+        switch (service) {
+                    case "Launcher":
+                    case "MSTeams":
+                    case "TeamsNotificationCenter":
+                    case "TeamsRespawnService":
+                    case "TeamsSwitcher":
+                    case "skylib":
+                    case "tscalling":
+                        return "desktop";
+                    case "HAR":
+                        return "har";
+                    default:
+                        return "web";
+                }
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
