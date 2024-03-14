@@ -164,6 +164,18 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.workspaceReady,
             eventListeners: [],
         },
+        setFileList: {
+            commandSchema: MessageSchemaMap.setFileList,
+            eventListeners: [],
+        },
+        setFileListFromConfiguration: {
+            commandSchema: MessageSchemaMap.setFileListFromConfiguration,
+            eventListeners: [],
+        },
+        updateFileFilterCheckboxState: {
+            commandSchema: MessageSchemaMap.updateFileFilterCheckboxState,
+            eventListeners: [],
+        },
     };
 
     /**

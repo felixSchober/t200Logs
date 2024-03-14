@@ -13,6 +13,7 @@ import { KeywordFilter } from "./KeywordFilter";
 import { LogLevelFilter } from "./LogLevelFilter";
 import { OpenLogsViewerButton } from "./OpenLogsViewerButton";
 import { TimeFilter } from "./TimeFilter";
+import { FileFilter } from "./FileFilter";
 
 export const FilteringPanelView: React.FC = () => {
     const activeFilters = useMessageSubscription("updateNumberOfActiveFilters");
@@ -38,6 +39,10 @@ export const FilteringPanelView: React.FC = () => {
                     <KeywordFilter />
                     <VSCodeDivider />
 
+                    <h3>Filter based on file</h3>
+                    <FileFilter />
+                    <VSCodeDivider />
+
                     <h3>Display settings</h3>
                     <p>Please note that some of these settings might affect performance</p>
                     <DisplaySettings />
@@ -46,6 +51,7 @@ export const FilteringPanelView: React.FC = () => {
         </>
     );
 };
+
 
 
 

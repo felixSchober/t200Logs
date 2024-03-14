@@ -144,8 +144,14 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     private lengthOfLongestFileName = 0;
 
+    /**
+     * The scheme for the log viewer document.
+     */
     public static readonly documentScheme = "log-viewer";
 
+    /**
+     * The marker for the start of a folding region.
+     */
     public static readonly foldingRegionEndMarker = "======";
 
     /**
@@ -153,6 +159,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     public static readonly foldingRegionPrefix = "// ";
 
+    /**
+     * The uri for the log viewer document.
+     */
     public static readonly documentUri = vscode.Uri.parse(`${this.documentScheme}:/log-viewer.log`);
 
     private readonly logger: ScopedILogger;
@@ -813,7 +822,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
         this.logger.info("updateFileList.filtered");
         throwIfCancellation(token);
-
+        debugger;
         const fileList: LogFileList = fileKeys.map(key => files[key]);
         this.postMessageService.sendAndForget({ command: "setFileList", data: fileList });
     }
@@ -915,13 +924,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             // in T2.1 weblogs will be in folders starting with core or user
             // these folders will contain files with the same name however, we should not group them together
             if (folder?.startsWith("Core")) {
-                filename = "core-" + filename;
+                filename = "core/" + filename;
             } else if (folder?.startsWith("User")) {
                 // get the guid from the folder name
                 // example User (Primary; 05f3f692-27ba-4a63-a862-cc66a146f3f3)
                 // use the first 5 characters of the guid
                 const guid = folder.match(GUID_REGEX);
-                filename = "user-" + (guid ? guid[0].substring(0, 5) : "") + "-" + filename;
+                filename = "user-" + (guid ? guid[0].substring(0, 5) : "") + "/" + filename;
             }
 
             if (filename) {

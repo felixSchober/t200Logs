@@ -40,11 +40,31 @@ export const LogFileNameSchema = z.object({
 });
 
 /**
+ * Extends the {@link LogFileNameSchema} with the state of the file.
+ */
+export const LogFileNameWithStateSchema = LogFileNameSchema.extend({
+    /**
+     * Whether the file is enabled and log entries are included in the view.
+     */
+    isEnabled: z.boolean(),
+});
+
+/**
  * A single file and its properties.
  */
 export type LogFile = z.infer<typeof LogFileNameSchema>;
 
 /**
+ * A single file and its properties with the state of the file.
+ */
+export type LogFileWithState = z.infer<typeof LogFileNameWithStateSchema>;
+
+/**
  * A list of {@link LogFile|files} and their properties used to display the file list.
  */
-export type LogFileList = z.infer<typeof LogFileNameSchema>[];
+export type LogFileList = LogFile[];
+
+/**
+ * A list of {@link LogFileWithState|files} and their properties used to display the file list with state.
+ */
+export type LogFileListWithState = LogFileWithState[];
