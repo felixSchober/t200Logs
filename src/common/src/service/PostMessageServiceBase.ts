@@ -176,6 +176,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.updateFileFilterCheckboxState,
             eventListeners: [],
         },
+        openFile: {
+            commandSchema: MessageSchemaMap.openFile,
+            eventListeners: [],
+        },
     };
 
     /**

@@ -154,6 +154,9 @@ export const MessageSchemaMap = {
          */
         displayReadableDates: z.boolean().nullable(),
     }),
+    /**
+     * Message sent from the webview to the extension to open the logs document.
+     */
     openLogsDocument: z.undefined(),
     keywordHighlightStateChange: z.object({
         /**
@@ -265,6 +268,12 @@ export const MessageSchemaMap = {
      * Message sent from the webview to the extension to update the file filter checkbox state.
      */
     updateFileFilterCheckboxState: LogFileNameWithStateSchema,
+
+    /**
+     * Message sent from the webview to the extension to open a specific log file.
+     * The data is the file path to open.
+     */
+    openFile: z.string(),
 } as const;
 
 

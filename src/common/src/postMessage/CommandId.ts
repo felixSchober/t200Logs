@@ -38,6 +38,7 @@ export const CommandIdSchema = z.union([
     z.literal("setFileList"), // Set the file list (extension -> ui)
     z.literal("setFileListFromConfiguration"), // Update the file list from the configuration (e.g. which files are checked) (extension -> ui)
     z.literal("updateFileFilterCheckboxState"), // Update the file filter checkbox state (ui -> extension)
+    z.literal("openFile"), // Command to open a specific log file (ui -> extension)
 ]);
 
 

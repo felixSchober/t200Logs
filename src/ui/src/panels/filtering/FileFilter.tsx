@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-import { VSCodeCheckbox, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
+import { VSCodeButton, VSCodeCheckbox, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 
 import { Flex } from "../../common/Flex";
@@ -16,6 +16,7 @@ export const FileFilter: React.FC = () => {
     const [files, setFiles] = React.useState<LogFileListWithState>([]);
 
     const { send } = useSendAndReceive("updateFileFilterCheckboxState", "messageAck");
+    const { send: sendOpenLogFile } = useSendAndReceive("openFile", "messageAck");
     const fileStateFromConfiguration = useMessageSubscription("setFileListFromConfiguration");
     const fileList = useMessageSubscription("setFileList");
 
@@ -35,6 +36,7 @@ export const FileFilter: React.FC = () => {
                         numberOfEntries: file.numberOfEntries,
                         numberOfFilteredEntries: file.numberOfFilteredEntries,
                         isEnabled: existingFile?.isEnabled ?? true,
+                        fullFilePath: file.fullFilePath,
                     };
                 });
                 return newState;
@@ -63,6 +65,7 @@ export const FileFilter: React.FC = () => {
                         // file not in state - add a new file to the state with dummy values
                         newState.push({
                             fileName,
+                            fullFilePath: null,
                             fileType: "unknown",
                             isEnabled: false,
                             numberOfEntries: 0,
@@ -107,10 +110,19 @@ export const FileFilter: React.FC = () => {
         [log, logError, send]
     );
 
+    const getOnOpenFileClick = React.useCallback(
+        (fullFilePath: string) => {
+            return () => sendOpenLogFile(fullFilePath);
+        },
+        [sendOpenLogFile]
+    );
+
     return (
         <Flex direction="column" wrap="wrap" justifyContent="space-evenly">
             {isPending && <VSCodeProgressRing />}
             {files.map(file => {
+                const openFile = file.fullFilePath ? getOnOpenFileClick(file.fullFilePath) : undefined;
+                const isDisabled = !openFile;
                 return (
                     <Flex key={`file_${file.fileName}`} direction="row" wrap="wrap" justifyContent="flex-start">
                         <VSCodeCheckbox
@@ -120,12 +132,27 @@ export const FileFilter: React.FC = () => {
                             onChange={onCheckboxChange}>
                             {file.fileName}
                         </VSCodeCheckbox>
+
+                        <VSCodeButton
+                            style={{ marginLeft: "auto" }}
+                            appearance="icon"
+                            aria-label="Open file"
+                            disabled={isDisabled}
+                            onClick={openFile}>
+                            <span className="codicon codicon-go-to-file"></span>
+                        </VSCodeButton>
                     </Flex>
                 );
             })}
         </Flex>
     );
 };
+
+
+
+
+
+
 
 
 

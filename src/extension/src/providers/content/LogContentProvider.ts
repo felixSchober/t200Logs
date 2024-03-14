@@ -15,31 +15,18 @@ import * as vscode from "vscode";
 
 import { ConfigurationManager } from "../../configuration";
 import { DocumentLocationManager } from "../../configuration/DocumentLocationManager";
-import { EPOCH_DATE } from "../../constants/constants";
+import { EPOCH_DATE, MAX_LOG_FILES_PER_SERVICE } from "../../constants/constants";
 import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../../constants/regex";
 import { PostMessageDisposableService } from "../../service/PostMessageDisposableService";
+import { ServiceFiles, WorkspaceFileService } from "../../service/WorkspaceFileService";
 import { ScopedILogger } from "../../telemetry/ILogger";
 import { ITelemetryLogger } from "../../telemetry/ITelemetryLogger";
+import { isDefined } from "../../utils/isDefined";
 import { throwIfCancellation } from "../../utils/throwIfCancellation";
 
 import { HarFileProvider } from "./HarFileProvider";
 import { LogContentFilters } from "./LogContentFilters";
 import { LogEntry } from "./LogEntry";
-
-type ServiceFiles = {
-    /**
-     * The name of the service.
-     */
-    serviceName: string;
-    /**
-     * The files of the service.
-     */
-    files: vscode.Uri[];
-};
-
-const MAX_LOG_FILES_PER_SERVICE = 3;
-
-const MAX_LOG_FILES_RETURNED = 400;
 
 const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
     error: ERROR_REGEX,
@@ -53,12 +40,6 @@ const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
  */
 export class LogContentProvider extends PostMessageDisposableService implements vscode.TextDocumentContentProvider {
     /**
-     * A list of log files that are used to render the text content.
-     * This list will only be set on the first call to provideTextDocumentContent.
-     */
-    private logFileCache: vscode.Uri[] = [];
-
-    /**
      * A list of lines from the log files generated at the start when the class is initialized.
      */
     private logEntryCache: LogEntry[] = [];
@@ -67,11 +48,6 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * A map of log entries grouped by timestamp seconds.
      */
     private groupedLogEntries: Map<number, LogEntry[]> = new Map();
-
-    /**
-     * The number of characters in the longest file name.
-     */
-    private lengthOfLongestFileName = 0;
 
     /**
      * The scheme for the log viewer document.
@@ -140,7 +116,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     private readonly displaySettingsToRespondTo: PostMessageEventRespondFunction[] = [];
 
-    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+    private readonly _onDidChange = new vscode.EventEmitter<vscode.Uri>();
     readonly onDidChange = this._onDidChange.event;
 
     private changeTrigger = 0;
@@ -158,9 +134,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     public onTextDocumentGenerationFinished = new vscode.EventEmitter<string>();
 
     /**
-     * Watcher for the log files in the workspace.
+     * Event that is fired when the workspace files change.
      */
-    private readonly watcher: vscode.FileSystemWatcher;
+    private readonly onFileChangeEventDisposable: vscode.Disposable;
 
     /**
      * The provider for the HAR files.
@@ -182,6 +158,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @param postMessageService The post message service to use for communication with the extension.
      * @param configurationManager The configuration manager.
      * @param documentLocationManager The document location manager to set the cursor position.
+     * @param workspaceFileService The workspace file service used to retrieve the log files.
      * @param logger The logger.
      */
     constructor(
@@ -189,6 +166,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         private readonly postMessageService: IPostMessageService,
         configurationManager: ConfigurationManager,
         private readonly documentLocationManager: DocumentLocationManager,
+        private readonly workspaceFileService: WorkspaceFileService,
         logger: ITelemetryLogger
     ) {
         super();
@@ -202,10 +180,14 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             () => this.logEntryCache,
             logger
         );
+
         this.registerDisplaySettingEvents();
 
-        this.watcher = vscode.workspace.createFileSystemWatcher("**/*.{log,txt}", false, false, false);
-        this.registerFileWatcherEvents();
+        // register event for file changes
+        this.onFileChangeEventDisposable = workspaceFileService.onFileChangeEvent(() => {
+            this.logger.info("onFileChange");
+            this.reset();
+        });
 
         this.harFileProvider = new HarFileProvider(logger);
         this.cursorPositionAfterContentGeneration = configurationManager.restoredCursorPosition;
@@ -266,26 +248,8 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     public override dispose() {
         super.dispose();
-        this.watcher.dispose();
         this.filters.dispose();
-    }
-
-    /**
-     * Registers a file watcher for the log files in the workspace so that we can re-fetch the log files and re-generate the content.
-     */
-    private registerFileWatcherEvents() {
-        this.watcher.onDidChange(uri => {
-            this.logger.info("registerFileWatcher.onDidChange", undefined, { uri: uri.fsPath });
-            this.reset();
-        });
-        this.watcher.onDidCreate(uri => {
-            this.logger.info("registerFileWatcher.onDidCreate", undefined, { uri: uri.fsPath });
-            this.reset();
-        });
-        this.watcher.onDidDelete(uri => {
-            this.logger.info("registerFileWatcher.onDidDelete", undefined, { uri: uri.fsPath });
-            this.reset();
-        });
+        this.onFileChangeEventDisposable.dispose();
     }
 
     /**
@@ -294,13 +258,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     public reset(resetFilters = false) {
         this.logger.info("reset");
-        this.logFileCache = [];
         this.logEntryCache = [];
         this.groupedLogEntries = new Map();
         this.harFileProvider.clearCache();
         if (resetFilters) {
             this.filters.reset();
         }
+        this.workspaceFileService.reset();
 
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
@@ -351,30 +315,22 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 progress.report({ increment: 1, message: "Waiting for vscode UI thread" });
                 progress.report({ increment: 1, message: "Finding files" });
 
-                if (this.logEntryCache.length === 0) {
-                    this.logFileCache = await vscode.workspace.findFiles(
-                        "**/*.{log,txt}",
-                        "**/node_modules/**",
-                        MAX_LOG_FILES_RETURNED,
-                        token
-                    );
-                    this.logger.info("provideTextDocumentContent.findFiles", undefined, { logFileCount: "" + this.logFileCache.length });
-                } else {
-                    this.logger.info("provideTextDocumentContent.findFiles.cache", undefined, {
-                        logEntryCount: "" + this.logEntryCache.length,
-                    });
-                }
+                const logFiles = await this.workspaceFileService.generateFileList(token);
 
                 throwIfCancellation(token);
                 progress.report({ increment: 10, message: "Grouping files" });
 
                 // Group files by service and sort them by date
-                const serviceFiles = this.groupAndSortFiles(this.logFileCache, token);
-                this.logger.info("provideTextDocumentContent.groupAndSortFiles.success", undefined, {
-                    serviceFileCount: "" + serviceFiles.length,
-                });
-                progress.report({ increment: 24, message: "Parsing log entries" });
+                let serviceFiles: ServiceFiles[] = [];
+                // no need to group and sort if we have a cache of the next step
+                if (this.logEntryCache.length === 0) {
+                    serviceFiles = this.workspaceFileService.groupAndSortFiles(logFiles, token);
+                    this.logger.info("provideTextDocumentContent.groupAndSortFiles.success", undefined, {
+                        serviceFileCount: "" + serviceFiles.length,
+                    });
+                }
 
+                progress.report({ increment: 24, message: "Parsing log entries" });
                 throwIfCancellation(token);
 
                 // Read and parse all log files
@@ -486,6 +442,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 throwIfCancellation(token);
                 files[serviceName] = {
                     fileName: serviceName,
+                    fullFilePath: logEntry.filePath ?? null,
                     fileType: this.getFileTypeFromService(serviceName),
                     numberOfEntries: 0,
                     numberOfFilteredEntries: 0,
@@ -577,7 +534,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             for (const file of recentFiles) {
                 filesRead++;
                 const content = await fs.readFile(file.fsPath, "utf8");
-                const fileLogEntries = this.parseLogContent(content, filesForService.serviceName, logEntriesRead);
+                const fileLogEntries = this.parseLogContent(content, filesForService.serviceName, file.path, logEntriesRead);
                 logEntriesRead += fileLogEntries.length;
                 logEntries = logEntries.concat(fileLogEntries);
             }
@@ -589,117 +546,21 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     }
 
     /**
-     * Groups the given files by service and sorts them by date.
-     * @param files The files to group and sort.
-     * @param token The cancellation token.
-     * @returns A record of service names and their files.
-     */
-    private groupAndSortFiles(files: vscode.Uri[], token: vscode.CancellationToken): ServiceFiles[] {
-        const fileGroups: Record<string, ServiceFiles> = {};
-
-        if (this.logEntryCache.length > 0) {
-            this.logger.info("groupAndSortFiles.cache", undefined, { logEntryCount: "" + this.logEntryCache.length });
-            return [];
-        }
-        this.logger.info("groupAndSortFiles.start", undefined, { fileCount: "" + files.length });
-
-        for (const file of files) {
-            throwIfCancellation(token);
-            const separatedFilepaths = file.path.split("/");
-            let filename = separatedFilepaths.pop();
-            const folder = separatedFilepaths.pop();
-
-            // in T2.1 weblogs will be in folders starting with core or user
-            // these folders will contain files with the same name however, we should not group them together
-            if (folder?.startsWith("Core")) {
-                filename = "core/" + filename;
-            } else if (folder?.startsWith("User")) {
-                // get the guid from the folder name
-                // example User (Primary; 05f3f692-27ba-4a63-a862-cc66a146f3f3)
-                // use the first 5 characters of the guid
-                const guid = folder.match(GUID_REGEX);
-                filename = "user-" + (guid ? guid[0].substring(0, 5) : "") + "/" + filename;
-            }
-
-            if (filename) {
-                const parts = filename.split("_");
-                let serviceName = parts[0];
-
-                // remove the file extension
-                serviceName = serviceName.split(".")[0];
-
-                this.logger.info(
-                    "groupAndSortFiles.foundFile",
-                    `Found log file for service '${serviceName}' in folder '${folder}' - Filename: ${filename}.`,
-                    { serviceName, folder, filename }
-                );
-
-                if (fileGroups[serviceName]) {
-                    fileGroups[serviceName].files.push(file);
-                    continue;
-                }
-
-                this.lengthOfLongestFileName = Math.max(this.lengthOfLongestFileName, serviceName.length);
-                fileGroups[serviceName] = {
-                    serviceName,
-                    files: [file],
-                };
-            }
-        }
-
-        // Sort files within each group by date
-        const result: ServiceFiles[] = [];
-        for (const serviceName in fileGroups) {
-            throwIfCancellation(token);
-            // only sort files if there are more than 2 files
-            if (fileGroups[serviceName].files.length >= MAX_LOG_FILES_PER_SERVICE) {
-                fileGroups[serviceName].files = fileGroups[serviceName].files.sort((a, b) => {
-                    const aTimestamp = this.extractTimestampFromFilePath(a.path);
-                    const bTimestamp = this.extractTimestampFromFilePath(b.path);
-                    return bTimestamp - aTimestamp; // Sort in descending order
-                });
-            }
-            result.push(fileGroups[serviceName]);
-        }
-
-        this.logger.info("groupAndSortFiles.end", undefined, {
-            serviceFileCount: "" + result.length,
-            lengthOfLongestFileName: "" + this.lengthOfLongestFileName,
-        });
-        return result;
-    }
-
-    /**
-     * Extracts the timestamp from the given file path.
-     * Example: MSTeams_2023-11-23_12-40-44.33.log.
-     * @param filePath The file path to extract the timestamp from.
-     * @returns The timestamp of the file.
-     */
-    private extractTimestampFromFilePath(filePath: string): number {
-        const regex = /_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/;
-        const match = filePath.match(regex);
-
-        // will convert the capture group 2024-02-01_17-11-00 to two array entries
-        let [datePart, timePart] = match ? match[1].split("_") : ["", ""];
-        timePart = timePart.replace(/-/g, ":");
-        return new Date(`${datePart} ${timePart}`).getTime() || 0;
-    }
-
-    /**
      * Parses the content of a log file and returns log entries with their dates.
      * @param content The content of the log file.
      * @param serviceName The name of the service that generated the log file.
+     * @param filePath The file path of the log file.
      * @param logEntriesRead The number of log entries read so far. This is used as a unique identifier for each log entry.
      * @returns An array of log entries with their dates.
      */
-    private parseLogContent(content: string, serviceName: string, logEntriesRead: number): Array<LogEntry> {
+    private parseLogContent(content: string, serviceName: string, filePath: string, logEntriesRead: number): Array<LogEntry> {
         this.stringReplacementMap.forEach(replacement => {
             content = content.replaceAll(replacement.searchString, replacement.replacementString);
         });
 
         // The previous line is used to check if we have a duplicate log entry.
         let previousLine = "";
-        const contentOrNull = content.split("\n").map(line => {
+        const contentOrNull: (LogEntry | null)[] = content.split("\n").map(line => {
             const truncatedLine = this.truncateLongLines(line);
             const date = this.extractDateFromLogEntry(truncatedLine);
             logEntriesRead++;
@@ -712,10 +573,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 date: date,
                 text: `[${this.padZero(logEntriesRead)}]${truncatedLine}`,
                 service: serviceName,
+                filePath
             };
         });
 
-        return contentOrNull.filter(entry => entry !== null) as LogEntry[];
+        return contentOrNull.filter(isDefined);
     }
 
     /**
@@ -804,7 +666,12 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             if (shouldStay) {
                 // Filter out log entries based on the keywords
                 const filteredLogsEntries = logs.filter(entry => {
-                    return entry.isMarker || (this.matchesKeywordFilter(entry.text) && this.matchesLogLevel(entry.text, logLevelRegex) && this.matchesFileFilter(entry.service));
+                    return (
+                        entry.isMarker ||
+                        (this.matchesKeywordFilter(entry.text) &&
+                            this.matchesLogLevel(entry.text, logLevelRegex) &&
+                            this.matchesFileFilter(entry.service))
+                    );
                 });
 
                 filteredLogs.set(timestamp, filteredLogsEntries);
@@ -911,7 +778,6 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         return filterState === undefined || filterState;
     }
 
-
     /**
      * Groups the given log entries by second.
      * This assumes that the list of log entries is sorted by date and not filtered.
@@ -948,6 +814,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 if (currentSecond !== null) {
                     // Add a foldable region marker (this is a placeholder, actual folding is handled elsewhere)
                     const marker = `${LogContentProvider.foldingRegionPrefix}${LogContentProvider.foldingRegionEndMarker}\n`;
+
+                    // TODO: I've just added the full file path as a requirement for the log entries.
+                    // THis is required so that we can generate the file list with the real file names.
+                    // and the users can open the files from the webview.
+                    // Remove the required filePath once we have provided it where possible.
                     currentGroup.push({ date: currentSecond, text: marker, isMarker: true });
 
                     // since this is the end of a group, add the current group to the map
@@ -976,7 +847,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             // removes all information that is not needed one by one
             // stringsToRemove is a static list so we can cache the result
             const entryText = this.staticStringsToRemove.reduce((text, regex) => text.replaceAll(regex, ""), entry.text);
-            currentGroup.push({ date: entry.date, text: entryText, service: entry.service });
+            currentGroup.push({ date: entry.date, text: entryText, service: entry.service, filePath: entry.filePath });
         }
 
         // Add the last group to the map
@@ -1022,7 +893,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         if (logEntry.service) {
             if (this._displayFileNames) {
                 // make sure that the prefix is always the same length
-                const fileNamePrefix = logEntry.service.padEnd(this.lengthOfLongestFileName, " ");
+                const fileNamePrefix = logEntry.service.padEnd(this.workspaceFileService.lengthOfLongestFileName, " ");
 
                 prefix = `[${fileNamePrefix}]`;
             } else {

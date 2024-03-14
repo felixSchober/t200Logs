@@ -29,6 +29,11 @@ export const LogFileNameSchema = z.object({
     fileType: LogFileTypeSchema,
 
     /**
+     * The full path to the file.
+     */
+    fullFilePath: z.string().nullable(),
+
+    /**
      * The number of entries for the file.
      */
     numberOfEntries: z.number().nonnegative(),

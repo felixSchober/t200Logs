@@ -14,6 +14,7 @@ import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
 import { LogContentProvider } from "./providers/content/LogContentProvider";
 import { ExtensionPostMessageService } from "./service/ExtensionPostMessageService";
+import { WorkspaceFileService } from "./service/WorkspaceFileService";
 import { WorkspaceService } from "./service/WorkspaceService";
 import { DevLogger } from "./telemetry";
 import { ITelemetryLogger } from "./telemetry/ITelemetryLogger";
@@ -46,11 +47,13 @@ export async function activate(context: vscode.ExtensionContext) {
         await telemetryReporter.info("extension.activate().serviceInitialization");
         onCodeLensFilterApplied = new vscode.EventEmitter<TimeFilterChangedEvent>();
         postMessageService = new ExtensionPostMessageService(telemetryReporter);
+        const workspaceFileService = new WorkspaceFileService(postMessageService, telemetryReporter);
         logContentProvider = new LogContentProvider(
             onCodeLensFilterApplied.event,
             postMessageService,
             configurationManager,
             documentLocationManager,
+            workspaceFileService,
             telemetryReporter            
         );
 
@@ -63,6 +66,7 @@ export async function activate(context: vscode.ExtensionContext) {
         disposableServices.push(configurationManager);
         disposableServices.push(workspaceService);
         disposableServices.push(documentLocationManager);
+        disposableServices.push(workspaceFileService);
     }
 
     setupFoldingRangeProvider(context);
