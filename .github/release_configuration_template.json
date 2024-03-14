@@ -1,32 +1,32 @@
 {
     "categories": [
-    {
-        "title": "#### 🚀 Features",
-        "labels": [
-            "type: feature request",
-            "type: enhancement",
-            "type: epic",
-            "feat:"
-        ]
-    },
-    {
-        "title": "#### 🐛 Bug Fixes",
-        "labels": [
-            "type: bug",
-            "fix:"
-        ]
-    },
-    {
-        "title": "#### 🧪 Maintenance",
-        "labels": [
-            "dependencies",
-            "type: chore",
-            "type: ci",
-            "type: dependencies",
-            "documentation",
-            "bump"
-        ]
-    }
+        {
+            "title": "#### 🚀 Features",
+            "labels": [
+                "type: feature request",
+                "type: enhancement",
+                "type: epic",
+                "feat:"
+            ]
+        },
+        {
+            "title": "#### 🐛 Bug Fixes",
+            "labels": [
+                "type: bug",
+                "fix:"
+            ]
+        },
+        {
+            "title": "#### 🧪 Maintenance",
+            "labels": [
+                "dependencies",
+                "type: chore",
+                "type: ci",
+                "type: dependencies",
+                "documentation",
+                "bump"
+            ]
+        }
     ],
     "ignore_labels": [
         "duplicate",
@@ -34,10 +34,9 @@
         "invalid",
         "wontfix"
     ],
-    "template": "#{{CHANGELOG}}\n\n#### 📦 Uncategorized\n\n${{UNCATEGORIZED}}",
+    "template": "#{{CHANGELOG}}\n#### 📦 Uncategorized\n${{UNCATEGORIZED}}",
     "pr_template": "- #{{TITLE}}",
     "base_branches": [
         "dev"
     ]
 }
-  
