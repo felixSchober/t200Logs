@@ -112,10 +112,7 @@ export class WebviewPanelProvider implements WebviewViewProvider {
 
         // replace the font path in the codiconCssPath CSS file with the webview URI
         let cssContent = fs.readFileSync(codiconCssPath.fsPath, "utf8");
-        cssContent = cssContent.replace(
-            /src:\s*url\(["'](\.\/codicon\.ttf\?[a-zA-Z0-9]+)["']\)\s*format\(["']truetype["']\);/,
-            codiconFontPath.toString()
-        );
+        cssContent = this.replaceCodiconFontPath(cssContent, codiconFontPath.toString());
         fs.writeFileSync(codiconCssPath.fsPath, cssContent);
 
         // Path to the JS file
@@ -132,6 +129,27 @@ export class WebviewPanelProvider implements WebviewViewProvider {
         this.logger.info("getHtmlForWebview.end", undefined, { htmlContentLength: "" + htmlContent.length });
 
         return htmlContent;
+    }
+
+    /**
+     * Replaces the font path in the CSS content with the webview URI.
+     * @param cssContent The CSS content of the codicon.css file.
+     * @param codiconFontPath The webview URI to the codicon.ttf file.
+     * @returns The CSS content with the font path replaced with the webview URI.
+     */
+    private replaceCodiconFontPath(cssContent: string, codiconFontPath: string): string {
+        // The following regex is used to replace the font path in the CSS content with the webview URI.
+        // It matches the following pattern:
+        // src: url("URL_TO_CODICON/codicon.ttf")
+        // There are three capturing groups:
+        // 1. src: url("
+        // 2. URL_TO_CODICON/codicon.ttf
+        // 3. ")
+        // These are then used to replace only the middle capturing group ($2) with the webview URI.
+        // eslint-disable-next-line no-useless-escape
+        const replacementRegex = /(src:\s*url\(\")(.*codicon.ttf)(\"\))/;
+
+        return cssContent.replace(replacementRegex, `$1${codiconFontPath}$3`);
     }
 }
 

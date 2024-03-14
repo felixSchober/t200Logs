@@ -1,0 +1,48 @@
+{
+    "categories": [
+        {
+            "title": "#### 🚀 Features",
+            "labels": [
+                "feat"
+            ]
+        },
+        {
+            "title": "#### 🐛 Bug Fixes",
+            "labels": [
+                "fix",
+                "perf",
+                "revert"
+            ]
+        },
+        {
+            "title": "#### 🧪 Maintenance",
+            "labels": [
+                "refactor",
+                "chore",
+                "ci",
+                "build",
+                "documentation",
+                "Bump",
+                "bump",
+                "docs",
+                "style",
+                "test"
+            ]
+        }
+    ],
+    "ignore_labels": [
+        "Merge",
+        "BUMP"
+    ],
+    "template": "#{{CHANGELOG}}\n#### 📦 Changes\n${{UNCATEGORIZED}}",
+    "pr_template": "- #{{TITLE}}",
+    "base_branches": [
+        "dev"
+    ],
+    "label_extractor": [
+        {
+            "pattern": "^(Merge|build|Bump|bump|BUMP|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}[:]?\\s(.*)",
+            "target": "$1"
+        }
+    ]
+}

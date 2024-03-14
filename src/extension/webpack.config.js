@@ -5,12 +5,10 @@
 "use strict";
 
 const path = require("path");
-const CopyPlugin = require("copy-webpack-plugin");
-const WatchExternalFilesPlugin = require('webpack-watch-files-plugin').default;
-//@ts-check
-/** @typedef {import('webpack').Configuration} WebpackConfig **/
 
-/** @type WebpackConfig */
+const CopyPlugin = require("copy-webpack-plugin");
+const WatchExternalFilesPlugin = require("webpack-watch-files-plugin").default;
+
 
 module.exports = (env) => {
     console.log("T200 EXTENSION", env);
@@ -21,6 +19,11 @@ module.exports = (env) => {
 
     const mediaPath = path.resolve(__dirname, "media", "sidePanelReact");
     console.log("T200 EXTENSION mediaPath", mediaPath);
+
+    const isProduction = env.production === true;
+    const sourceMaps = isProduction ? undefined : "inline-source-map";
+
+
     return {
         plugins: [
             new CopyPlugin({
@@ -69,7 +72,7 @@ module.exports = (env) => {
                 }
             ]
         },
-        devtool: "nosources-source-map",
+        devtool: sourceMaps,
         infrastructureLogging: {
             level: "log", // enables logging required for problem matchers
         },

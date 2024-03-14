@@ -130,6 +130,11 @@ jobs:
           echo "Latest tag: $LATEST_TAG"
           echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
+      - name: Create new release tag
+        run: |
+          git tag -a ${{steps.get_latest_tag.outputs.tag}}-release -f -m "Release ${{steps.get_latest_tag.outputs.tag}}"
+          git push origin -f --tags
+
       - name: upload vsix as artifact
         uses: actions/upload-artifact@v4
         with:
