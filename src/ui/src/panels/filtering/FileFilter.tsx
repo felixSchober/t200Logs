@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-import { VSCodeButton, VSCodeCheckbox, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
+import { VSCodeButton, VSCodeCheckbox, VSCodeProgressRing, VSCodeTag } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 
 import { Flex } from "../../common/Flex";
@@ -133,26 +133,24 @@ export const FileFilter: React.FC = () => {
                             {file.fileName}
                         </VSCodeCheckbox>
 
-                        <VSCodeButton
-                            style={{ marginLeft: "auto" }}
-                            appearance="icon"
-                            aria-label="Open file"
-                            disabled={isDisabled}
-                            onClick={openFile}>
-                            <span className="codicon codicon-go-to-file"></span>
-                        </VSCodeButton>
+                        <div style={{ marginLeft: "auto" }}>
+                            <VSCodeTag
+                                title={`Number of filtered entries ${file.numberOfFilteredEntries} - Total lines: ${file.numberOfEntries}`}>
+                                {file.numberOfFilteredEntries}/{file.numberOfEntries}
+                            </VSCodeTag>
+                            <VSCodeButton
+                                appearance="icon"
+                                aria-label="Open file"
+                                title="Open file"
+                                disabled={isDisabled}
+                                onClick={openFile}>
+                                <span className="codicon codicon-go-to-file"></span>
+                            </VSCodeButton>
+                        </div>
                     </Flex>
                 );
             })}
         </Flex>
     );
 };
-
-
-
-
-
-
-
-
 
