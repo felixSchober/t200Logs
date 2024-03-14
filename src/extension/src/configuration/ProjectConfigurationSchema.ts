@@ -8,7 +8,7 @@ import { z } from "zod";
 /**
  * The valid versions of the project configuration schema.
  */
-const ValidVersionSchema = z.union([z.literal("1.0.0"), z.literal("1.0.1")]);
+const ValidVersionSchema = z.union([z.literal("1.0.0"), z.literal("1.0.1"), z.literal("1.0.2")]);
 
 /**
  * The valid versions that a project configuration can be.
@@ -59,12 +59,12 @@ const ProjectConfigurationSchema100 = z.object({
      * The keyword highlights that are enabled for the project.
      */
     enabledKeywordHighlights: z.array(KeywordHighlightSchema),
-});;
+});
 
 /**
- * The current schema for the project configuration stored within the workspace as a json file.
+ * The configuration schema for version 1.0.1.
  */
-const ProjectConfigurationSchema = z.object({
+const ProjectConfigurationSchema101 = z.object({
     /**
      * The version of the configuration schema.
      */
@@ -97,6 +97,46 @@ const ProjectConfigurationSchema = z.object({
 });
 
 /**
+ * The current schema for the project configuration stored within the workspace as a json file.
+ */
+const ProjectConfigurationSchema = z.object({
+    /**
+     * The version of the configuration schema.
+     */
+    version: z.literal("1.0.2"),
+
+    /**
+     * The current cursor position in the log file.
+     */
+    cursorPosition: z.number(),
+
+    /**
+     * The log levels that are disabled.
+     */
+    disabledLogLevels: z.array(LogLevelSchema),
+
+    /**
+     * The keyword filters that are enabled for the project.
+     */
+    enabledKeywordFilters: z.array(z.string()),
+
+    /**
+     * The time filters that are enabled for the project.
+     */
+    enabledTimeFilters: MessageSchemaMap.filterTime,
+
+    /**
+     * List of file names that are disabled.
+     */
+    disabledFiles: z.array(z.string()),
+
+    /**
+     * The keyword highlights that are enabled for the project.
+     */
+    enabledKeywordHighlights: z.array(KeywordHighlightSchema),
+});
+
+/**
  * Iterates over all the schema versions and creates a map of the schema version to the schema.
  */
 type AllSchemas = {[version in ValidProjectConfigurationVersion]: z.Schema};
@@ -104,9 +144,10 @@ type AllSchemas = {[version in ValidProjectConfigurationVersion]: z.Schema};
 /**
  * The map of all the project configuration schemas.
  */
-export const ProjectConfigurationSchemas: AllSchemas = {
+const ProjectConfigurationSchemas: AllSchemas = {
     "1.0.0": ProjectConfigurationSchema100,
-    "1.0.1": ProjectConfigurationSchema,
+    "1.0.1": ProjectConfigurationSchema101,
+    "1.0.2": ProjectConfigurationSchema,
 };
 /**
  * The current schema for the project configuration stored within the workspace as a json file.
@@ -120,7 +161,7 @@ const CurrentProjectConfigurationSchema = ProjectConfigurationSchema;
 export type ProjectConfiguration = z.TypeOf<typeof CurrentProjectConfigurationSchema>;
 
 export const emptyProjectConfiguration: ProjectConfiguration = {
-    version: "1.0.1",
+    version: "1.0.2",
         cursorPosition: 0,
         disabledLogLevels: [],
         enabledKeywordFilters: [],
@@ -129,6 +170,7 @@ export const emptyProjectConfiguration: ProjectConfiguration = {
             tillDate: null,
         },
         enabledKeywordHighlights: [],
+        disabledFiles: [],
     };
 
 /**
@@ -140,8 +182,22 @@ const upgradeFrom100 = (old: z.infer<typeof ProjectConfigurationSchema100>): Pro
     const disabledLogLevels = ALL_LOG_LEVELS.filter(l => !old.enabledLogLevels.includes(l));
     return {
         ...old,
-        version: "1.0.1",
-        disabledLogLevels
+        version: "1.0.2",
+        disabledLogLevels,
+        disabledFiles: [],
+    };
+};
+
+/**
+ * Upgrades from 1.0.1 to the latest version.
+ * @param old The old version of the project configuration.
+ * @returns The new version of the project configuration.
+ */
+const upgradeFrom101 = (old: z.infer<typeof ProjectConfigurationSchema101>): ProjectConfiguration => {
+    return {
+        ...old,
+        version: "1.0.2",
+        disabledFiles: [],
     };
 };
 
@@ -159,6 +215,8 @@ export const getMostRecentConfiguration = (oldVersion: ValidProjectConfiguration
     switch (oldVersion) {
         case "1.0.0":
             return [upgradeFrom100(OldVersionSchema.parse(jsonContent)), true];
+        case "1.0.1":
+            return [upgradeFrom101(OldVersionSchema.parse(jsonContent)), true];
         default:
             return [CurrentProjectConfigurationSchema.parse(jsonContent), false];
     }
