@@ -72,16 +72,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: detect_ci_trigger
     # only run when PR is updated
-    if: needs.detect_ci_trigger.outputs.execute_pr == 'true' && github.event.action == 'synchronize'
+    if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
       - name: checkout repo
+        if: github.event.action == 'synchronize'
         uses: actions/checkout@v4
 
       - name: fetch all history and tags from all branches
+        if: github.event.action == 'synchronize'
         run: git fetch --prune --unshallow
 
       - name: Get latest tag
+        if: github.event.action == 'synchronize'
         id: latest_tag
         run: |
             LATEST_TAG=$(git tag --sort=-v:refname | head -1)
@@ -93,6 +96,7 @@ jobs:
             echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
 
       - name: Remove latest tag
+        if: github.event.action == 'synchronize'
         run: |
           git tag -d ${{ steps.latest_tag.outputs.LATEST_TAG }}
           git push origin :refs/tags/${{ steps.latest_tag.outputs.LATEST_TAG }}
