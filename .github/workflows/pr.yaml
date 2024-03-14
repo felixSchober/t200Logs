@@ -84,7 +84,7 @@ jobs:
       - name: Get latest tag
         id: latest_tag
         run: |
-            LATEST_TAG=$(git tag --sort=-v:refname | tail -1)
+            LATEST_TAG=$(git tag --sort=-v:refname | head -1)
             if [ -z "$LATEST_TAG" ]; then
               echo "No latest release found. Exiting..."
               exit 1
@@ -99,7 +99,7 @@ jobs:
           mode: "COMMIT"
           commitMode: true
           includeOpen: true
-          configuration: .github/release_configuration_template.json
+          configuration: .github/pr_configuration_template.json
           fromTag: ${{ steps.latest_tag.outputs.LATEST_TAG }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
