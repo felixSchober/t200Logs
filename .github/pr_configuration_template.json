@@ -31,6 +31,7 @@
         }
     ],
     "ignore_labels": [
+        "ignore",
         "Merge",
         "BUMP"
     ],
@@ -41,7 +42,7 @@
     ],
     "label_extractor": [
         {
-            "pattern": "^(Merge|build|Bump|bump|BUMP|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}[:]?\\s(.*)",
+            "pattern": "^(ignore|Merge|build|Bump|bump|BUMP|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}[:]?\\s(.*)",
             "target": "$1"
         }
     ]
