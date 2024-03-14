@@ -10,6 +10,8 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 module.exports = (env) => {
     console.log("T200 UI", env);
     console.log("T200 UI cwd", __dirname);
+    const isProduction = env.production === true;
+    const sourceMaps = isProduction ? undefined : "inline-source-map";
     const plugins = [
         new HtmlWebpackPlugin({
             template: path.join(__dirname, "src", "index.html"),
@@ -106,6 +108,7 @@ module.exports = (env) => {
                     type: "asset/resource"
                 }
             ]
-        }
+        },
+        devtool: sourceMaps
     };
 };
