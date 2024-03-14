@@ -9,11 +9,11 @@ import { Flex } from "../../common/Flex";
 import { useMessageSubscription } from "../../service/useMessageSubscription";
 
 import { DisplaySettings } from "./DisplaySettings";
+import { FileFilter } from "./FileFilter";
 import { KeywordFilter } from "./KeywordFilter";
 import { LogLevelFilter } from "./LogLevelFilter";
 import { OpenLogsViewerButton } from "./OpenLogsViewerButton";
 import { TimeFilter } from "./TimeFilter";
-import { FileFilter } from "./FileFilter";
 
 export const FilteringPanelView: React.FC = () => {
     const activeFilters = useMessageSubscription("updateNumberOfActiveFilters");

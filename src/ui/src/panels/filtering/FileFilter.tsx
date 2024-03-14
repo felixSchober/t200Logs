@@ -2,6 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+import { LogFileListWithState } from "@t200logs/common/src/model/LogFileList";
 import { VSCodeButton, VSCodeCheckbox, VSCodeProgressRing, VSCodeTag } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 
@@ -9,7 +10,6 @@ import { Flex } from "../../common/Flex";
 import { useLogger } from "../../service/useLogger";
 import { useMessageSubscription } from "../../service/useMessageSubscription";
 import { useSendAndReceive } from "../../service/useSendAndReceive";
-import { LogFileListWithState } from "@t200logs/common/src/model/LogFileList";
 
 export const FileFilter: React.FC = () => {
     const { log, logError } = useLogger("FileFilter");

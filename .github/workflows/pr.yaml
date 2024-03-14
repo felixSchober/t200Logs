@@ -70,7 +70,9 @@ jobs:
   remove_previous_tag:
     name: PR - Remove previous tag
     runs-on: ubuntu-latest
-    needs: detect_ci_trigger
+    needs: 
+        - detect_ci_trigger
+        - build
     # only run when PR is updated
     if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
@@ -255,7 +257,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: 
       - detect_ci_trigger
-      - build_changelog
     if: needs.detect_ci_trigger.outputs.execute_pr == 'true'
 
     steps:
