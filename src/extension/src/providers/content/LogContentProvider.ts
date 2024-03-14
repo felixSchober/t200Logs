@@ -13,16 +13,17 @@ import {
 import { LogFile, LogFileList, LogFileType } from "@t200logs/common/src/model/LogFileList";
 import * as vscode from "vscode";
 
-import { ConfigurationManager } from "../configuration/ConfigurationManager";
-import { DocumentLocationManager } from "../configuration/DocumentLocationManager";
-import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../constants/regex";
-import { PostMessageDisposableService } from "../service/PostMessageDisposableService";
-import { ScopedILogger } from "../telemetry/ILogger";
-import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { throwIfCancellation } from "../utils/throwIfCancellation";
+import { ConfigurationManager } from "../../configuration/ConfigurationManager";
+import { DocumentLocationManager } from "../../configuration/DocumentLocationManager";
+import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../../constants/regex";
+import { PostMessageDisposableService } from "../../service/PostMessageDisposableService";
+import { ScopedILogger } from "../../telemetry/ILogger";
+import { ITelemetryLogger } from "../../telemetry/ITelemetryLogger";
+import { throwIfCancellation } from "../../utils/throwIfCancellation";
 
 import { HarFileProvider } from "./HarFileProvider";
 import { LogEntry } from "./LogEntry";
+
 
 type ServiceFiles = {
     /**
@@ -822,7 +823,6 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
         this.logger.info("updateFileList.filtered");
         throwIfCancellation(token);
-        debugger;
         const fileList: LogFileList = fileKeys.map(key => files[key]);
         this.postMessageService.sendAndForget({ command: "setFileList", data: fileList });
     }

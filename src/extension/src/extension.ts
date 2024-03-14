@@ -10,9 +10,9 @@ import { DocumentLocationManager } from "./configuration/DocumentLocationManager
 import { EXTENSION_ID } from "./constants/constants";
 import { SummaryInfoProvider } from "./info/SummaryInfoProvider";
 import { DateRange, FilterTimeRangeLensProvider } from "./providers/FilterTimeRangeLensProvider";
-import { LogContentProvider } from "./providers/LogContentProvider";
 import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
+import { LogContentProvider } from "./providers/content/LogContentProvider";
 import { ExtensionPostMessageService } from "./service/ExtensionPostMessageService";
 import { WorkspaceService } from "./service/WorkspaceService";
 import { DevLogger } from "./telemetry";

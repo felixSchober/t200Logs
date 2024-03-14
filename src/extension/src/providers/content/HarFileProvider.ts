@@ -7,9 +7,9 @@ import * as fs from "fs/promises";
 import { HarEntry, HarSchema, JwtSchema } from "@t200logs/common";
 import { CancellationToken, Uri, workspace } from "vscode";
 
-import { ScopedILogger } from "../telemetry/ILogger";
-import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { throwIfCancellation } from "../utils/throwIfCancellation";
+import { ScopedILogger } from "../../telemetry/ILogger";
+import { ITelemetryLogger } from "../../telemetry/ITelemetryLogger";
+import { throwIfCancellation } from "../../utils/throwIfCancellation";
 
 import { LogEntry } from "./LogEntry";
 /**

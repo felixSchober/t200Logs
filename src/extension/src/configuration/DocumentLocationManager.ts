@@ -4,7 +4,7 @@
 
 import * as vscode from "vscode";
 
-import { LogContentProvider } from "../providers/LogContentProvider";
+import { LogContentProvider } from "../providers/content/LogContentProvider";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { getEditor } from "../utils/getEditor";
