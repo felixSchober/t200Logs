@@ -174,7 +174,7 @@ jobs:
         run: echo "changelog_failed=${{ needs.build_changelog.outputs.changelog_failed }}"
 
       - name: add version in CHANGELOG.md
-        if: ${{ needs.build_changelog.outputs.changelog_failed }} == 'false'
+        if: ${{ needs.build_changelog.outputs.changelog_failed }} == 'false' && ${{ needs.build_changelog.outputs.changelog_pr }} != '- no changes'
         uses: cschleiden/replace-tokens@v1
         with:
           files: '${{github.workspace}}/README.md'
@@ -197,12 +197,19 @@ jobs:
           git config --local user.name ${{env.BUMP_AUTHOR_NAME}}
           git tag -a v${{ steps.gitversion.outputs.majorMinorPatch }} -f -m "Release ${{ steps.gitversion.outputs.majorMinorPatch }} through PR ${{ github.event.pull_request.number }}"
           git push origin -f --tags
-
+        
       - name: create PR comment with new version
         uses: mshick/add-pr-comment@v2
         with:
+            message: Version bumped to V${{ steps.gitversion.outputs.majorMinorPatch }}
+            message-id: "new-version"
+
+      - name: create PR comment with changelog
+        if: ${{ needs.build_changelog.outputs.changelog_pr }} != '- no changes'
+        uses: mshick/add-pr-comment@v2
+        with:
               message: ${{needs.build_changelog.outputs.changelog_pr}}
-              message-id: "bump-version"
+              message-id: "changelog"
 
   build:
     name: PR - Build
