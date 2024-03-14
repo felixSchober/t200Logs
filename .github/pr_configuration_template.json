@@ -3,28 +3,29 @@
         {
             "title": "#### 🚀 Features",
             "labels": [
-                "type: feature request",
-                "type: enhancement",
-                "type: epic",
-                "feat:"
+                "feat"
             ]
         },
         {
             "title": "#### 🐛 Bug Fixes",
             "labels": [
-                "type: bug",
-                "fix:"
+                "fix",
+                "perf",
+                "revert"
             ]
         },
         {
             "title": "#### 🧪 Maintenance",
             "labels": [
-                "dependencies",
-                "type: chore",
-                "type: ci",
-                "type: dependencies",
+                "refactor",
+                "chore",
+                "ci",
+                "build",
                 "documentation",
-                "bump"
+                "Bump",
+                "docs",
+                "style",
+                "test"
             ]
         }
     ],
@@ -33,7 +34,7 @@
         "question",
         "invalid",
         "wontfix",
-        "BUMP version"
+        "BUMP"
     ],
     "template": "#{{CHANGELOG}}\n#### 📦 Changes\n${{UNCATEGORIZED}}",
     "pr_template": "- #{{TITLE}}",
@@ -42,7 +43,7 @@
     ],
     "label_extractor": [
         {
-            "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
+            "pattern": "^(build|Bump|BUMP|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}[:]?\\s(.*)",
             "target": "$1"
         }
     ]
