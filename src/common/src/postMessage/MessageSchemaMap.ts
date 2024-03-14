@@ -7,6 +7,7 @@ import { z } from "zod";
 import { LogLevelSchema } from "../Events";
 import { SummaryInfoSchema } from "../model";
 import { KeywordHighlightSchema } from "../model/Keywords";
+import { LogFileNameSchema, LogFileNameWithStateSchema } from "../model/LogFileList";
 
 
 const ConfigurationUpdateSchema = z.union([z.literal("add"), z.literal("remove"), z.literal("update")]);
@@ -153,6 +154,9 @@ export const MessageSchemaMap = {
          */
         displayReadableDates: z.boolean().nullable(),
     }),
+    /**
+     * Message sent from the webview to the extension to open the logs document.
+     */
     openLogsDocument: z.undefined(),
     keywordHighlightStateChange: z.object({
         /**
@@ -248,6 +252,28 @@ export const MessageSchemaMap = {
      * Message sent from the extension to the webview to indicate that the workspace is ready.
      */
     workspaceReady: z.undefined(),
+
+    /**
+     * Message sent from the extension to the webview to set the file list that users can filter by.
+     */
+    setFileList: z.array(LogFileNameSchema),
+
+    /**
+     * Message sent from the extension to the webview to update the file list from the configuration (e.g. Which files are checked).
+     * If a file is part of the array it should be marked as filtered out (unchecked).
+     */
+    setFileListFromConfiguration: z.array(z.string()),
+
+    /**
+     * Message sent from the webview to the extension to update the file filter checkbox state.
+     */
+    updateFileFilterCheckboxState: LogFileNameWithStateSchema,
+
+    /**
+     * Message sent from the webview to the extension to open a specific log file.
+     * The data is the file path to open.
+     */
+    openFile: z.string(),
 } as const;
 
 

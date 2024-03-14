@@ -23,5 +23,15 @@ export const KEYWORD_HIGHLIGHT_CONFIGURATION_SETTING_NAME = "keywords.highlights
  */
 export const WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME = "showWelcomeMessage";
 
+/**
+ * The date of the epoch. Used for filtering out log entries that do not have a timestamp.
+ */
+export const EPOCH_DATE = new Date(0);
+
+/**
+ * The maximum number of log files to return for a service.
+ */
+export const MAX_LOG_FILES_PER_SERVICE = 3;
+
 
 

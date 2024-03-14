@@ -4,7 +4,7 @@
 
 import * as vscode from "vscode";
 
-import { LogContentProvider } from "../providers/LogContentProvider";
+import { LogContentProvider } from "../providers/content/LogContentProvider";
 
 /**
  * Gets the log content provider's visible text editor.

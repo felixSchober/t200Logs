@@ -5,7 +5,7 @@
 import type { IPostMessageService, KeywordHighlight, KeywordHighlightChangeEvent, PostMessageEventRespondFunction } from "@t200logs/common";
 import * as vscode from "vscode";
 
-import { ConfigurationManager } from "../configuration/ConfigurationManager";
+import { ConfigurationManager } from "../configuration";
 import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { getEditor } from "../utils/getEditor";

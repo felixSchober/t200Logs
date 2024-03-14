@@ -1,9 +1,9 @@
 /* 
-	This is a vendored copy of the codicon.css build file pulled directly from: 
-	https://github.com/microsoft/vscode-codicons/blob/main/dist/codicon.css
+    This is a vendored copy of the codicon.css build file pulled directly from: 
+    https://github.com/microsoft/vscode-codicons/blob/main/dist/codicon.css
 
-	The same applies to the required codicon.ttf build file as well:
-	https://github.com/microsoft/vscode-codicons/blob/main/dist/codicon.ttf
+    The same applies to the required codicon.ttf build file as well:
+    https://github.com/microsoft/vscode-codicons/blob/main/dist/codicon.ttf
 */
 
 /*---------------------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
  @font-face {
     font-family: "codicon";
     font-display: block;
-    src: url("https://file%2B.vscode-resource.vscode-cdn.net/Users/felix/Documents/Repositories/learning/t200Logs.nosync/media/sidePanelReact/codicon.ttf") format("truetype");
+    src: url("https://file%2B.vscode-resource.vscode-cdn.net/Users/felix/Documents/Repositories/learning/t200Logs.nosync/src/extension/media/sidePanelReact/assets/codicon.ttf") format("truetype");
   }
   
   .codicon[class*="codicon-"] {

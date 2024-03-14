@@ -183,6 +183,25 @@ export class ProjectConfigurationManager extends PostMessageDisposableService {
             this.setConfigurationKey("enabledKeywordHighlights", currentHighlights);
         });
         this.unregisterListeners.push(unregisterHighlightChanged);
+
+        const unregisterFileFilterChanged = postMessageService.registerMessageHandler("updateFileFilterCheckboxState", data => {
+            this.logger.info("updateFileFilterCheckboxState", `filter ${data.fileName} -> ${data.isEnabled ? "ON" : "OFF"}`);
+            const currentlyDisabledFiles = this.configuration.disabledFiles;
+
+            // file was enabled -> remove it from the list
+            if (data.isEnabled && currentlyDisabledFiles.includes(data.fileName)) {
+                const index = currentlyDisabledFiles.findIndex(f => f === data.fileName);
+                currentlyDisabledFiles.splice(index, 1);
+            }
+
+            // file was disabled -> add it to the list
+            if (!data.isEnabled && !currentlyDisabledFiles.includes(data.fileName)) {
+                currentlyDisabledFiles.push(data.fileName);
+            }
+            this.setConfigurationKey("disabledFiles", currentlyDisabledFiles);
+        });
+        this.unregisterListeners.push(unregisterFileFilterChanged);
+
         this.logger.info("addPostMessageService.success", undefined, { listeners: "" + this.unregisterListeners.length });
     }
 
@@ -227,8 +246,6 @@ export class ProjectConfigurationManager extends PostMessageDisposableService {
             this.logger.info("initialize.noConfigurationFile");
             return;
         }
-
-        
 
         // try opening the file - failing is expected if the file does not exist
         // In that case, we'll just create a new configuration file.

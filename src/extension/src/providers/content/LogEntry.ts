@@ -20,9 +20,14 @@ export type LogEntry = {
     text: string;
 
     /**
-     * The service that generated the log entry.
+     * The service that generated the log entry. (This is a reduced file name).
      */
     service?: string;
+
+    /**
+     * The file path of the log entry if it exists.
+     */
+    filePath?: string;
 
     /**
      * Whether the log entry is a marker entry for grouping.

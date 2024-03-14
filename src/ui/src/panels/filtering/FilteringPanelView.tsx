@@ -9,6 +9,7 @@ import { Flex } from "../../common/Flex";
 import { useMessageSubscription } from "../../service/useMessageSubscription";
 
 import { DisplaySettings } from "./DisplaySettings";
+import { FileFilter } from "./FileFilter";
 import { KeywordFilter } from "./KeywordFilter";
 import { LogLevelFilter } from "./LogLevelFilter";
 import { OpenLogsViewerButton } from "./OpenLogsViewerButton";
@@ -38,6 +39,10 @@ export const FilteringPanelView: React.FC = () => {
                     <KeywordFilter />
                     <VSCodeDivider />
 
+                    <h3>Filter based on file</h3>
+                    <FileFilter />
+                    <VSCodeDivider />
+
                     <h3>Display settings</h3>
                     <p>Please note that some of these settings might affect performance</p>
                     <DisplaySettings />
@@ -46,6 +51,7 @@ export const FilteringPanelView: React.FC = () => {
         </>
     );
 };
+
 
 
 

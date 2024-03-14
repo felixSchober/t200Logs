@@ -13,7 +13,7 @@ import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { throwIfCancellation } from "../utils/throwIfCancellation";
 
-import { LogContentProvider } from "./LogContentProvider";
+import { LogContentProvider } from "./content/LogContentProvider";
 
 export type DateRange = [Date | null, Date | null];
 

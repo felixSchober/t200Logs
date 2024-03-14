@@ -4,34 +4,29 @@
 
 import * as fs from "fs/promises";
 
-import { type IPostMessageService, type LogLevel, type PostMessageEventRespondFunction, type TimeFilterChangedEvent } from "@t200logs/common";
+import {
+    type IPostMessageService,
+    type LogLevel,
+    type PostMessageEventRespondFunction,
+    type TimeFilterChangedEvent,
+} from "@t200logs/common";
+import { LogFile, LogFileList, LogFileType } from "@t200logs/common/src/model/LogFileList";
 import * as vscode from "vscode";
 
-import { ConfigurationManager } from "../configuration/ConfigurationManager";
-import { DocumentLocationManager } from "../configuration/DocumentLocationManager";
-import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../constants/regex";
-import { PostMessageDisposableService } from "../service/PostMessageDisposableService";
-import { ScopedILogger } from "../telemetry/ILogger";
-import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
-import { throwIfCancellation } from "../utils/throwIfCancellation";
+import { ConfigurationManager } from "../../configuration";
+import { DocumentLocationManager } from "../../configuration/DocumentLocationManager";
+import { EPOCH_DATE, MAX_LOG_FILES_PER_SERVICE } from "../../constants/constants";
+import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../../constants/regex";
+import { PostMessageDisposableService } from "../../service/PostMessageDisposableService";
+import { ServiceFiles, WorkspaceFileService } from "../../service/WorkspaceFileService";
+import { ScopedILogger } from "../../telemetry/ILogger";
+import { ITelemetryLogger } from "../../telemetry/ITelemetryLogger";
+import { isDefined } from "../../utils/isDefined";
+import { throwIfCancellation } from "../../utils/throwIfCancellation";
 
 import { HarFileProvider } from "./HarFileProvider";
+import { LogContentFilters } from "./LogContentFilters";
 import { LogEntry } from "./LogEntry";
-
-type ServiceFiles = {
-    /**
-     * The name of the service.
-     */
-    serviceName: string;
-    /**
-     * The files of the service.
-     */
-    files: vscode.Uri[];
-};
-
-const MAX_LOG_FILES_PER_SERVICE = 3;
-
-const MAX_LOG_FILES_RETURNED = 400;
 
 const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
     error: ERROR_REGEX,
@@ -41,88 +36,9 @@ const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
 };
 
 /**
- * The date of the epoch. Used for filtering out log entries that do not have a timestamp.
- */
-const EPOCH_DATE = new Date(0);
-
-/**
  * A content provider that transforms the content of a log file.
  */
 export class LogContentProvider extends PostMessageDisposableService implements vscode.TextDocumentContentProvider {
-    /**
-     * Filter out log entries that are before this date.
-     * This field is the string representation of a date.
-     */
-    private _timeFilterFrom: string | null = null;
-
-    /**
-     * Sets both {@link _timeFilterFrom} and {@link timeFilterFromDate}.
-     */
-    private set timeFilterFrom(value: string | null) {
-        this._timeFilterFrom = value;
-        if (this._timeFilterFrom && !isNaN(Date.parse(this._timeFilterFrom))) {
-            this.timeFilterFromDate = new Date(this._timeFilterFrom);
-        } else {
-            this.timeFilterFromDate = null;
-        }
-        this.postMessageService.sendAndForget({ command: "updateTimeFilters", data: { fromDate: value ?? null } });
-    }
-
-    /**
-     * Date representation of {@link _timeFilterFrom}.
-     */
-    private timeFilterFromDate: Date | null = null;
-
-    /**
-     * The minimum date that can be used as a filter except if the user wants to display all entries.
-     */
-    private minimumDate: string | null = new Date(1000).toISOString();
-
-    /**
-     * Filter out log entries that are after this date.
-     * This field is the string representation of a date.
-     */
-    private _timeFilterTill: string | null = null;
-
-    /**
-     * Sets both {@link _timeFilterTill} and {@link timeFilterTillDate}.
-     */
-    private set timeFilterTill(value: string | null) {
-        this._timeFilterTill = value;
-        if (this._timeFilterTill && !isNaN(Date.parse(this._timeFilterTill))) {
-            this.timeFilterTillDate = new Date(this._timeFilterTill);
-        } else {
-            this.timeFilterTillDate = null;
-        }
-        this.postMessageService.sendAndForget({ command: "updateTimeFilters", data: { tillDate: value ?? null } });
-    }
-
-    /**
-     * Date representation of {@link _timeFilterTill}.
-     */
-    private timeFilterTillDate: Date | null = null;
-
-    /**
-     * Filter out log entries that do not contain either of these keywords.
-     */
-    private keywordFilters: string[] = [];
-
-    /**
-     * The session id marks the starting point of the log entries to filter to.
-     */
-    private sessionId: string | null = null;
-
-    /**
-     * The currently disabled log levels.
-     */
-    private disabledLogLevels: LogLevel[] = [];
-
-    /**
-     * A list of log files that are used to render the text content.
-     * This list will only be set on the first call to provideTextDocumentContent.
-     */
-    private logFileCache: vscode.Uri[] = [];
-
     /**
      * A list of lines from the log files generated at the start when the class is initialized.
      */
@@ -134,12 +50,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private groupedLogEntries: Map<number, LogEntry[]> = new Map();
 
     /**
-     * The number of characters in the longest file name.
+     * The scheme for the log viewer document.
      */
-    private lengthOfLongestFileName = 0;
-
     public static readonly documentScheme = "log-viewer";
 
+    /**
+     * The marker for the start of a folding region.
+     */
     public static readonly foldingRegionEndMarker = "======";
 
     /**
@@ -147,6 +64,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     public static readonly foldingRegionPrefix = "// ";
 
+    /**
+     * The uri for the log viewer document.
+     */
     public static readonly documentUri = vscode.Uri.parse(`${this.documentScheme}:/log-viewer.log`);
 
     private readonly logger: ScopedILogger;
@@ -172,6 +92,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     private additionalStringsToRemove: RegExp[] = [];
 
+    /**
+     * Strings to replace in the log entries.
+     */
     private readonly stringReplacementMap = [
         {
             searchString: "AuthenticationService: [Auth]",
@@ -184,16 +107,16 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     ];
 
     /**
-     * A list of functions that should be called after {@link provideTextDocumentContent} is finished.
+     * Class that manages the filters for the log content.
      */
-    private readonly filterMessagesToRespondTo: PostMessageEventRespondFunction[] = [];
+    private readonly filters: LogContentFilters;
 
     /**
      * A list of functions that should be called after {@link provideTextDocumentContent} is finished.
      */
     private readonly displaySettingsToRespondTo: PostMessageEventRespondFunction[] = [];
 
-    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+    private readonly _onDidChange = new vscode.EventEmitter<vscode.Uri>();
     readonly onDidChange = this._onDidChange.event;
 
     private changeTrigger = 0;
@@ -211,9 +134,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     public onTextDocumentGenerationFinished = new vscode.EventEmitter<string>();
 
     /**
-     * Watcher for the log files in the workspace.
+     * Event that is fired when the workspace files change.
      */
-    private readonly watcher: vscode.FileSystemWatcher;
+    private readonly onFileChangeEventDisposable: vscode.Disposable;
 
     /**
      * The provider for the HAR files.
@@ -223,7 +146,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     /**
      * After we generate the content for the first time we want to update the cursor position in case the user wants
      * to resume reading from where they left off.
-     * 
+     *
      * We will only do this once after the content is generated.
      * After we've updated the cursor position we will set this to null.
      */
@@ -235,193 +158,39 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @param postMessageService The post message service to use for communication with the extension.
      * @param configurationManager The configuration manager.
      * @param documentLocationManager The document location manager to set the cursor position.
+     * @param workspaceFileService The workspace file service used to retrieve the log files.
      * @param logger The logger.
      */
     constructor(
-        private readonly onFilterChangeEvent: vscode.Event<TimeFilterChangedEvent>,
+        onFilterChangeEvent: vscode.Event<TimeFilterChangedEvent>,
         private readonly postMessageService: IPostMessageService,
-        private readonly configurationManager: ConfigurationManager,
+        configurationManager: ConfigurationManager,
         private readonly documentLocationManager: DocumentLocationManager,
+        private readonly workspaceFileService: WorkspaceFileService,
         logger: ITelemetryLogger
     ) {
         super();
-        this.registerMessageHandlers();
-
-        // set the "timeFilterFrom" to a second after timestamp 0.
-        // This is done so that we ignore all events that do not have a timestamp.
-        this.timeFilterFrom = this.minimumDate;
         this.logger = logger.createLoggerScope("LogContentProvider");
-        this.watcher = vscode.workspace.createFileSystemWatcher("**/*.{log,txt}", false, false, false);
-        this.registerFileWatcherEvents();
 
-        this.setupKeywordFiltersFromConfiguration();
-        this.setupLogLevelFiltersFromConfiguration();
-        this.setupTimeFiltersFromConfiguration();
+        this.filters = new LogContentFilters(
+            onFilterChangeEvent,
+            postMessageService,
+            configurationManager,
+            () => this.triggerDocumentChange(),
+            () => this.logEntryCache,
+            logger
+        );
+
+        this.registerDisplaySettingEvents();
+
+        // register event for file changes
+        this.onFileChangeEventDisposable = workspaceFileService.onFileChangeEvent(() => {
+            this.logger.info("onFileChange");
+            this.reset();
+        });
 
         this.harFileProvider = new HarFileProvider(logger);
         this.cursorPositionAfterContentGeneration = configurationManager.restoredCursorPosition;
-    }
-
-    /**
-     * Registers all post message handlers.
-     */
-    private registerMessageHandlers() {
-        this.registerFilterEvents();
-        this.registerDisplaySettingEvents();
-    }
-
-    /**
-     * Sets up the keyword filters from the configuration.
-     */
-    private setupKeywordFiltersFromConfiguration() {
-        this.keywordFilters = this.configurationManager.keywordFilters.filter(kw => kw.isChecked).map(kw => kw.keyword);
-        this.logger.info("setupKeywordFiltersFromConfiguration");
-        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
-        this.postMessageService.sendAndForget({
-            command: "setKeywordFiltersFromConfiguration",
-            data: this.configurationManager.keywordFilters.map(kw => ({ value: kw.keyword, isChecked: kw.isChecked })),
-        });
-    }
-
-    /**
-     * Sets up the log level filters from the configuration.
-     */
-    private setupLogLevelFiltersFromConfiguration() {
-        this.logger.info("setupLogLevelFiltersFromConfiguration");
-
-        this.disabledLogLevels = this.configurationManager.disabledLogLevels;
-
-        this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
-        this.postMessageService.sendAndForget({
-            command: "setLogLevelFromConfiguration",
-            data: this.disabledLogLevels,
-        });
-    }
-
-    /**
-     * Sets up the time filters from the configuration.
-     */
-    private setupTimeFiltersFromConfiguration() {
-        this.logger.info("setupTimeFiltersFromConfiguration");
-        
-        if (this.configurationManager.enabledTimeFilters.fromDate !== undefined) {
-            this.logger.info("setupTimeFiltersFromConfiguration.fromDate", undefined, { fromDate: this.configurationManager.enabledTimeFilters.fromDate?.toString() });
-            this.timeFilterFrom = this.configurationManager.enabledTimeFilters.fromDate;
-        }
-
-        if (this.configurationManager.enabledTimeFilters.tillDate !== undefined) {
-            this.logger.info("setupTimeFiltersFromConfiguration.tillDate", undefined, { tillDate: this.configurationManager.enabledTimeFilters.tillDate?.toString() });
-            this.timeFilterTill = this.configurationManager.enabledTimeFilters.tillDate;
-        }
-    }
-
-    /**
-     * Registers the filter events for the log content provider.
-     * This method is called in the constructor.
-     *
-     * Events are called when the user changes a filter through the webview.
-     * They are dispatched by the {@link ExtensionPostMessageService}.
-     */
-    private registerFilterEvents() {
-        const filterCheckboxStateChange = this.postMessageService.registerMessageHandler("filterCheckboxStateChange", (event, respond) => {
-            if (event.isChecked) {
-                this.keywordFilters.push(event.value);
-            } else {
-                this.keywordFilters = this.keywordFilters.filter(keyword => keyword !== event.value);
-            }
-            this.filterMessagesToRespondTo.push(respond);
-            this.triggerDocumentChange();
-        });
-        this.unregisterListeners.push(filterCheckboxStateChange);
-
-        const filterLogLevel = this.postMessageService.registerMessageHandler("filterLogLevel", (event, respond) => {
-            if (event.isChecked) {
-                this.disabledLogLevels = this.disabledLogLevels.filter(level => level !== event.logLevel);
-            } else {
-                if (!this.disabledLogLevels.includes(event.logLevel)) {
-                    this.disabledLogLevels.push(event.logLevel);
-                }
-            }
-            this.filterMessagesToRespondTo.push(respond);
-            this.triggerDocumentChange();
-        });
-        this.unregisterListeners.push(filterLogLevel);
-
-        const filterTime = this.postMessageService.registerMessageHandler("filterTime", (event, respond) => {
-            if (event.fromDate || event.fromDate === "") {
-                if (event.fromDate === "") {
-                    this.timeFilterFrom = this.minimumDate;
-                } else {
-                    this.timeFilterFrom = event.fromDate;
-                }
-            }
-
-            if (event.tillDate || event.tillDate === "") {
-                this.timeFilterTill = event.tillDate;
-            }
-            this.filterMessagesToRespondTo.push(respond);
-            this.triggerDocumentChange();
-        });
-        this.unregisterListeners.push(filterTime);
-
-        const filterRemoveEntriesWithNoEventTime = this.postMessageService.registerMessageHandler("filterNoEventTime", (event, respond) => {
-            if (event.removeEntriesWithNoEventTime === true) {
-                this.minimumDate = new Date(1000).toISOString();
-                this.timeFilterFrom = this.minimumDate;
-            } else if (event.removeEntriesWithNoEventTime === false) {
-                this.timeFilterFrom = null;
-                this.minimumDate = null;
-            }
-            this.filterMessagesToRespondTo.push(respond);
-            this.triggerDocumentChange();
-        });
-        this.unregisterListeners.push(filterRemoveEntriesWithNoEventTime);
-
-        const filterSessionId = this.postMessageService.registerMessageHandler("filterSessionId", (event, respond) => {
-            if (event.isChecked) {
-                this.sessionId = event.sessionId;
-                const sessionIdLogEntry = this.findEarliestSessionIdInLogEntries();
-                if (sessionIdLogEntry) {
-                    // subtract 1 second from the timestamp to make sure we include the log entry with the session id
-                    const filterFrom = new Date(sessionIdLogEntry.date.getTime() - 1000).toISOString();
-                    this.logger.info("filterSessionId.success", undefined, { sessionId: this.sessionId, filterFrom });
-                    this.timeFilterFrom = filterFrom;
-                } else {
-                    this.logger.logException(
-                        "filterSessionId.notFound",
-                        new Error(`Could not find log entry with session id: ${this.sessionId}`),
-                        undefined,
-                        {
-                            sessionId: this.sessionId,
-                        },
-                        true,
-                        "Session Id"
-                    );
-                }
-            } else {
-                this.sessionId = null;
-                this.timeFilterFrom = this.minimumDate;
-            }
-            this.filterMessagesToRespondTo.push(respond);
-            this.triggerDocumentChange();
-        });
-        this.unregisterListeners.push(filterSessionId);
-
-        this.onFilterChangeEvent(event => {
-            if (event.fromDate || event.fromDate === "") {
-                if (event.fromDate === "") {
-                    this.timeFilterFrom = this.minimumDate;
-                } else {
-                    this.timeFilterFrom = event.fromDate;
-                }
-            }
-
-            if (event.tillDate || event.tillDate === "") {
-                this.timeFilterTill = event.tillDate;
-            }
-
-            this.triggerDocumentChange();
-        });
     }
 
     /**
@@ -479,25 +248,8 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     public override dispose() {
         super.dispose();
-        this.watcher.dispose();
-    }
-
-    /**
-     * Registers a file watcher for the log files in the workspace so that we can re-fetch the log files and re-generate the content.
-     */
-    private registerFileWatcherEvents() {
-        this.watcher.onDidChange(uri => {
-            this.logger.info("registerFileWatcher.onDidChange", undefined, { uri: uri.fsPath });
-            this.reset();
-        });
-        this.watcher.onDidCreate(uri => {
-            this.logger.info("registerFileWatcher.onDidCreate", undefined, { uri: uri.fsPath });
-            this.reset();
-        });
-        this.watcher.onDidDelete(uri => {
-            this.logger.info("registerFileWatcher.onDidDelete", undefined, { uri: uri.fsPath });
-            this.reset();
-        });
+        this.filters.dispose();
+        this.onFileChangeEventDisposable.dispose();
     }
 
     /**
@@ -506,18 +258,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     public reset(resetFilters = false) {
         this.logger.info("reset");
-        this.logFileCache = [];
         this.logEntryCache = [];
         this.groupedLogEntries = new Map();
         this.harFileProvider.clearCache();
         if (resetFilters) {
-            this.keywordFilters = [];
-            this.disabledLogLevels = [];
-            this.sessionId = null;
-            this.timeFilterFrom = this.minimumDate;
-            this.timeFilterTill = null;
-            this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: 0 });
+            this.filters.reset();
         }
+        this.workspaceFileService.reset();
 
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
@@ -529,74 +276,6 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private triggerDocumentChange() {
         this.changeTrigger++;
         this._onDidChange.fire(LogContentProvider.documentUri);
-    }
-
-    /**
-     * Tries to find a log entry that contains the session id and returns the entry.
-     * There might be multiple log entries with the same session id, but we need to find the earliest one.
-     * @returns The first log entry that contains the session id.
-     */
-    private findEarliestSessionIdInLogEntries(): LogEntry | null {
-        if (!this.sessionId) {
-            return null;
-        }
-
-        let foundEntry: LogEntry | null = null;
-        for (const logEntry of this.logEntryCache) {
-            if (logEntry.text.includes(this.sessionId)) {
-                // make sure it's not the summary.txt file
-                if (logEntry.service === "summary") {
-                    this.logger.info("findEarliestSessionIdInLogEntries.foundInSummary", undefined, { sessionId: this.sessionId });
-                    continue;
-                }
-
-                // make sure the entry has a timestamp (not the epoch date)
-                if (logEntry.date.getTime() === EPOCH_DATE.getTime()) {
-                    this.logger.info(
-                        "findEarliestSessionIdInLogEntries.noDate",
-                        `Found log entry with session id: ${logEntry.text} but it has no timestamp.`,
-                        { sessionId: this.sessionId }
-                    );
-                    continue;
-                }
-
-                if (!foundEntry) {
-                    this.logger.info("findEarliestSessionIdInLogEntries.foundFirst", undefined, {
-                        sessionId: this.sessionId,
-                        service: logEntry.service,
-                    });
-                    foundEntry = logEntry;
-                } else {
-                    // if we found another log entry with the same session id, check if it's earlier
-                    if (logEntry.date.getTime() < foundEntry.date.getTime()) {
-                        this.logger.info("findEarliestSessionIdInLogEntries.foundEarlier", undefined, {
-                            sessionId: this.sessionId,
-                            service: logEntry.service,
-                        });
-                        foundEntry = logEntry;
-                    } else {
-                        this.logger.info("findEarliestSessionIdInLogEntries.foundLater", undefined, {
-                            sessionId: this.sessionId,
-                            service: logEntry.service,
-                        });
-                    }
-                }
-            }
-        }
-
-        return foundEntry;
-    }
-
-    /**
-     * Calculates the number of filters that are currently active.
-     * @returns The number of filters that are currently active.
-     */
-    public getNumberOfActiveFilters(): number {
-        const numberOfKeywordFilters = this.keywordFilters.length;
-        const numberOfTimeFilters = (this._timeFilterFrom ? 1 : 0) + (this._timeFilterTill ? 1 : 0);
-        const logLevelFilter = this.disabledLogLevels.length;
-
-        return numberOfKeywordFilters + numberOfTimeFilters + logLevelFilter;
     }
 
     /**
@@ -636,30 +315,22 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 progress.report({ increment: 1, message: "Waiting for vscode UI thread" });
                 progress.report({ increment: 1, message: "Finding files" });
 
-                if (this.logEntryCache.length === 0) {
-                    this.logFileCache = await vscode.workspace.findFiles(
-                        "**/*.{log,txt}",
-                        "**/node_modules/**",
-                        MAX_LOG_FILES_RETURNED,
-                        token
-                    );
-                    this.logger.info("provideTextDocumentContent.findFiles", undefined, { logFileCount: "" + this.logFileCache.length });
-                } else {
-                    this.logger.info("provideTextDocumentContent.findFiles.cache", undefined, {
-                        logEntryCount: "" + this.logEntryCache.length,
-                    });
-                }
+                const logFiles = await this.workspaceFileService.generateFileList(token);
 
                 throwIfCancellation(token);
                 progress.report({ increment: 10, message: "Grouping files" });
 
                 // Group files by service and sort them by date
-                const serviceFiles = this.groupAndSortFiles(this.logFileCache, token);
-                this.logger.info("provideTextDocumentContent.groupAndSortFiles.success", undefined, {
-                    serviceFileCount: "" + serviceFiles.length,
-                });
-                progress.report({ increment: 24, message: "Parsing log entries" });
+                let serviceFiles: ServiceFiles[] = [];
+                // no need to group and sort if we have a cache of the next step
+                if (this.logEntryCache.length === 0) {
+                    serviceFiles = this.workspaceFileService.groupAndSortFiles(logFiles, token);
+                    this.logger.info("provideTextDocumentContent.groupAndSortFiles.success", undefined, {
+                        serviceFileCount: "" + serviceFiles.length,
+                    });
+                }
 
+                progress.report({ increment: 24, message: "Parsing log entries" });
                 throwIfCancellation(token);
 
                 // Read and parse all log files
@@ -718,16 +389,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
 
                 // update the cursor position if we have a position to update
                 // we have to wait for the content to be generated before we can update the cursor position
-                const cursorPosition = this.cursorPositionAfterContentGeneration;
-                if (cursorPosition) {
-                    setTimeout(() => {
-                        this.logger.info("provideTextDocumentContent.setCursor", undefined, {
-                            cursorPositionAfterContentGeneration: "" + cursorPosition,
-                        });
-                        this.documentLocationManager.setCursor(cursorPosition);
-                        this.cursorPositionAfterContentGeneration = null;
-                    }, 1000);
-                }
+                this.updateCursorPosition(token);
+
+                this.updateFileList(logEntries, filteredLogEntires, token);
 
                 return content;
             }
@@ -735,18 +399,92 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     }
 
     /**
+     * Updates the cursor position after the content is generated.
+     * @param token The cancellation token.
+     */
+    private updateCursorPosition(token: vscode.CancellationToken) {
+        const cursorPosition = this.cursorPositionAfterContentGeneration;
+        if (cursorPosition) {
+            setTimeout(() => {
+                this.logger.info("provideTextDocumentContent.setCursor", undefined, {
+                    cursorPositionAfterContentGeneration: "" + cursorPosition,
+                });
+                throwIfCancellation(token);
+                this.documentLocationManager.setCursor(cursorPosition);
+                this.cursorPositionAfterContentGeneration = null;
+            }, 1000);
+        }
+    }
+
+    /**
+     * Sends a message to the webview to update the file list after the content is generated.
+     * @param nonFilteredLogEntries The log entries before filtering and grouping.
+     * @param filteredLogEntries Map of the log entries after filtering and grouping. The key is the timestamp in seconds and the value is the log entries for that second.
+     * @param token The cancellation token.
+     */
+    private updateFileList(
+        nonFilteredLogEntries: LogEntry[],
+        filteredLogEntries: Map<number, LogEntry[]>,
+        token: vscode.CancellationToken
+    ): void {
+        this.logger.info("updateFileList");
+        throwIfCancellation(token);
+        const files: Record<string, LogFile> = {};
+        const fileKeys: string[] = [];
+
+        for (const logEntry of nonFilteredLogEntries) {
+            const serviceName = logEntry.service;
+            if (!serviceName) {
+                continue; // skip log entries without a service name
+            }
+
+            if (!files[serviceName]) {
+                throwIfCancellation(token);
+                files[serviceName] = {
+                    fileName: serviceName,
+                    fullFilePath: logEntry.filePath ?? null,
+                    fileType: this.getFileTypeFromService(serviceName),
+                    numberOfEntries: 0,
+                    numberOfFilteredEntries: 0,
+                };
+                fileKeys.push(serviceName);
+            }
+            files[serviceName].numberOfEntries++;
+        }
+        this.logger.info("updateFileList.nonFiltered", undefined, { fileCount: "" + fileKeys.length });
+        throwIfCancellation(token);
+
+        // go over the filtered log entries and update the number of filtered entries for each file
+        for (const [, logEntries] of filteredLogEntries) {
+            for (const logEntry of logEntries) {
+                const serviceName = logEntry.service;
+                if (!serviceName) {
+                    continue; // skip log entries without a service name
+                }
+
+                if (!files[serviceName]) {
+                    // this should never happen because we already went over all unfiltered the log entries
+                    this.logger.logException(
+                        "updateFileList.missingService",
+                        new Error(`Service name not found in the list of files: ${serviceName}`),
+                        "Service name not found in the list of files."
+                    );
+                    continue;
+                }
+                files[serviceName].numberOfFilteredEntries++;
+            }
+        }
+        this.logger.info("updateFileList.filtered");
+        throwIfCancellation(token);
+        const fileList: LogFileList = fileKeys.map(key => files[key]);
+        this.postMessageService.sendAndForget({ command: "setFileList", data: fileList });
+    }
+
+    /**
      * Responds to the messages that are waiting for the content to be generated.
      */
     private respondToMessages() {
-        const activeFilters = this.getNumberOfActiveFilters();
-        // pop all the filter messages and respond to them
-        while (this.filterMessagesToRespondTo.length > 0) {
-            const respond = this.filterMessagesToRespondTo.pop();
-            if (respond) {
-                this.logger.info("respondToMessages");
-                respond({ command: "updateNumberOfActiveFilters", data: activeFilters });
-            }
-        }
+        this.filters.respondToMessages();
 
         // pop all the display settings messages and respond to them
         while (this.displaySettingsToRespondTo.length > 0) {
@@ -796,7 +534,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             for (const file of recentFiles) {
                 filesRead++;
                 const content = await fs.readFile(file.fsPath, "utf8");
-                const fileLogEntries = this.parseLogContent(content, filesForService.serviceName, logEntriesRead);
+                const fileLogEntries = this.parseLogContent(content, filesForService.serviceName, file.path, logEntriesRead);
                 logEntriesRead += fileLogEntries.length;
                 logEntries = logEntries.concat(fileLogEntries);
             }
@@ -808,117 +546,21 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     }
 
     /**
-     * Groups the given files by service and sorts them by date.
-     * @param files The files to group and sort.
-     * @param token The cancellation token.
-     * @returns A record of service names and their files.
-     */
-    private groupAndSortFiles(files: vscode.Uri[], token: vscode.CancellationToken): ServiceFiles[] {
-        const fileGroups: Record<string, ServiceFiles> = {};
-
-        if (this.logEntryCache.length > 0) {
-            this.logger.info("groupAndSortFiles.cache", undefined, { logEntryCount: "" + this.logEntryCache.length });
-            return [];
-        }
-        this.logger.info("groupAndSortFiles.start", undefined, { fileCount: "" + files.length });
-
-        for (const file of files) {
-            throwIfCancellation(token);
-            const separatedFilepaths = file.path.split("/");
-            let filename = separatedFilepaths.pop();
-            const folder = separatedFilepaths.pop();
-
-            // in T2.1 weblogs will be in folders starting with core or user
-            // these folders will contain files with the same name however, we should not group them together
-            if (folder?.startsWith("Core")) {
-                filename = "core-" + filename;
-            } else if (folder?.startsWith("User")) {
-                // get the guid from the folder name
-                // example User (Primary; 05f3f692-27ba-4a63-a862-cc66a146f3f3)
-                // use the first 5 characters of the guid
-                const guid = folder.match(GUID_REGEX);
-                filename = "user-" + (guid ? guid[0].substring(0, 5) : "") + "-" + filename;
-            }
-
-            if (filename) {
-                const parts = filename.split("_");
-                let serviceName = parts[0];
-
-                // remove the file extension
-                serviceName = serviceName.split(".")[0];
-
-                this.logger.info(
-                    "groupAndSortFiles.foundFile",
-                    `Found log file for service '${serviceName}' in folder '${folder}' - Filename: ${filename}.`,
-                    { serviceName, folder, filename }
-                );
-
-                if (fileGroups[serviceName]) {
-                    fileGroups[serviceName].files.push(file);
-                    continue;
-                }
-
-                this.lengthOfLongestFileName = Math.max(this.lengthOfLongestFileName, serviceName.length);
-                fileGroups[serviceName] = {
-                    serviceName,
-                    files: [file],
-                };
-            }
-        }
-
-        // Sort files within each group by date
-        const result: ServiceFiles[] = [];
-        for (const serviceName in fileGroups) {
-            throwIfCancellation(token);
-            // only sort files if there are more than 2 files
-            if (fileGroups[serviceName].files.length >= MAX_LOG_FILES_PER_SERVICE) {
-                fileGroups[serviceName].files = fileGroups[serviceName].files.sort((a, b) => {
-                    const aTimestamp = this.extractTimestampFromFilePath(a.path);
-                    const bTimestamp = this.extractTimestampFromFilePath(b.path);
-                    return bTimestamp - aTimestamp; // Sort in descending order
-                });
-            }
-            result.push(fileGroups[serviceName]);
-        }
-
-        this.logger.info("groupAndSortFiles.end", undefined, {
-            serviceFileCount: "" + result.length,
-            lengthOfLongestFileName: "" + this.lengthOfLongestFileName,
-        });
-        return result;
-    }
-
-    /**
-     * Extracts the timestamp from the given file path.
-     * Example: MSTeams_2023-11-23_12-40-44.33.log.
-     * @param filePath The file path to extract the timestamp from.
-     * @returns The timestamp of the file.
-     */
-    private extractTimestampFromFilePath(filePath: string): number {
-        const regex = /_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/;
-        const match = filePath.match(regex);
-
-        // will convert the capture group 2024-02-01_17-11-00 to two array entries
-        let [datePart, timePart] = match ? match[1].split("_") : ["", ""];
-        timePart = timePart.replace(/-/g, ":");
-        return new Date(`${datePart} ${timePart}`).getTime() || 0;
-    }
-
-    /**
      * Parses the content of a log file and returns log entries with their dates.
      * @param content The content of the log file.
      * @param serviceName The name of the service that generated the log file.
+     * @param filePath The file path of the log file.
      * @param logEntriesRead The number of log entries read so far. This is used as a unique identifier for each log entry.
      * @returns An array of log entries with their dates.
      */
-    private parseLogContent(content: string, serviceName: string, logEntriesRead: number): Array<LogEntry> {
+    private parseLogContent(content: string, serviceName: string, filePath: string, logEntriesRead: number): Array<LogEntry> {
         this.stringReplacementMap.forEach(replacement => {
             content = content.replaceAll(replacement.searchString, replacement.replacementString);
         });
 
         // The previous line is used to check if we have a duplicate log entry.
         let previousLine = "";
-        const contentOrNull = content.split("\n").map(line => {
+        const contentOrNull: (LogEntry | null)[] = content.split("\n").map(line => {
             const truncatedLine = this.truncateLongLines(line);
             const date = this.extractDateFromLogEntry(truncatedLine);
             logEntriesRead++;
@@ -931,10 +573,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 date: date,
                 text: `[${this.padZero(logEntriesRead)}]${truncatedLine}`,
                 service: serviceName,
+                filePath
             };
         });
 
-        return contentOrNull.filter(entry => entry !== null) as LogEntry[];
+        return contentOrNull.filter(isDefined);
     }
 
     /**
@@ -1023,7 +666,12 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             if (shouldStay) {
                 // Filter out log entries based on the keywords
                 const filteredLogsEntries = logs.filter(entry => {
-                    return entry.isMarker || (this.matchesKeywordFilter(entry.text) && this.matchesLogLevel(entry.text, logLevelRegex));
+                    return (
+                        entry.isMarker ||
+                        (this.matchesKeywordFilter(entry.text) &&
+                            this.matchesLogLevel(entry.text, logLevelRegex) &&
+                            this.matchesFileFilter(entry.service))
+                    );
                 });
 
                 filteredLogs.set(timestamp, filteredLogsEntries);
@@ -1048,9 +696,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @returns True if the log entry should stay, false if it should be filtered out.
      */
     private matchesKeywordFilter(logEntryLine: string): boolean {
-        if (this.keywordFilters.length > 0) {
+        if (this.filters.keywordFilters.length > 0) {
             // Check if the log entry contains any of the keywords
-            const keywordRegex = new RegExp(this.keywordFilters.join("|"));
+            const keywordRegex = new RegExp(this.filters.keywordFilters.join("|"));
             const keywordMatch = logEntryLine.match(keywordRegex);
             if (!keywordMatch) {
                 return false;
@@ -1065,12 +713,12 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @returns A new regex to remove log levels.
      */
     private buildLogLevelRemoveRegEx = (): RegExp | null => {
-        if (this.disabledLogLevels.length === 0) {
+        if (this.filters.disabledLogLevels.length === 0) {
             return null;
         }
 
         const regExToUse: string[] = [];
-        for (const levelToRemove of this.disabledLogLevels) {
+        for (const levelToRemove of this.filters.disabledLogLevels) {
             regExToUse.push(LOG_LEVEL_REGEX[levelToRemove].source);
         }
         return new RegExp(regExToUse.join("|"));
@@ -1100,15 +748,34 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @returns True if the group should stay, false if it should be filtered out.
      */
     private matchesTimeFilter(groupTimestamp: number): boolean {
-        if (this.timeFilterFromDate && groupTimestamp < this.timeFilterFromDate.getTime()) {
+        if (this.filters.timeFilterFromDate && groupTimestamp < this.filters.timeFilterFromDate.getTime()) {
             return false;
         }
 
-        if (this.timeFilterTillDate && groupTimestamp > this.timeFilterTillDate.getTime()) {
+        if (this.filters.timeFilterTillDate && groupTimestamp > this.filters.timeFilterTillDate.getTime()) {
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Checks if the given service name should be filtered out based on the file filters.
+     * @param serviceName The name of the service to get the file type for.
+     * @returns `true` if the log entry should stay, `false` if it should be filtered out.
+     */
+    private matchesFileFilter(serviceName: string | undefined): boolean {
+        // keep markers and entries without a service name
+        if (!serviceName) {
+            return true;
+        }
+
+        const filterState = this.filters.disabledFiles.get(serviceName)?.isEnabled;
+
+        // if the filter is not set, keep the entry
+        // if the filter is set, keep the entry if `isEnabled` is true
+        // if the filter is set, filter the entry if `isEnabled` is false
+        return filterState === undefined || filterState;
     }
 
     /**
@@ -1147,6 +814,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 if (currentSecond !== null) {
                     // Add a foldable region marker (this is a placeholder, actual folding is handled elsewhere)
                     const marker = `${LogContentProvider.foldingRegionPrefix}${LogContentProvider.foldingRegionEndMarker}\n`;
+
+                    // TODO: I've just added the full file path as a requirement for the log entries.
+                    // THis is required so that we can generate the file list with the real file names.
+                    // and the users can open the files from the webview.
+                    // Remove the required filePath once we have provided it where possible.
                     currentGroup.push({ date: currentSecond, text: marker, isMarker: true });
 
                     // since this is the end of a group, add the current group to the map
@@ -1175,7 +847,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             // removes all information that is not needed one by one
             // stringsToRemove is a static list so we can cache the result
             const entryText = this.staticStringsToRemove.reduce((text, regex) => text.replaceAll(regex, ""), entry.text);
-            currentGroup.push({ date: entry.date, text: entryText, service: entry.service });
+            currentGroup.push({ date: entry.date, text: entryText, service: entry.service, filePath: entry.filePath });
         }
 
         // Add the last group to the map
@@ -1221,7 +893,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         if (logEntry.service) {
             if (this._displayFileNames) {
                 // make sure that the prefix is always the same length
-                const fileNamePrefix = logEntry.service.padEnd(this.lengthOfLongestFileName, " ");
+                const fileNamePrefix = logEntry.service.padEnd(this.workspaceFileService.lengthOfLongestFileName, " ");
 
                 prefix = `[${fileNamePrefix}]`;
             } else {
@@ -1245,6 +917,25 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @returns The substituted file name.
      */
     private substituteFileNames(service: string): string {
+        const fileType = this.getFileTypeFromService(service);
+        switch (fileType) {
+            case "desktop":
+                return "🖥️";
+            case "har":
+                return "📡";
+            case "web":
+                return "🌐";
+            case "unknown":
+                return "❓";
+        }
+    }
+
+    /**
+     * Gets the file type for the given service.
+     * @param service The service name to get the file type for.
+     * @returns The file type for the service.
+     */
+    private getFileTypeFromService(service: string): LogFileType {
         switch (service) {
             case "Launcher":
             case "MSTeams":
@@ -1253,59 +944,12 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             case "TeamsSwitcher":
             case "skylib":
             case "tscalling":
-                return "🖥️";
+                return "desktop";
             case "HAR":
-                return "📡";
+                return "har";
             default:
-                return "🌐";
+                return "web";
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

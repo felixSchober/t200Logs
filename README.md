@@ -292,6 +292,10 @@ Automated build and release of the extension
 - fix: update readme
 
 
+### 0.3.0
+
+- no changes
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#

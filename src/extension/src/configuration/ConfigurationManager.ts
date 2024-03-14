@@ -245,6 +245,14 @@ export class ConfigurationManager extends PostMessageDisposableService {
     }
 
     /**
+     * Returns the disabled files for the project.
+     * @returns List of file names that are disabled for the project.
+     */
+    public get disabledFiles() {
+        return this.projectConfiguration.configuration.disabledFiles;
+    }
+
+    /**
      * The saved cursor position from the last session.
      * 
      * Important: Do not use this property more than once. Changing the cursor position during the same session 

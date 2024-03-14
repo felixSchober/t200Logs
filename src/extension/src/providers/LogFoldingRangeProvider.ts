@@ -16,7 +16,7 @@ import { ScopedILogger } from "../telemetry/ILogger";
 import { ITelemetryLogger } from "../telemetry/ITelemetryLogger";
 import { getEditor } from "../utils/getEditor";
 
-import { LogContentProvider } from "./LogContentProvider";
+import { LogContentProvider } from "./content/LogContentProvider";
 
 /**
  * A folding range provider that folds all lines that start with an ISO date.
