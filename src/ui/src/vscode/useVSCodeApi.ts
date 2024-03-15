@@ -20,4 +20,3 @@ export const useVSCodeApi = (): VSCodeApiContextProps<ExtensionState> => {
 
     return vscodeApi;
 };
-

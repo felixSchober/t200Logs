@@ -73,4 +73,3 @@ export const VSCodeApiProvider = (props: VSCodeApiProviderProps<ExtensionState>)
 
     return <VSCodeApiContext.Provider value={providerValues}>{children}</VSCodeApiContext.Provider>;
 };
-

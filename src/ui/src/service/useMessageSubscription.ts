@@ -39,5 +39,3 @@ export const useMessageSubscription = <T extends CommandId>(messageId: T): Comma
 
     return response;
 };
-
-

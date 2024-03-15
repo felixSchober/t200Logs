@@ -17,5 +17,4 @@ export const App: React.FC = () => {
             <PanelRoot />
         </VSCodeApiProvider>
     );
-
 };

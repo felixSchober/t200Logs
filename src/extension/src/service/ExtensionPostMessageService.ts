@@ -187,4 +187,3 @@ export class ExtensionPostMessageService extends PostMessageServiceBase implemen
         }, 200);
     }
 }
-

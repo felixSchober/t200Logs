@@ -326,7 +326,7 @@ export class ProjectConfigurationManager extends PostMessageDisposableService {
             this._projectConfiguration = configuration;
         }
 
-        let filePath = this.configurationFilePath;
+        const filePath = this.configurationFilePath;
         if (!filePath) {
             this.logger.info("saveConfiguration.noWorkspace");
             return;
@@ -372,4 +372,3 @@ export class ProjectConfigurationManager extends PostMessageDisposableService {
         return path.join(this.workspaceService.folder?.uri?.fsPath || "", CONFIGURATION_FILE_NAME);
     }
 }
-

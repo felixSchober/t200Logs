@@ -1,6 +1,19 @@
 {
     "extends": ["../../.eslintrc.json", "plugin:react/recommended", "plugin:react-hooks/recommended", "plugin:@griffel/recommended"],
-    "plugins": ["@typescript-eslint", "header", "import", "jsdoc", "react", "react-hooks", "promise", "security", "@griffel"],
+    "plugins": [
+        "@typescript-eslint",
+        "header",
+        "import",
+        "jsdoc",
+        "react",
+        "react-hooks",
+        "promise",
+        "security",
+        "@griffel",
+        "@stylistic",
+        "@stylistic/jsx",
+        "prettier"
+    ],
     "root": false,
     "env": {
         "browser": true,
@@ -8,118 +21,27 @@
     },
     "rules": {
         "react-hooks/exhaustive-deps": "error",
-        "@typescript-eslint/naming-convention": "off",
-        "@typescript-eslint/semi": "error",
-        "@typescript-eslint/require-await": "error",
-        "@typescript-eslint/no-floating-promises": "error",
-        "@typescript-eslint/no-misused-promises": "error",
-        "@typescript-eslint/consistent-type-assertions": [
-            "error",
-            {
-                "assertionStyle": "as",
-                "objectLiteralTypeAssertions": "never"
-            }
-        ],
-        "@typescript-eslint/switch-exhaustiveness-check": "error",
-        "header/header": [2, "block", "\n * Copyright (c) Microsoft Corporation. All rights reserved.\n ", 2],
-        "import/order": [
-            "error",
-            {
-                "alphabetize": {
-                    "order": "asc",
-                    "caseInsensitive": false
-                },
-                "newlines-between": "always"
-            }
-        ],
-        "react/no-children-prop": "off",
-        "react/react-in-jsx-scope": "off",
-        "import/no-default-export": "error",
-        "import/no-duplicates": "error",
-        "no-unused-vars": "off",
-        "@typescript-eslint/no-unused-vars": "error",
-        "curly": "warn",
-        "eqeqeq": "error",
-        "no-throw-literal": "error",
-        "semi": "off",
-        "quotes": [
-            2,
-            "double",
-            {
-                "avoidEscape": true
-            }
-        ],
-        "jsdoc/check-access": "error",
-        "jsdoc/check-alignment": "error",
-        "jsdoc/check-indentation": "error",
-        "jsdoc/check-param-names": "error",
-        "jsdoc/check-values": "error",
-        "jsdoc/check-tag-names": "error",
-        "jsdoc/check-types": "error",
-        "jsdoc/no-bad-blocks": "error",
-        "jsdoc/no-types": "error",
-        "jsdoc/require-description": "error",
-        "jsdoc/require-description-complete-sentence": "error",
-        "jsdoc/require-hyphen-before-param-description": ["error", "never"],
-        "jsdoc/require-jsdoc": [
-            "error",
-            {
-                "contexts": [
-                    "ClassProperty",
-                    "TSInterfaceDeclaration",
-                    "TSPropertySignature",
-                    "ExportDefaultDeclaration > ArrowFunctionExpression",
-                    "ObjectProperty > ArrowFunctionExpression",
-                    "ClassProperty > ArrowFunctionExpression"
-                ],
-                "require": {
-                    "ClassDeclaration": true,
-                    "MethodDefinition": true
-                }
-            }
-        ],
-        "jsdoc/require-param": [
-            "error",
-            {
-                "checkDestructured": false
-            }
-        ],
-        "jsdoc/require-param-description": "error",
-        "jsdoc/require-param-name": "error",
-        "jsdoc/require-returns": "error",
-        "jsdoc/require-returns-check": "error",
-        "jsdoc/require-returns-description": "error",
-        "max-classes-per-file": "error",
-        "import/no-nodejs-modules": "off",
-        "max-lines-per-function": [
-            "error",
-            {
-                "max": 150,
-                "skipBlankLines": true,
-                "skipComments": true
-            }
-        ],
-        "sort-imports": [
-            "error",
-            {
-                "ignoreDeclarationSort": true
-            }
-        ]
+        "@stylistic/jsx/jsx-curly-brace-presence": "error"
     },
     "overrides": [
         {
-            "files": ["*.ts", "*.js"],
+            "files": ["*.ts", "*.js", "*.tsx"],
+            "extends": ["plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
             "rules": {
-                "@typescript-eslint/naming-convention": "error"
+                "prettier/prettier": [
+                    "warn",
+                    {
+                        "endOfLine": "auto"
+                    },
+                    {
+                        "usePrettierrc": true
+                    }
+                ],
+                "@typescript-eslint/naming-convention": "off"
             }
         }
     ]
 }
-
-
-
-
-
 
 
 

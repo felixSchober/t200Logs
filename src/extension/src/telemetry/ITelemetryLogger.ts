@@ -25,4 +25,3 @@ export interface ITelemetryLogger extends TelemetryReporter, ILogger {
      */
     createLoggerScope(className: string): ScopedILogger;
 }
-

@@ -5,9 +5,9 @@
 import { VSCodePanels } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 
+import { DiagnosePanelView } from "./panels/diagnose/DiagnosePanelView";
 import { FilteringPanelView } from "./panels/filtering/FilteringPanelView";
 import { KeywordHighlightView } from "./panels/highlighting/KeywordHighlightView";
-import { InfoPanelView } from "./panels/info/InfoPanelView";
 import { useSendAndReceive } from "./service/useSendAndReceive";
 
 export const PanelRoot: React.FC = () => {
@@ -21,12 +21,8 @@ export const PanelRoot: React.FC = () => {
     return (
         <VSCodePanels>
             <FilteringPanelView />
-            <InfoPanelView />
+            <DiagnosePanelView />
             <KeywordHighlightView />
         </VSCodePanels>
     );
 };
-
-
-
-

@@ -7,7 +7,7 @@
         "sourceType": "module",
         "project": "./tsconfig.eslint.json"
     },
-    "plugins": ["@typescript-eslint", "header", "import", "jsdoc", "promise", "security"],
+    "plugins": ["@typescript-eslint", "header", "import", "jsdoc", "promise", "security", "@stylistic", "prettier"],
     "root": true,
     "env": {
         "browser": true,
@@ -97,6 +97,7 @@
         "max-classes-per-file": "error",
         "import/no-nodejs-modules": "off",
         "no-debugger": "warn",
+        "multiline-ternary": ["error", "always-multiline"],
         "max-lines-per-function": [
             "error",
             {
@@ -115,7 +116,17 @@
     "overrides": [
         {
             "files": ["*.ts", "*.js"],
+            "extends": ["plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
             "rules": {
+                "prettier/prettier": [
+                    "warn",
+                    {
+                        "endOfLine": "auto"
+                    },
+                    {
+                        "usePrettierrc": true
+                    }
+                ],
                 "@typescript-eslint/naming-convention": [
                     "error",
                     // Allow PascalCase for names that use the word "Schema"
@@ -149,6 +160,9 @@
         }
     }
 }
+
+
+
 
 
 

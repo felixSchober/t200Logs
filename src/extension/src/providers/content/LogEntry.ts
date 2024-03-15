@@ -2,6 +2,8 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+import { LogLevel } from "@t200logs/common";
+
 /**
  * Represents a log entry.
  * This can be a
@@ -14,6 +16,7 @@ export type LogEntry = {
      * The date of the log entry.
      */
     date: Date;
+
     /**
      * The text of the log entry.
      */
@@ -33,5 +36,14 @@ export type LogEntry = {
      * Whether the log entry is a marker entry for grouping.
      */
     isMarker?: boolean;
-};
 
+    /**
+     * The type of the log entry.
+     */
+    logLevel?: LogLevel;
+
+    /**
+     * The row number of the log entry.
+     */
+    rowNumber?: number;
+};

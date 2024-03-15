@@ -35,4 +35,3 @@ export const PostMessageSchema = z.object({
  * The schema for the message that is sent between the webview and the extension with unknown data.
  */
 export type PostMessageWithUnknownData = z.TypeOf<typeof PostMessageSchema>;
-

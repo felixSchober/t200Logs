@@ -13,5 +13,3 @@ export * from "./src/postMessage/CommandId";
 export * from "./src/model";
 export * from "./src/service/PostMessageServiceBase";
 export type { IPostMessageService } from "./src/service/IPostMessageService";
-
-

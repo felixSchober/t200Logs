@@ -32,6 +32,3 @@ export const EPOCH_DATE = new Date(0);
  * The maximum number of log files to return for a service.
  */
 export const MAX_LOG_FILES_PER_SERVICE = 3;
-
-
-

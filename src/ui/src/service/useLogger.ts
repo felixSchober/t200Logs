@@ -31,4 +31,3 @@ export const useLogger = (service: string) => {
         };
     }, [messageService, service]);
 };
-

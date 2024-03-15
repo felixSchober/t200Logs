@@ -20,5 +20,3 @@ export const OpenLogsViewerButton: React.FC = () => {
         </VSCodeButton>
     );
 };
-
-

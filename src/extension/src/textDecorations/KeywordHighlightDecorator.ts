@@ -309,25 +309,3 @@ export class KeywordHighlightDecorator implements vscode.Disposable {
         this.postMessageService.sendAndForget({ command: "updateNumberOfHighlightedKeywords", data: this.keywords.length });
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

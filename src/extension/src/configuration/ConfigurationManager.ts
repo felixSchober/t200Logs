@@ -51,7 +51,6 @@ export class ConfigurationManager extends PostMessageDisposableService {
         await this.projectConfiguration.initialize();
         this.logger.info("initialize.done");
     }
-    
 
     /**
      * Sets up the listeners for the post message service.
@@ -61,7 +60,7 @@ export class ConfigurationManager extends PostMessageDisposableService {
         this.logger.info("addPostMessageService");
         this.projectConfiguration.addPostMessageService(postMessageService);
         const unregisterFilterChangedHandler = postMessageService.registerMessageHandler("updateFilterCheckboxState", (data, respond) => {
-            this.logger.info("updateFilterCheckboxState", `filter ${data.updateType} -> ${data.value}`, {event: JSON.stringify(data)});
+            this.logger.info("updateFilterCheckboxState", `filter ${data.updateType} -> ${data.value}`, { event: JSON.stringify(data) });
             const currentFilters = this.keywordFilters;
 
             // check if the keyword is already present in the list
@@ -98,50 +97,62 @@ export class ConfigurationManager extends PostMessageDisposableService {
             }
 
             this.keywordFilters = currentFilters;
-            respond({command: "messageAck", data: undefined});
+            respond({ command: "messageAck", data: undefined });
         });
         this.unregisterListeners.push(unregisterFilterChangedHandler);
 
-        const unregisterHighlightChangedHandler = postMessageService.registerMessageHandler("updateKeywordHighlightConfiguration", (data, respond) => {
-            this.logger.info("updateKeywordHighlightConfiguration", undefined, {event: JSON.stringify(data)});
-            const currentHighlights = this.keywordHighlights;
+        const unregisterHighlightChangedHandler = postMessageService.registerMessageHandler(
+            "updateKeywordHighlightConfiguration",
+            (data, respond) => {
+                this.logger.info("updateKeywordHighlightConfiguration", undefined, { event: JSON.stringify(data) });
+                const currentHighlights = this.keywordHighlights;
 
-            // check if the keyword is already present in the list
-            const index = currentHighlights.findIndex(kw => kw.keyword === data.keywordDefinition.keyword);
+                // check if the keyword is already present in the list
+                const index = currentHighlights.findIndex(kw => kw.keyword === data.keywordDefinition.keyword);
 
-            switch (data.updateType) {
-                case "add":
-                    if (index === -1) {
-                        currentHighlights.push({
-                            ...data.keywordDefinition,
-                            isChecked: true,
-                        });
-                    } else {
-                        this.logger.logException("updateKeywordHighlightConfiguration.add", new Error(`Keyword ${data.keywordDefinition.keyword} already exists`));
-                    }
-                    break;
-                case "remove":
-                    if (index !== -1) {
-                        currentHighlights.splice(index, 1);
-                    } else {
-                        this.logger.logException("updateKeywordHighlightConfiguration.remove", new Error(`Keyword ${data.keywordDefinition.keyword} does not exist`));
-                    }
-                    break;
-                case "update":
-                    if (index !== -1) {
-                        currentHighlights[index] = {
-                            ...data.keywordDefinition,
-                            isChecked: true,
-                        };
-                    } else {
-                        this.logger.logException("updateKeywordHighlightConfiguration.update", new Error(`Keyword ${data.keywordDefinition.keyword} does not exist`));
-                    }
-                    break;
+                switch (data.updateType) {
+                    case "add":
+                        if (index === -1) {
+                            currentHighlights.push({
+                                ...data.keywordDefinition,
+                                isChecked: true,
+                            });
+                        } else {
+                            this.logger.logException(
+                                "updateKeywordHighlightConfiguration.add",
+                                new Error(`Keyword ${data.keywordDefinition.keyword} already exists`)
+                            );
+                        }
+                        break;
+                    case "remove":
+                        if (index !== -1) {
+                            currentHighlights.splice(index, 1);
+                        } else {
+                            this.logger.logException(
+                                "updateKeywordHighlightConfiguration.remove",
+                                new Error(`Keyword ${data.keywordDefinition.keyword} does not exist`)
+                            );
+                        }
+                        break;
+                    case "update":
+                        if (index !== -1) {
+                            currentHighlights[index] = {
+                                ...data.keywordDefinition,
+                                isChecked: true,
+                            };
+                        } else {
+                            this.logger.logException(
+                                "updateKeywordHighlightConfiguration.update",
+                                new Error(`Keyword ${data.keywordDefinition.keyword} does not exist`)
+                            );
+                        }
+                        break;
+                }
+
+                this.keywordHighlights = currentHighlights;
+                respond({ command: "messageAck", data: undefined });
             }
-
-            this.keywordHighlights = currentHighlights;
-            respond({command: "messageAck", data: undefined});
-        });
+        );
         this.unregisterListeners.push(unregisterHighlightChangedHandler);
     }
 
@@ -167,12 +178,12 @@ export class ConfigurationManager extends PostMessageDisposableService {
             if (projectHighlight) {
                 allHighlights.push({
                     ...highlight,
-                    isChecked: true
+                    isChecked: true,
                 });
             } else {
                 allHighlights.push({
                     ...highlight,
-                    isChecked: false
+                    isChecked: false,
                 });
             }
         }
@@ -254,8 +265,8 @@ export class ConfigurationManager extends PostMessageDisposableService {
 
     /**
      * The saved cursor position from the last session.
-     * 
-     * Important: Do not use this property more than once. Changing the cursor position during the same session 
+     *
+     * Important: Do not use this property more than once. Changing the cursor position during the same session
      * is a bad user experience. This property is only used to restore the cursor position from the last session.
      * @returns The saved cursor position from the last session.
      */
@@ -317,5 +328,3 @@ export class ConfigurationManager extends PostMessageDisposableService {
         await configuration.update(WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME, this._shouldShowWelcomeMessage);
     }
 }
-
-

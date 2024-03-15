@@ -9,7 +9,6 @@ import { SummaryInfoSchema } from "../model";
 import { KeywordHighlightSchema } from "../model/Keywords";
 import { LogFileNameSchema, LogFileNameWithStateSchema } from "../model/LogFileList";
 
-
 const ConfigurationUpdateSchema = z.union([z.literal("add"), z.literal("remove"), z.literal("update")]);
 
 /**
@@ -153,6 +152,11 @@ export const MessageSchemaMap = {
          * When true, we will display the readable dates, when `null` the setting is not changed.
          */
         displayReadableDates: z.boolean().nullable(),
+
+        /**
+         * When true, we will display the log entry number, when `null` the setting is not changed.
+         */
+        displayLogEntryNumber: z.boolean().nullable(),
     }),
     /**
      * Message sent from the webview to the extension to open the logs document.
@@ -228,7 +232,6 @@ export const MessageSchemaMap = {
          * The keyword to highlight.
          */
         keywordDefinition: KeywordHighlightSchema,
-
     }),
     /**
      * Message sent from the webview to the extension to indicate that the webview is ready.
@@ -274,10 +277,51 @@ export const MessageSchemaMap = {
      * The data is the file path to open.
      */
     openFile: z.string(),
+
+    /**
+     * Message sent from the extension to the webview to set the list of error log entries.
+     */
+    setErrorList: z.array(
+        z.object({
+            /**
+             * The date of the log entry.
+             */
+            date: z.string().transform(value => new Date(value)),
+
+            /**
+             * The text of the log entry.
+             */
+            text: z.string(),
+
+            /**
+             * The service that generated the log entry. (This is a reduced file name).
+             */
+            service: z.string().nullable().optional(),
+
+            /**
+             * The file path of the log entry if it exists.
+             */
+            filePath: z.string().nullable().optional(),
+
+            /**
+             * The number of the row where the log entry is located.
+             */
+            rowNumber: z.number().optional(),
+
+            /**
+             * A list of strings that can be searched for in ADO, etc.
+             */
+            searchTerms: z.array(z.string()),
+        })
+    ),
+
+    /**
+     * Message sent from the webview to the extension to jump to a specific row in the log file.
+     */
+    jumpToRow: z.number().nonnegative(),
+
+    /**
+     * Message sent from the webview to the extension to open tabs in the browser to search for terms.
+     */
+    openSearchWindows: z.array(z.string()),
 } as const;
-
-
-
-
-
-

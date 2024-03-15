@@ -23,6 +23,6 @@ export const INITIAL_EXTENSION_STATE = {
         displayLogLevels: false,
         displayReadableDates: false,
         displayDatesInLine: false,
+        displayLogEntryNumber: false,
     },
 } as const;
-

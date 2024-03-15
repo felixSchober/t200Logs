@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
-import { useEffect, useState } from "react";
+import * as React from "react";
 
 /**
  * Custom hook for debouncing a value.
@@ -17,18 +17,29 @@ import { useEffect, useState } from "react";
  * For a more robust implementation, use useDebounceCallback for functions and useDebounceValue for primitive values instead. The new implementation uses lodash.debounce under the hood.
  */
 export function useDebounce<T>(value: T, delay?: number): T {
-    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
+    const timerRef = React.useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedValue(value);
+    React.useEffect(() => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+        }
+        timerRef.current = setTimeout(() => {
+            timerRef.current = null;
+            setDebouncedValue(prev => {
+                if (prev !== value) {
+                    return value;
+                }
+                return prev;
+            });
         }, delay ?? 500);
 
         return () => {
-            clearTimeout(timer);
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
         };
     }, [value, delay]);
 
     return debouncedValue;
 }
-

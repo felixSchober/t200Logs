@@ -53,7 +53,7 @@ export interface ILogger {
 
 type ILoggerLoggingMethods = Pick<ILogger, "info" | "logException">;
 
-type DropFirstParameter<T> = T extends (first: any, ...rest: infer U) => Promise<void> ? (method: string, ...args: U) => void : never;
+type DropFirstParameter<T> = T extends (first: never, ...rest: infer U) => Promise<void> ? (method: string, ...args: U) => void : never;
 
 /**
  * Scoped logger type to remove the first parameter from the logging methods.
@@ -61,6 +61,3 @@ type DropFirstParameter<T> = T extends (first: any, ...rest: infer U) => Promise
 export type ScopedILogger = {
     [K in keyof ILoggerLoggingMethods]: DropFirstParameter<ILoggerLoggingMethods[K]>;
 };
-
-
-

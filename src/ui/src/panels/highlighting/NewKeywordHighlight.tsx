@@ -44,7 +44,7 @@ export const NewKeywordHighlight: React.FC<NewKeywordHighlightProps> = props => 
     }, []);
 
     const onAddCurrentKeyword = React.useCallback(() => {
-        let color = newKeywordColor ?? createRandomColor(true);
+        const color = newKeywordColor ?? createRandomColor(true);
 
         logger.log("onAddCurrentKeyword", `Added new keyword ${newKeywordField} with color ${color}`);
         onAddNewKeyword(newKeywordField, color);
@@ -85,5 +85,4 @@ export const NewKeywordHighlight: React.FC<NewKeywordHighlightProps> = props => 
             </VSCodeButton>
         </Flex>
     );
-
 };

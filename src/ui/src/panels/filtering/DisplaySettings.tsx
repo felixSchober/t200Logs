@@ -41,6 +41,9 @@ export const DisplaySettings: React.FC = () => {
                 case "displayInlineTime":
                     setDisplaySettings(prev => ({ ...prev, displayDatesInLine: value }));
                     break;
+                case "displayLogEntryNumber":
+                    setDisplaySettings(prev => ({ ...prev, displayLogEntryNumber: value }));
+                    break;
                 default:
                     logError("onCheckboxChange", `Unknown checkbox name: ${name}`);
                     break;
@@ -52,8 +55,13 @@ export const DisplaySettings: React.FC = () => {
 
     React.useEffect(() => {
         log("useEffect", "Sending display settings to the extension backend");
+        // TODO: remove temporary workaround for missing state value
+        const displayLogEntryNumber =
+            debouncedDisplaySettings.displayLogEntryNumber !== undefined ? debouncedDisplaySettings.displayLogEntryNumber : null;
+
         send({
             ...debouncedDisplaySettings,
+            displayLogEntryNumber,
         });
     }, [debouncedDisplaySettings, send, log]);
 
@@ -93,6 +101,13 @@ export const DisplaySettings: React.FC = () => {
                 name="displayInlineTime"
                 onChange={onCheckboxChange}>
                 Display inline time
+            </VSCodeCheckbox>
+            <VSCodeCheckbox
+                disabled={isPending}
+                checked={displaySettings.displayLogEntryNumber ?? INITIAL_EXTENSION_STATE.displaySettingState.displayLogEntryNumber}
+                name="displayLogEntryNumber"
+                onChange={onCheckboxChange}>
+                Display incrementing log entry number
             </VSCodeCheckbox>
         </Flex>
     );

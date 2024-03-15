@@ -208,27 +208,3 @@ export class SummaryInfoProvider extends PostMessageDisposableService {
         return users;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -16,7 +16,7 @@ import * as vscode from "vscode";
 import { ConfigurationManager } from "../../configuration";
 import { DocumentLocationManager } from "../../configuration/DocumentLocationManager";
 import { EPOCH_DATE, MAX_LOG_FILES_PER_SERVICE } from "../../constants/constants";
-import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../../constants/regex";
+import { GUID_REGEX, LOG_LEVEL_REGEX, WEB_DATE_REGEX } from "../../constants/regex";
 import { PostMessageDisposableService } from "../../service/PostMessageDisposableService";
 import { ServiceFiles, WorkspaceFileService } from "../../service/WorkspaceFileService";
 import { ScopedILogger } from "../../telemetry/ILogger";
@@ -27,13 +27,7 @@ import { throwIfCancellation } from "../../utils/throwIfCancellation";
 import { HarFileProvider } from "./HarFileProvider";
 import { LogContentFilters } from "./LogContentFilters";
 import { LogEntry } from "./LogEntry";
-
-const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
-    error: ERROR_REGEX,
-    debug: /<DBG>|<DIAG>|Ver/,
-    warning: WARN_REGEX,
-    info: /(<INFO>)|Inf/,
-};
+import { MessageDiagnoseService } from "./MesssageDiagnoseService";
 
 /**
  * A content provider that transforms the content of a log file.
@@ -124,6 +118,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private _displayFileNames = true;
 
     /**
+     * Whether to display an incremental number for each log entry.
+     */
+    private _displayLogEntryNumber = false;
+
+    /**
      * Whether to display the dates in line.
      */
     private _displayDatesInLine = false;
@@ -202,6 +201,12 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     private registerDisplaySettingEvents() {
         const displaySettingsChanged = this.postMessageService.registerMessageHandler("displaySettingsChanged", (event, respond) => {
+            this.logger.info("displaySettingsChanged", undefined, {
+                displayFileNames: "" + event.displayFileNames,
+                displayGuids: "" + event.displayGuids,
+                displayDatesInLine: "" + event.displayDatesInLine,
+                displayLogEntryNumber: "" + event.displayLogEntryNumber,
+            });
             let shouldChangeDocument = false;
             if (event.displayFileNames !== null && this._displayFileNames !== event.displayFileNames) {
                 this._displayFileNames = event.displayFileNames;
@@ -225,7 +230,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 shouldChangeDocument = true;
             }
 
+            if (event.displayLogEntryNumber !== null && this._displayLogEntryNumber !== event.displayLogEntryNumber) {
+                this._displayLogEntryNumber = event.displayLogEntryNumber;
+                shouldChangeDocument = true;
+            }
+
             if (shouldChangeDocument) {
+                this.logger.info("displaySettingsChanged.changeDocument");
                 this.displaySettingsToRespondTo.push(respond);
                 this.triggerDocumentChange();
             } else {
@@ -390,12 +401,33 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 // update the cursor position if we have a position to update
                 // we have to wait for the content to be generated before we can update the cursor position
                 this.updateCursorPosition(token);
-
-                this.updateFileList(logEntries, filteredLogEntires, token);
+                this.updateFileList(logEntries, harEntries, filteredLogEntires, token);
+                this.updateErrorList(filteredLogEntires);
 
                 return content;
             }
         );
+    }
+
+    /**
+     * Updates the list of error log entries in the webview.
+     * @param filteredLogEntries Map of the log entries after filtering and grouping. The key is the timestamp in seconds and the value is the log entries for that second.
+     */
+    private updateErrorList(filteredLogEntries: Map<number, LogEntry[]>) {
+        let filteredErrors: LogEntry[] = [];
+        for (const [, logEntries] of filteredLogEntries.entries()) {
+            const errorsInGroup = logEntries.filter(entry => entry.logLevel === "error");
+            filteredErrors = filteredErrors.concat(errorsInGroup);
+        }
+
+        this.logger.info("updateErrorList.setErrorList", undefined, { filteredErrors: "" + filteredErrors.length });
+        this.postMessageService.sendAndForget({
+            command: "setErrorList",
+            data: filteredErrors.map(e => ({
+                ...e,
+                searchTerms: MessageDiagnoseService.tryExtractDataFromMessage(e.text),
+            })),
+        });
     }
 
     /**
@@ -410,7 +442,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                     cursorPositionAfterContentGeneration: "" + cursorPosition,
                 });
                 throwIfCancellation(token);
-                this.documentLocationManager.setCursor(cursorPosition);
+                void this.documentLocationManager.setCursor(cursorPosition);
                 this.cursorPositionAfterContentGeneration = null;
             }, 1000);
         }
@@ -419,11 +451,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     /**
      * Sends a message to the webview to update the file list after the content is generated.
      * @param nonFilteredLogEntries The log entries before filtering and grouping.
+     * @param harEntries The log entries from the HAR files.
      * @param filteredLogEntries Map of the log entries after filtering and grouping. The key is the timestamp in seconds and the value is the log entries for that second.
      * @param token The cancellation token.
      */
     private updateFileList(
         nonFilteredLogEntries: LogEntry[],
+        harEntries: LogEntry[],
         filteredLogEntries: Map<number, LogEntry[]>,
         token: vscode.CancellationToken
     ): void {
@@ -432,7 +466,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         const files: Record<string, LogFile> = {};
         const fileKeys: string[] = [];
 
-        for (const logEntry of nonFilteredLogEntries) {
+        for (const logEntry of [...nonFilteredLogEntries, ...harEntries]) {
             const serviceName = logEntry.service;
             if (!serviceName) {
                 continue; // skip log entries without a service name
@@ -565,16 +599,19 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             const date = this.extractDateFromLogEntry(truncatedLine);
             logEntriesRead++;
 
-            if (line === previousLine) {
+            if (line === previousLine || line === "") {
                 return null;
             }
             previousLine = line;
-            return {
+            const incrementalNumber = this._displayLogEntryNumber ? `[${this.padZero(logEntriesRead)}]` : "";
+            const entry: LogEntry = {
                 date: date,
-                text: `[${this.padZero(logEntriesRead)}]${truncatedLine}`,
+                text: `${incrementalNumber}${truncatedLine}`,
                 service: serviceName,
-                filePath
+                filePath,
+                logLevel: this.getLogLevelFromText(truncatedLine),
             };
+            return entry;
         });
 
         return contentOrNull.filter(isDefined);
@@ -659,23 +696,41 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         const shouldRemoveLogLevels = logLevelRegex !== null;
         this.logger.info("filterLogContent.start", undefined, { logLevelRegex: shouldRemoveLogLevels ? logLevelRegex.source : "-" });
 
-        let totalLogLines = 0;
+        let rowCounter = 0;
+        let totalEntries = 0;
         for (const [timestamp, logs] of groupedLogs) {
             throwIfCancellation(token);
             const shouldStay = this.matchesTimeFilter(timestamp);
             if (shouldStay) {
                 // Filter out log entries based on the keywords
                 const filteredLogsEntries = logs.filter(entry => {
-                    return (
+                    const matchesFilter =
                         entry.isMarker ||
                         (this.matchesKeywordFilter(entry.text) &&
                             this.matchesLogLevel(entry.text, logLevelRegex) &&
-                            this.matchesFileFilter(entry.service))
-                    );
+                            this.matchesFileFilter(entry.service));
+                    if (matchesFilter) {
+                        totalEntries++;
+                        entry.rowNumber = rowCounter;
+                        rowCounter++;
+                        // if the log entry is a marker, we have to add an extra row for it
+                        if (entry.isMarker) {
+                            rowCounter++;
+                        }
+                    }
+
+                    return matchesFilter;
                 });
 
-                filteredLogs.set(timestamp, filteredLogsEntries);
-                totalLogLines += filteredLogsEntries.length;
+                // it's possible that we filtered out all the log entries for a second
+                // The only entries remaining in the group are markers
+                // In this case, we should not add the group to the filtered logs
+                // We also need to remove the added rows to the row counter
+                if (filteredLogsEntries.length === 2) {
+                    rowCounter -= 4;
+                } else {
+                    filteredLogs.set(timestamp, filteredLogsEntries);
+                }
             } else {
                 this.logger.info("filterLogContent.filterOut", undefined, {
                     groupTimestamp: "" + timestamp,
@@ -685,7 +740,8 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
         this.logger.info("filterLogContent.end", undefined, {
             filteredOut: `${groupedLogs.size - filteredLogs.size}`,
-            totalLogLines: "" + totalLogLines,
+            rows: "" + rowCounter,
+            totalEntries: "" + totalEntries,
         });
         return filteredLogs;
     }
@@ -723,6 +779,23 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
         return new RegExp(regExToUse.join("|"));
     };
+
+    /**
+     * Get's the {@link LogLevel} from the given text.
+     * @param logEntryLine The line to check.
+     * @returns The log level of the log entry.
+     */
+    private getLogLevelFromText(logEntryLine: string): LogLevel {
+        const allLogLevels: LogLevel[] = ["debug", "info", "warning", "error"];
+        for (const logLevel of allLogLevels) {
+            const regEx = LOG_LEVEL_REGEX[logLevel];
+            regEx.lastIndex = 0;
+            if (LOG_LEVEL_REGEX[logLevel].test(logEntryLine)) {
+                return logLevel;
+            }
+        }
+        return "debug";
+    }
 
     /**
      * Checks if the given log entry should be filtered out based on log level.
@@ -847,7 +920,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             // removes all information that is not needed one by one
             // stringsToRemove is a static list so we can cache the result
             const entryText = this.staticStringsToRemove.reduce((text, regex) => text.replaceAll(regex, ""), entry.text);
-            currentGroup.push({ date: entry.date, text: entryText, service: entry.service, filePath: entry.filePath });
+            currentGroup.push({
+                date: entry.date,
+                text: entryText,
+                service: entry.service,
+                filePath: entry.filePath,
+                logLevel: entry.logLevel,
+            });
         }
 
         // Add the last group to the map
@@ -952,4 +1031,3 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
     }
 }
-

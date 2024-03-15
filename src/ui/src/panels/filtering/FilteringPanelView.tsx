@@ -51,9 +51,3 @@ export const FilteringPanelView: React.FC = () => {
         </>
     );
 };
-
-
-
-
-
-
