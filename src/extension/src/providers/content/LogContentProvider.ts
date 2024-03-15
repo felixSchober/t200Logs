@@ -16,7 +16,7 @@ import * as vscode from "vscode";
 import { ConfigurationManager } from "../../configuration";
 import { DocumentLocationManager } from "../../configuration/DocumentLocationManager";
 import { EPOCH_DATE, MAX_LOG_FILES_PER_SERVICE } from "../../constants/constants";
-import { ERROR_REGEX, GUID_REGEX, WARN_REGEX, WEB_DATE_REGEX } from "../../constants/regex";
+import { GUID_REGEX, LOG_LEVEL_REGEX, WEB_DATE_REGEX } from "../../constants/regex";
 import { PostMessageDisposableService } from "../../service/PostMessageDisposableService";
 import { ServiceFiles, WorkspaceFileService } from "../../service/WorkspaceFileService";
 import { ScopedILogger } from "../../telemetry/ILogger";
@@ -27,13 +27,7 @@ import { throwIfCancellation } from "../../utils/throwIfCancellation";
 import { HarFileProvider } from "./HarFileProvider";
 import { LogContentFilters } from "./LogContentFilters";
 import { LogEntry } from "./LogEntry";
-
-const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
-    error: ERROR_REGEX,
-    debug: /<DBG>|<DIAG>|Ver/,
-    warning: WARN_REGEX,
-    info: /(<INFO>)|Inf/,
-};
+import { MessageDiagnoseService } from "./MesssageDiagnoseService";
 
 /**
  * A content provider that transforms the content of a log file.
@@ -124,6 +118,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private _displayFileNames = true;
 
     /**
+     * Whether to display an incremental number for each log entry.
+     */
+    private _displayLogEntryNumber = false;
+
+    /**
      * Whether to display the dates in line.
      */
     private _displayDatesInLine = false;
@@ -202,6 +201,12 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      */
     private registerDisplaySettingEvents() {
         const displaySettingsChanged = this.postMessageService.registerMessageHandler("displaySettingsChanged", (event, respond) => {
+            this.logger.info("displaySettingsChanged", undefined, {
+                displayFileNames: "" + event.displayFileNames,
+                displayGuids: "" + event.displayGuids,
+                displayDatesInLine: "" + event.displayDatesInLine,
+                displayLogEntryNumber: "" + event.displayLogEntryNumber,
+            });
             let shouldChangeDocument = false;
             if (event.displayFileNames !== null && this._displayFileNames !== event.displayFileNames) {
                 this._displayFileNames = event.displayFileNames;
@@ -225,7 +230,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 shouldChangeDocument = true;
             }
 
+            if (event.displayLogEntryNumber !== null && this._displayLogEntryNumber !== event.displayLogEntryNumber) {
+                this._displayLogEntryNumber = event.displayLogEntryNumber;
+                shouldChangeDocument = true;
+            }
+
             if (shouldChangeDocument) {
+                this.logger.info("displaySettingsChanged.changeDocument");
                 this.displaySettingsToRespondTo.push(respond);
                 this.triggerDocumentChange();
             } else {
@@ -390,7 +401,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 // update the cursor position if we have a position to update
                 // we have to wait for the content to be generated before we can update the cursor position
                 this.updateCursorPosition(token);
-                this.updateFileList(logEntries, filteredLogEntires, token);
+                this.updateFileList(logEntries, harEntries, filteredLogEntires, token);
                 this.updateErrorList(filteredLogEntires);
 
                 return content;
@@ -410,7 +421,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
 
         this.logger.info("updateErrorList.setErrorList", undefined, { filteredErrors: "" + filteredErrors.length });
-        this.postMessageService.sendAndForget({ command: "setErrorList", data: filteredErrors });
+        this.postMessageService.sendAndForget({
+            command: "setErrorList",
+            data: filteredErrors.map(e => ({
+                ...e,
+                searchTerms: MessageDiagnoseService.tryExtractDataFromMessage(e.text),
+            })),
+        });
     }
 
     /**
@@ -434,11 +451,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     /**
      * Sends a message to the webview to update the file list after the content is generated.
      * @param nonFilteredLogEntries The log entries before filtering and grouping.
+     * @param harEntries The log entries from the HAR files.
      * @param filteredLogEntries Map of the log entries after filtering and grouping. The key is the timestamp in seconds and the value is the log entries for that second.
      * @param token The cancellation token.
      */
     private updateFileList(
         nonFilteredLogEntries: LogEntry[],
+        harEntries: LogEntry[],
         filteredLogEntries: Map<number, LogEntry[]>,
         token: vscode.CancellationToken
     ): void {
@@ -447,7 +466,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         const files: Record<string, LogFile> = {};
         const fileKeys: string[] = [];
 
-        for (const logEntry of nonFilteredLogEntries) {
+        for (const logEntry of [...nonFilteredLogEntries, ...harEntries]) {
             const serviceName = logEntry.service;
             if (!serviceName) {
                 continue; // skip log entries without a service name
@@ -584,9 +603,10 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 return null;
             }
             previousLine = line;
+            const incrementalNumber = this._displayLogEntryNumber ? `[${this.padZero(logEntriesRead)}]` : "";
             const entry: LogEntry = {
                 date: date,
-                text: `[${this.padZero(logEntriesRead)}]${truncatedLine}`,
+                text: `${incrementalNumber}${truncatedLine}`,
                 service: serviceName,
                 filePath,
                 logLevel: this.getLogLevelFromText(truncatedLine),

@@ -13,6 +13,7 @@ import { DateRange, FilterTimeRangeLensProvider } from "./providers/FilterTimeRa
 import { LogFoldingRangeProvider } from "./providers/LogFoldingRangeProvider";
 import { WebviewPanelProvider } from "./providers/WebviewPanelProvider";
 import { LogContentProvider } from "./providers/content/LogContentProvider";
+import { BrowserWindowService } from "./service/BrowserWindowService";
 import { ExtensionPostMessageService } from "./service/ExtensionPostMessageService";
 import { WorkspaceFileService } from "./service/WorkspaceFileService";
 import { WorkspaceService } from "./service/WorkspaceService";
@@ -47,6 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
         onCodeLensFilterApplied = new vscode.EventEmitter<TimeFilterChangedEvent>();
         postMessageService = new ExtensionPostMessageService(telemetryReporter);
         const workspaceFileService = new WorkspaceFileService(postMessageService, telemetryReporter);
+        const browserWindowService = new BrowserWindowService(postMessageService, telemetryReporter);
         logContentProvider = new LogContentProvider(
             onCodeLensFilterApplied.event,
             postMessageService,
@@ -67,6 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
         disposableServices.push(workspaceService);
         disposableServices.push(documentLocationManager);
         disposableServices.push(workspaceFileService);
+        disposableServices.push(browserWindowService);
     }
 
     setupFoldingRangeProvider(context);

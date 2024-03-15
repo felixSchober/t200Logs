@@ -14,6 +14,7 @@ import { useSendAndReceive } from "../../service/useSendAndReceive";
 export const ErrorList: React.FC = () => {
     const errorList = useMessageSubscription("setErrorList");
     const { send: jumpToRow } = useSendAndReceive("jumpToRow", "messageAck");
+    const { send: openBrowser } = useSendAndReceive("openSearchWindows", "messageAck");
     const logger = useLogger("ErrorList");
     const isPending = errorList === null;
     const isEmpty = errorList?.length === 0;
@@ -39,6 +40,20 @@ export const ErrorList: React.FC = () => {
                         jumpToRow(rowNumber);
                     };
 
+                    const onSearchClick = (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        logger.log(
+                            "onSearchClick",
+                            `Search for terms in error log entry: ${errorLogEntry.date} - ${errorLogEntry.searchTerms.join(", ")}`
+                        );
+                        if (errorLogEntry.searchTerms.length === 0) {
+                            return;
+                        }
+                        openBrowser(errorLogEntry.searchTerms);
+                    };
+                    const searchButtonDisabled = errorLogEntry.searchTerms.length === 0;
+
                     return (
                         <KeyValueGridRow
                             key={`error_${errorLogEntry.text.substring(0, 10)}`}
@@ -46,8 +61,14 @@ export const ErrorList: React.FC = () => {
                             value={errorLogEntry.text}
                             onRowClick={onRowClick}
                             actions={[
-                                <VSCodeButton key={`remove${index}`} appearance="icon" aria-label="Open file" title="Open file">
-                                    <span className="codicon codicon-go-to-file"></span>
+                                <VSCodeButton
+                                    key={`search${index}`}
+                                    appearance="icon"
+                                    aria-label="Search for terms"
+                                    title="Search"
+                                    onClick={onSearchClick}
+                                    disabled={searchButtonDisabled}>
+                                    <span className="codicon codicon-search"></span>
                                 </VSCodeButton>,
                             ]}
                         />

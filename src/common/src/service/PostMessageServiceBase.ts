@@ -188,6 +188,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.jumpToRow,
             eventListeners: [],
         },
+        openSearchWindows: {
+            commandSchema: MessageSchemaMap.openSearchWindows,
+            eventListeners: [],
+        },
     };
 
     /**
@@ -218,37 +222,54 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
         const messageId = parsedData.data.id;
         this.internalLogMessage("onMessageReceived.receivedMessage", `Received '${parsedData.data.command}' message with id: ${messageId}`);
 
-        // Check if we have a promise for the message id we can resolve
-        const resolve = this.receivedMessages.get(messageId);
-        if (resolve) {
-            resolve(parsedData.data.data);
-            this.receivedMessages.delete(messageId);
+        try {
+            // Check if we have a promise for the message id we can resolve
+            const resolve = this.receivedMessages.get(messageId);
+            if (resolve) {
+                this.internalLogMessage(
+                    "onMessageReceived.resolvePromise",
+                    `Resolving promise for ${parsedData.data.command} id: ${messageId}`
+                );
+                resolve(parsedData.data.data);
+                this.receivedMessages.delete(messageId);
+            }
+        } catch (error) {
+            this.internalLogErrorMessage(
+                "onMessageReceived.resolvePromise",
+                `Error resolving promise for ${parsedData.data.command} id: ${messageId}. Error message ${JSON.stringify(error)}`
+            );
         }
 
         // Notify all event listeners for the command id
-        const message = parsedData.data;
-        const commandId = message.command;
-        const eventListeners = this.eventListeners[commandId].eventListeners;
-        const schema = this.eventListeners[commandId].commandSchema;
+        try {
+            const message = parsedData.data;
+            const commandId = message.command;
+            const eventListeners = this.eventListeners[commandId].eventListeners;
+            const schema = this.eventListeners[commandId].commandSchema;
 
-        // const parsedMessage = this.parseMessageData(message.command, message.data, schema);
-        const parsedMessageData = this.parseMessageData(message.command, message.data, schema);
-        const respond: PostMessageEventRespondFunction = (response: MessageCommand) => {
-            this.replyToMessage(response, messageId);
-        };
+            const parsedMessageData = this.parseMessageData(message.command, message.data, schema);
+            const respond: PostMessageEventRespondFunction = (response: MessageCommand) => {
+                this.replyToMessage(response, messageId);
+            };
 
-        this.internalLogMessage(
-            "onMessageReceived.notifyListeners.listeners",
-            `Active listeners for command: ${commandId} - ${eventListeners.length} listeners`
-        );
-
-        for (const listener of eventListeners) {
-            const listenerForData = listener as HandleEvent<typeof parsedMessageData>;
             this.internalLogMessage(
-                "onMessageReceived.notifyListeners",
-                `Calling listener for command: ${commandId} and message id ${messageId}`
+                "onMessageReceived.notifyListeners.listeners",
+                `Active listeners for command: ${commandId} - ${eventListeners.length} listeners`
             );
-            listenerForData(parsedMessageData, respond);
+
+            for (const listener of eventListeners) {
+                const listenerForData = listener as HandleEvent<typeof parsedMessageData>;
+                this.internalLogMessage(
+                    "onMessageReceived.notifyListeners",
+                    `Calling listener for command: ${commandId} and message id ${messageId}`
+                );
+                listenerForData(parsedMessageData, respond);
+            }
+        } catch (error) {
+            this.internalLogErrorMessage(
+                "onMessageReceived.notifyListeners",
+                `Error notifying listeners for ${parsedData.data.command} id: ${messageId}. Error message ${JSON.stringify(error)}`
+            );
         }
     }
 

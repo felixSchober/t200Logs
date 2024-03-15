@@ -2,6 +2,8 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  */
 
+import { LogLevel } from "@t200logs/common";
+
 /**
  * A regular expression that matches GUIDs.
  */
@@ -44,3 +46,13 @@ export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]|Error/g;
  * - warning.
  */
 export const WARN_REGEX = /.*\sWARN\s.*|.*\sWarn\s.*|.*\sWar\s.*|.*<WARN>.*|\s<WAR>\s|warning/g;
+
+/**
+ * All the log levels and their corresponding regular expressions.
+ */
+export const LOG_LEVEL_REGEX: Record<LogLevel, RegExp> = {
+    error: ERROR_REGEX,
+    debug: /<DBG>|<DIAG>|Ver/,
+    warning: WARN_REGEX,
+    info: /(<INFO>)|Inf/,
+};

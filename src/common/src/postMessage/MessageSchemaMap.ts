@@ -152,6 +152,11 @@ export const MessageSchemaMap = {
          * When true, we will display the readable dates, when `null` the setting is not changed.
          */
         displayReadableDates: z.boolean().nullable(),
+
+        /**
+         * When true, we will display the log entry number, when `null` the setting is not changed.
+         */
+        displayLogEntryNumber: z.boolean().nullable(),
     }),
     /**
      * Message sent from the webview to the extension to open the logs document.
@@ -302,6 +307,11 @@ export const MessageSchemaMap = {
              * The number of the row where the log entry is located.
              */
             rowNumber: z.number().optional(),
+
+            /**
+             * A list of strings that can be searched for in ADO, etc.
+             */
+            searchTerms: z.array(z.string()),
         })
     ),
 
@@ -309,4 +319,9 @@ export const MessageSchemaMap = {
      * Message sent from the webview to the extension to jump to a specific row in the log file.
      */
     jumpToRow: z.number().nonnegative(),
+
+    /**
+     * Message sent from the webview to the extension to open tabs in the browser to search for terms.
+     */
+    openSearchWindows: z.array(z.string()),
 } as const;
