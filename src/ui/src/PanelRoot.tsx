@@ -7,7 +7,7 @@ import * as React from "react";
 
 import { FilteringPanelView } from "./panels/filtering/FilteringPanelView";
 import { KeywordHighlightView } from "./panels/highlighting/KeywordHighlightView";
-import { InfoPanelView } from "./panels/info/InfoPanelView";
+import { DiagnosePanelView } from "./panels/info/DiagnosePanelView";
 import { useSendAndReceive } from "./service/useSendAndReceive";
 
 export const PanelRoot: React.FC = () => {
@@ -21,11 +21,12 @@ export const PanelRoot: React.FC = () => {
     return (
         <VSCodePanels>
             <FilteringPanelView />
-            <InfoPanelView />
+            <DiagnosePanelView />
             <KeywordHighlightView />
         </VSCodePanels>
     );
 };
+
 
 
 
