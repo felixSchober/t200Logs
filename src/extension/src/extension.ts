@@ -58,6 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         configurationManager.addPostMessageService(postMessageService);
         workspaceService.addPostMessageService(postMessageService);
+        documentLocationManager.addPostMessageService(postMessageService);
 
         disposableServices.push(onCodeLensFilterApplied);
         disposableServices.push(postMessageService);
@@ -74,8 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Add a command to open the virtual document
     const openLogsDocument = async () => {
-        const doc = await vscode.workspace.openTextDocument(LogContentProvider.documentUri);
-        await vscode.window.showTextDocument(doc, { preview: false });
+        await documentLocationManager.forceLogContentProviderToOpen();
     };
     const openLogViewerDisposable = vscode.commands.registerCommand(`${EXTENSION_ID}.openLogViewer`, async () => {
         await openLogsDocument();

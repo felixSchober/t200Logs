@@ -40,4 +40,5 @@ export const CommandIdSchema = z.union([
     z.literal("updateFileFilterCheckboxState"), // Update the file filter checkbox state (ui -> extension)
     z.literal("openFile"), // Command to open a specific log file (ui -> extension)
     z.literal("setErrorList"), // sends the list of error log entries to the ui (extension -> ui)
+    z.literal("jumpToRow"), // Command to jump to a specific row in the log file (ui -> extension)
 ]);

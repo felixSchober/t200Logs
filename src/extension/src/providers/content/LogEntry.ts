@@ -41,4 +41,9 @@ export type LogEntry = {
      * The type of the log entry.
      */
     logLevel?: LogLevel;
+
+    /**
+     * The row number of the log entry.
+     */
+    rowNumber?: number;
 };

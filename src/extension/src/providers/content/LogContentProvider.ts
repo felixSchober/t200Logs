@@ -409,7 +409,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             filteredErrors = filteredErrors.concat(errorsInGroup);
         }
 
-        this.logger.info("updateErrorList", undefined, { filteredErrors: "" + filteredErrors.length });
+        this.logger.info("updateErrorList.setErrorList", undefined, { filteredErrors: "" + filteredErrors.length });
         this.postMessageService.sendAndForget({ command: "setErrorList", data: filteredErrors });
     }
 
@@ -425,7 +425,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                     cursorPositionAfterContentGeneration: "" + cursorPosition,
                 });
                 throwIfCancellation(token);
-                this.documentLocationManager.setCursor(cursorPosition);
+                void this.documentLocationManager.setCursor(cursorPosition);
                 this.cursorPositionAfterContentGeneration = null;
             }, 1000);
         }
@@ -580,7 +580,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             const date = this.extractDateFromLogEntry(truncatedLine);
             logEntriesRead++;
 
-            if (line === previousLine) {
+            if (line === previousLine || line === "") {
                 return null;
             }
             previousLine = line;
@@ -676,23 +676,41 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         const shouldRemoveLogLevels = logLevelRegex !== null;
         this.logger.info("filterLogContent.start", undefined, { logLevelRegex: shouldRemoveLogLevels ? logLevelRegex.source : "-" });
 
-        let totalLogLines = 0;
+        let rowCounter = 0;
+        let totalEntries = 0;
         for (const [timestamp, logs] of groupedLogs) {
             throwIfCancellation(token);
             const shouldStay = this.matchesTimeFilter(timestamp);
             if (shouldStay) {
                 // Filter out log entries based on the keywords
                 const filteredLogsEntries = logs.filter(entry => {
-                    return (
+                    const matchesFilter =
                         entry.isMarker ||
                         (this.matchesKeywordFilter(entry.text) &&
                             this.matchesLogLevel(entry.text, logLevelRegex) &&
-                            this.matchesFileFilter(entry.service))
-                    );
+                            this.matchesFileFilter(entry.service));
+                    if (matchesFilter) {
+                        totalEntries++;
+                        entry.rowNumber = rowCounter;
+                        rowCounter++;
+                        // if the log entry is a marker, we have to add an extra row for it
+                        if (entry.isMarker) {
+                            rowCounter++;
+                        }
+                    }
+
+                    return matchesFilter;
                 });
 
-                filteredLogs.set(timestamp, filteredLogsEntries);
-                totalLogLines += filteredLogsEntries.length;
+                // it's possible that we filtered out all the log entries for a second
+                // The only entries remaining in the group are markers
+                // In this case, we should not add the group to the filtered logs
+                // We also need to remove the added rows to the row counter
+                if (filteredLogsEntries.length === 2) {
+                    rowCounter -= 4;
+                } else {
+                    filteredLogs.set(timestamp, filteredLogsEntries);
+                }
             } else {
                 this.logger.info("filterLogContent.filterOut", undefined, {
                     groupTimestamp: "" + timestamp,
@@ -702,7 +720,8 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
         this.logger.info("filterLogContent.end", undefined, {
             filteredOut: `${groupedLogs.size - filteredLogs.size}`,
-            totalLogLines: "" + totalLogLines,
+            rows: "" + rowCounter,
+            totalEntries: "" + totalEntries,
         });
         return filteredLogs;
     }
@@ -749,6 +768,8 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private getLogLevelFromText(logEntryLine: string): LogLevel {
         const allLogLevels: LogLevel[] = ["debug", "info", "warning", "error"];
         for (const logLevel of allLogLevels) {
+            const regEx = LOG_LEVEL_REGEX[logLevel];
+            regEx.lastIndex = 0;
             if (LOG_LEVEL_REGEX[logLevel].test(logEntryLine)) {
                 return logLevel;
             }
@@ -879,7 +900,13 @@ export class LogContentProvider extends PostMessageDisposableService implements 
             // removes all information that is not needed one by one
             // stringsToRemove is a static list so we can cache the result
             const entryText = this.staticStringsToRemove.reduce((text, regex) => text.replaceAll(regex, ""), entry.text);
-            currentGroup.push({ date: entry.date, text: entryText, service: entry.service, filePath: entry.filePath });
+            currentGroup.push({
+                date: entry.date,
+                text: entryText,
+                service: entry.service,
+                filePath: entry.filePath,
+                logLevel: entry.logLevel,
+            });
         }
 
         // Add the last group to the map

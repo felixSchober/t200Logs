@@ -184,6 +184,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.setErrorList,
             eventListeners: [],
         },
+        jumpToRow: {
+            commandSchema: MessageSchemaMap.jumpToRow,
+            eventListeners: [],
+        },
     };
 
     /**

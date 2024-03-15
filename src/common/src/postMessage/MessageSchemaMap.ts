@@ -297,6 +297,16 @@ export const MessageSchemaMap = {
              * The file path of the log entry if it exists.
              */
             filePath: z.string().nullable().optional(),
+
+            /**
+             * The number of the row where the log entry is located.
+             */
+            rowNumber: z.number().optional(),
         })
     ),
+
+    /**
+     * Message sent from the webview to the extension to jump to a specific row in the log file.
+     */
+    jumpToRow: z.number().nonnegative(),
 } as const;
