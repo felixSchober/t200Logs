@@ -4,7 +4,7 @@
 
 import * as fs from "fs/promises";
 
-import { HarEntry, HarSchema, JwtSchema } from "@t200logs/common";
+import { HarEntry, HarSchema, JwtSchema, LogLevel } from "@t200logs/common";
 import { CancellationToken, Uri, workspace } from "vscode";
 
 import { ScopedILogger } from "../../telemetry/ILogger";
@@ -63,12 +63,14 @@ export class HarFileProvider {
         }
 
         throwIfCancellation(token);
-        const getEntryPromises = harFiles.map(fileUri => this.getEntriesForFile(fileUri, token));
-        const entries = (await Promise.all(getEntryPromises)).flat();
-
-        throwIfCancellation(token);
-        this.logger.info("getEntries.convert");
-        this.harEntryCache = entries.map(entry => this.convertHarEntryToLogEntry(entry));
+        const getEntryPromises = harFiles.map(fileUri => {
+            const p = async () => {
+                const entries = await this.getEntriesForFile(fileUri, token);
+                return entries.map(entry => this.convertHarEntryToLogEntry(entry, fileUri));
+            };
+            return p();
+        });
+        this.harEntryCache = (await Promise.all(getEntryPromises)).flat();
 
         this.logger.info("getEntries.end", undefined, { entries: "" + this.harEntryCache.length });
         return this.harEntryCache;
@@ -77,33 +79,58 @@ export class HarFileProvider {
     /**
      * Converts a single HAR entry to a log entry.
      * @param entry The entry to convert.
+     * @param fileUri The URI of the file the entry is from.
      * @returns The converted log entry.
      */
-    private convertHarEntryToLogEntry(entry: HarEntry): LogEntry {
+    private convertHarEntryToLogEntry(entry: HarEntry, fileUri: Uri): LogEntry {
+        const logLevel = this.harEntryToLogLevel(entry);
         return {
             date: new Date(entry.startedDateTime),
-            text: this.harEntryToString(entry),
+            text: this.harEntryToString(entry, logLevel),
             service: "HAR",
+            filePath: fileUri.path,
+            logLevel,
         };
     }
 
     /**
      * Converts a single {@link HarEntry|HAR entry} to a string used in a {@LogEntry|log entry}.
      * @param entry The entry to convert.
+     * @param logLevel The log level to use.
      * @returns The converted log entry.
      * @example "<INFO> [GET] https://www.example.com -> [200 OK]"
      * @example "<WARN> [GET] https://www.example.com -> [404 Not Found] - Not found"
      */
-    private harEntryToString(entry: HarEntry): string {
-        const logLevel = this.harEntryToLogLevel(entry);
-
+    private harEntryToString(entry: HarEntry, logLevel: LogLevel): string {
         // include body if warning or error
         let body = "";
-        if (logLevel === "<WARN>" || logLevel === "<ERR>") {
+        if (logLevel === "warning" || logLevel === "error") {
             body = ` - ${entry.response.content.text}`;
         }
 
-        return `${logLevel} [${entry.request.method}] ${entry.request.url}${this.getAuthorizationDetails(entry)} -> [${entry.response.status} ${entry.response.statusText}]${body}`;
+        return `${this.logLevelToString(logLevel)} [${entry.request.method}] ${entry.request.url}${this.getAuthorizationDetails(entry)} -> [${entry.response.status} ${entry.response.statusText}]${body}`;
+    }
+
+    /**
+     * Converts a log level to a string representation.
+     * - debug -> `"<DBG>"`
+     * - info -> `"<INFO>"`
+     * - warning -> `"<WARN>"`
+     * - error -> `"<ERR>"`.
+     * @param logLevel The log level to convert.
+     * @returns The string representation of the log level. (e.g. "<INFO>").
+     */
+    private logLevelToString(logLevel: LogLevel): "<DBG>" | "<INFO>" | "<WARN>" | "<ERR>" {
+        switch (logLevel) {
+            case "debug":
+                return "<DBG>";
+            case "info":
+                return "<INFO>";
+            case "warning":
+                return "<WARN>";
+            case "error":
+                return "<ERR>";
+        }
     }
 
     /**
@@ -111,19 +138,19 @@ export class HarFileProvider {
      * @param entry The entry to convert.
      * @returns A log level based on the status of the entry.
      */
-    private harEntryToLogLevel(entry: HarEntry): "<DBG>" | "<INFO>" | "<WARN>" | "<ERR>" {
+    private harEntryToLogLevel(entry: HarEntry): LogLevel {
         if (entry.request.url.endsWith(".css") || entry.request.url.endsWith(".js")) {
-            return "<DBG>";
+            return "debug";
         }
 
         const status = entry.response.status;
-        if (status < 400) {
-            return "<INFO>";
+        if (status < 400) { // 1xx, 2xx, 3xx
+            return "info";
         }
-        if (status < 500) {
-            return "<WARN>";
+        if (status < 500 && status !== 401) { // 4xx (except 401)
+            return "warning";
         }
-        return "<ERR>";
+        return "error";
     }
 
     /**

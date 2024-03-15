@@ -50,6 +50,11 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private groupedLogEntries: Map<number, LogEntry[]> = new Map();
 
     /**
+     * A list of log entries that have the log level "error".
+     */
+    private errorLogEntries: LogEntry[] = [];
+
+    /**
      * The scheme for the log viewer document.
      */
     public static readonly documentScheme = "log-viewer";
@@ -259,6 +264,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     public reset(resetFilters = false) {
         this.logger.info("reset");
         this.logEntryCache = [];
+        this.errorLogEntries = [];
         this.groupedLogEntries = new Map();
         this.harFileProvider.clearCache();
         if (resetFilters) {
@@ -569,12 +575,18 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 return null;
             }
             previousLine = line;
-            return {
+            const entry: LogEntry = {
                 date: date,
                 text: `[${this.padZero(logEntriesRead)}]${truncatedLine}`,
                 service: serviceName,
-                filePath
+                filePath,
+                logLevel: this.getLogLevelFromText(truncatedLine),
             };
+
+            if (entry.logLevel === "error") {
+                this.errorLogEntries.push(entry);
+            }
+            return entry;
         });
 
         return contentOrNull.filter(isDefined);
@@ -723,6 +735,21 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
         return new RegExp(regExToUse.join("|"));
     };
+
+    /**
+     * Get's the {@link LogLevel} from the given text.
+     * @param logEntryLine The line to check.
+     * @returns The log level of the log entry.
+     */
+    private getLogLevelFromText(logEntryLine: string): LogLevel {
+        const allLogLevels: LogLevel[] = ["debug", "info", "warning", "error"];
+        for (const logLevel of allLogLevels) {
+            if (LOG_LEVEL_REGEX[logLevel].test(logEntryLine)) {
+                return logLevel;
+            }
+        }
+        return "debug";
+    }
 
     /**
      * Checks if the given log entry should be filtered out based on log level.
