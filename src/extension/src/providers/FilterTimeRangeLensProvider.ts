@@ -4,7 +4,6 @@
 
 /* eslint-disable max-classes-per-file */
 
-
 import { FilterChangedEvent } from "@t200logs/common";
 import { CancellationToken, CodeLens, CodeLensProvider, Command, EventEmitter, ProviderResult, Range, TextDocument } from "vscode";
 
@@ -82,7 +81,7 @@ export class FilterTimeRangeLensProvider implements CodeLensProvider<CodeLensWit
         this.logger.info("provideCodeLenses.start", undefined, { documentLineCount: "" + document.lineCount });
 
         return new Promise<CodeLensWithDateRange[]>(resolve => {
-            let lenses = [];
+            const lenses = [];
 
             // Loop through the regex matches and create a code lens for each match.
             let match;
@@ -179,5 +178,4 @@ const RESET_FILTER_COMMAND: Command = {
     command: FilterTimeRangeLensProvider.commandId,
     tooltip: "Reset the filter",
     arguments: [[null, null]],
-
 };

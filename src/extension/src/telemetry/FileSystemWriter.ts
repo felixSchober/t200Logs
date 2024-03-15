@@ -181,5 +181,3 @@ export class FileSystemWriter implements vscode.Disposable {
         }
     }
 }
-
-

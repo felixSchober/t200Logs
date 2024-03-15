@@ -9,7 +9,6 @@ import { SummaryInfoSchema } from "../model";
 import { KeywordHighlightSchema } from "../model/Keywords";
 import { LogFileNameSchema, LogFileNameWithStateSchema } from "../model/LogFileList";
 
-
 const ConfigurationUpdateSchema = z.union([z.literal("add"), z.literal("remove"), z.literal("update")]);
 
 /**
@@ -228,7 +227,6 @@ export const MessageSchemaMap = {
          * The keyword to highlight.
          */
         keywordDefinition: KeywordHighlightSchema,
-
     }),
     /**
      * Message sent from the webview to the extension to indicate that the webview is ready.
@@ -278,31 +276,27 @@ export const MessageSchemaMap = {
     /**
      * Message sent from the extension to the webview to set the list of error log entries.
      */
-    setErrorList: z.array(z.object({
-        /**
-         * The date of the log entry.
-         */
-        date: z.string().transform((value) => new Date(value)),
+    setErrorList: z.array(
+        z.object({
+            /**
+             * The date of the log entry.
+             */
+            date: z.string().transform(value => new Date(value)),
 
-        /**
-         * The text of the log entry.
-         */
-        text: z.string(),
+            /**
+             * The text of the log entry.
+             */
+            text: z.string(),
 
-        /**
-         * The service that generated the log entry. (This is a reduced file name).
-         */
-        service: z.string().nullable().optional(),
+            /**
+             * The service that generated the log entry. (This is a reduced file name).
+             */
+            service: z.string().nullable().optional(),
 
-        /**
-         * The file path of the log entry if it exists.
-         */
-        filePath: z.string().nullable().optional(),
-    }))
+            /**
+             * The file path of the log entry if it exists.
+             */
+            filePath: z.string().nullable().optional(),
+        })
+    ),
 } as const;
-
-
-
-
-
-

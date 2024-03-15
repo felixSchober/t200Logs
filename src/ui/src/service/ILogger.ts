@@ -20,4 +20,3 @@ export interface ILogger {
      */
     error(event: string, message: string): void;
 }
-

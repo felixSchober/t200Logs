@@ -59,7 +59,6 @@ export class TextDecorator implements vscode.Disposable {
 
         onTextDocumentGenerationFinishedEvent((newContent: string) => {
             this.logger.info("onTextDocumentGenerationFinishedEvent", undefined, { newContentLength: "" + newContent.length });
-            
 
             const shouldRegenerateIsoDates = this.isReadableIsoDatesEnabled;
             const shouldRegenerateSeverityLevelHighlighting = this.isSeverityLevelHighlightingEnabled;
@@ -145,11 +144,7 @@ export class TextDecorator implements vscode.Disposable {
             this.isSeverityLevelHighlightingEnabled = false;
         } else {
             this.isSeverityLevelHighlightingEnabled = true;
-            this.logger.logException(
-                "removeSeverityLevelHighlighting",
-                new Error("No active text editor"),
-                "No active text editor"
-            );
+            this.logger.logException("removeSeverityLevelHighlighting", new Error("No active text editor"), "No active text editor");
         }
     }
 
@@ -252,11 +247,7 @@ export class TextDecorator implements vscode.Disposable {
                     }
                 );
             } else {
-                this.logger.logException(
-                    "applySeverityLevelHighlighting",
-                    new Error("No active text editor"),
-                    "No active text editor"
-                );
+                this.logger.logException("applySeverityLevelHighlighting", new Error("No active text editor"), "No active text editor");
             }
         } else {
             this.logger.info("applySeverityLevelHighlighting.noAction", undefined);
@@ -328,36 +319,10 @@ export class TextDecorator implements vscode.Disposable {
                 editor.setDecorations(this.isoDateTextDecoration, decorationsArray);
                 this.isReadableIsoDatesEnabled = true;
             } else {
-                this.logger.logException(
-                    "applyReadableIsoDates",
-                    new Error("No active text editor"),
-                    "No active text editor"
-                );
+                this.logger.logException("applyReadableIsoDates", new Error("No active text editor"), "No active text editor");
             }
         } else {
             this.logger.info("applyReadableIsoDates.noAction", undefined);
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

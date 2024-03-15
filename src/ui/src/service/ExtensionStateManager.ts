@@ -68,5 +68,3 @@ export class ExtensionStateManager<T> {
         this.setState(state);
     }
 }
-
-

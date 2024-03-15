@@ -11,6 +11,7 @@
         "security",
         "@griffel",
         "@stylistic",
+        "@stylistic/jsx",
         "prettier"
     ],
     "root": false,
@@ -36,10 +37,12 @@
                         "usePrettierrc": true
                     }
                 ],
-                "@typescript-eslint/naming-convention": "error"
+                "@typescript-eslint/naming-convention": "off"
             }
         }
     ]
 }
+
+
 
 

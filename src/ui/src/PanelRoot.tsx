@@ -26,10 +26,3 @@ export const PanelRoot: React.FC = () => {
         </VSCodePanels>
     );
 };
-
-
-
-
-
-
-

@@ -87,6 +87,3 @@ export const LogLevelFilter: React.FC = () => {
         </Flex>
     );
 };
-
-
-

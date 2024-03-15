@@ -58,7 +58,7 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
                     setResponse(response);
                 } catch (error) {
                     console.error(error);
-                } finally {              
+                } finally {
                     setIsPending(false);
                 }
             };
@@ -75,5 +75,3 @@ export const useSendAndReceive = <TMessageId extends CommandId, TResponseId exte
         };
     }, [send, isPending, response]);
 };
-
-

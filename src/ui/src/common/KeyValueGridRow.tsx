@@ -25,4 +25,3 @@ export const KeyValueGridRow: React.FC<KeyValueGridRowProps> = props => {
         </VSCodeDataGridRow>
     );
 };
-

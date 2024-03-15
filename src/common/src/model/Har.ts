@@ -36,7 +36,7 @@ const HarRequestSchema = z.object({
      * The headers of the request.
      */
     headers: z.array(HarHeaderSchema),
-    
+
     /**
      * A list of query string parameters.
      */
@@ -63,9 +63,9 @@ const HarRequestSchema = z.object({
         })
         .optional(),
 
-        /**
-         * The size of the request headers.
-         */
+    /**
+     * The size of the request headers.
+     */
     headersSize: z.number(),
 
     /**
@@ -193,11 +193,3 @@ export const HarSchema = z.object({
  * A minimal type for a single HTTP Archive (HAR) entry denoting a single request and response.
  */
 export type HarEntry = z.infer<typeof HarEntrySchema>;
-
-
-
-
-
-
-
-

@@ -250,5 +250,4 @@ export class DevLogger extends TelemetryReporter implements ITelemetryLogger {
         this.logFileWriter?.dispose();
         return Promise.resolve();
     }
-
 }

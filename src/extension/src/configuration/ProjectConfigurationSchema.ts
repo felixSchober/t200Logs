@@ -139,7 +139,7 @@ const ProjectConfigurationSchema = z.object({
 /**
  * Iterates over all the schema versions and creates a map of the schema version to the schema.
  */
-type AllSchemas = {[version in ValidProjectConfigurationVersion]: z.Schema};
+type AllSchemas = { [version in ValidProjectConfigurationVersion]: z.Schema };
 
 /**
  * The map of all the project configuration schemas.
@@ -162,16 +162,16 @@ export type ProjectConfiguration = z.TypeOf<typeof CurrentProjectConfigurationSc
 
 export const emptyProjectConfiguration: ProjectConfiguration = {
     version: "1.0.2",
-        cursorPosition: 0,
-        disabledLogLevels: [],
-        enabledKeywordFilters: [],
-        enabledTimeFilters: {
-            fromDate: null,
-            tillDate: null,
-        },
-        enabledKeywordHighlights: [],
-        disabledFiles: [],
-    };
+    cursorPosition: 0,
+    disabledLogLevels: [],
+    enabledKeywordFilters: [],
+    enabledTimeFilters: {
+        fromDate: null,
+        tillDate: null,
+    },
+    enabledKeywordHighlights: [],
+    disabledFiles: [],
+};
 
 /**
  * Dummy upgrades from 1.0.0 to the latest version.
@@ -203,14 +203,17 @@ const upgradeFrom101 = (old: z.infer<typeof ProjectConfigurationSchema101>): Pro
 
 /**
  * Gets the most recent version of the project configuration.
- * 
+ *
  * In case the version is not the most recent, the configuration will be upgraded to the most recent version.
  * This function will throw an error if parsing is not possible.
  * @param oldVersion The old version of the project configuration.
  * @param jsonContent The content of the project configuration file.
  * @returns Returns a tuple of the most recent project configuration and a boolean indicating if the configuration was upgraded.
  */
-export const getMostRecentConfiguration = (oldVersion: ValidProjectConfigurationVersion, jsonContent: unknown): [ProjectConfiguration, boolean] => {
+export const getMostRecentConfiguration = (
+    oldVersion: ValidProjectConfigurationVersion,
+    jsonContent: unknown
+): [ProjectConfiguration, boolean] => {
     const OldVersionSchema = ProjectConfigurationSchemas[oldVersion];
     switch (oldVersion) {
         case "1.0.0":

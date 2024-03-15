@@ -20,7 +20,6 @@ type RangeChangedEventData = {
  * Manages the visible ranges of the active text editor and fires an event when the visible range changes.
  */
 export class DocumentLocationManager implements vscode.Disposable {
-
     private lastVisibleRanges: vscode.Range[] = [];
 
     private rangeUpdateEvent: vscode.Disposable | null;
@@ -28,14 +27,14 @@ export class DocumentLocationManager implements vscode.Disposable {
     private readonly logger: ScopedILogger;
 
     public onRangeChanged = new vscode.EventEmitter<RangeChangedEventData>();
-    
+
     /**
      * Creates a new instance of the DocumentLocationManager class.
      * @param logger The logger to use for the class.
      */
     constructor(logger: ITelemetryLogger) {
         this.logger = logger.createLoggerScope("DocumentLocationManager");
-        this.rangeUpdateEvent = vscode.window.onDidChangeTextEditorVisibleRanges(this.updateRanges, this);       
+        this.rangeUpdateEvent = vscode.window.onDidChangeTextEditorVisibleRanges(this.updateRanges, this);
     }
 
     /**
@@ -54,7 +53,6 @@ export class DocumentLocationManager implements vscode.Disposable {
      * @param e The text editor visible ranges change event.
      */
     private updateRanges(e: vscode.TextEditorVisibleRangesChangeEvent) {
-
         // make sure we're only updating ranges for document created by the LogContentProvider
         const expectedUri = LogContentProvider.documentUri;
         if (e.textEditor.document.uri.path !== expectedUri.path) {
@@ -67,8 +65,10 @@ export class DocumentLocationManager implements vscode.Disposable {
         }
 
         // compare the current visible ranges with the last visible ranges
-        if (this.lastVisibleRanges[0]?.start.line === currentVisibleRanges[0].start.line &&
-            this.lastVisibleRanges[0]?.end.line === currentVisibleRanges[0].end.line) {
+        if (
+            this.lastVisibleRanges[0]?.start.line === currentVisibleRanges[0].start.line &&
+            this.lastVisibleRanges[0]?.end.line === currentVisibleRanges[0].end.line
+        ) {
             return;
         }
 
@@ -82,11 +82,11 @@ export class DocumentLocationManager implements vscode.Disposable {
      * @param midpoint The midpoint of the visible range. This is used to determine the line to scroll to when the user clicks on a log entry.
      */
     public setCursor(midpoint: number) {
-        // find the correct editor 
+        // find the correct editor
         const editor = getEditor();
         if (editor) {
             this.logger.info("setCursor", undefined, { midpoint: "" + midpoint });
-            
+
             const position = new vscode.Position(midpoint, 0);
             editor.selection = new vscode.Selection(position, position);
         } else {

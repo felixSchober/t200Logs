@@ -160,6 +160,3 @@ export const TimeFilter: React.FC = () => {
         </Flex>
     );
 };
-
-
-

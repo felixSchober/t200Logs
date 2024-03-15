@@ -30,4 +30,3 @@ export const DiagnosePanelView: React.FC = () => {
         </>
     );
 };
-

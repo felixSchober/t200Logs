@@ -14,7 +14,6 @@ import { PostMessageDisposableService } from "./PostMessageDisposableService";
  * Class which manages the state of the currently opened workspace folder.
  */
 export class WorkspaceService extends PostMessageDisposableService {
-
     /**
      * The currently selected workspace folder.
      */
@@ -31,7 +30,7 @@ export class WorkspaceService extends PostMessageDisposableService {
      */
     constructor(logger: ITelemetryLogger) {
         super();
-        this.logger = logger.createLoggerScope("WorkspaceService");        
+        this.logger = logger.createLoggerScope("WorkspaceService");
         this.initializeFolder();
     }
 
@@ -59,7 +58,11 @@ export class WorkspaceService extends PostMessageDisposableService {
         this.logger.info("initialize");
         const folders = workspace.workspaceFolders;
         if (folders && folders.length > 0) {
-            this.logger.info("initialize.found", undefined, { folderCount: "" + folders.length, selectedFolder: folders[0].uri.fsPath, allFolders: folders.map(f => f.uri.fsPath).join(",")});
+            this.logger.info("initialize.found", undefined, {
+                folderCount: "" + folders.length,
+                selectedFolder: folders[0].uri.fsPath,
+                allFolders: folders.map(f => f.uri.fsPath).join(","),
+            });
             this._workspaceFolder = folders[0];
             return;
         }
@@ -76,9 +79,9 @@ export class WorkspaceService extends PostMessageDisposableService {
         this.setupListeners(postMessageService);
 
         if (this.hasWorkspace) {
-            postMessageService.sendAndForget({command: "workspaceReady", data: undefined});
+            postMessageService.sendAndForget({ command: "workspaceReady", data: undefined });
         } else {
-            postMessageService.sendAndForget({command: "noWorkspace", data: undefined});
+            postMessageService.sendAndForget({ command: "noWorkspace", data: undefined });
         }
     }
 
@@ -103,7 +106,11 @@ export class WorkspaceService extends PostMessageDisposableService {
      * @param eventType The type of workspace folder to select.
      * @param respond The function to call to respond and acknowledge the message.
      */
-    private handleSelectWorkspaceFolder(postMessageService: IPostMessageService, eventType: "any" | "t21", respond: PostMessageEventRespondFunction) {
+    private handleSelectWorkspaceFolder(
+        postMessageService: IPostMessageService,
+        eventType: "any" | "t21",
+        respond: PostMessageEventRespondFunction
+    ) {
         switch (eventType) {
             case "any":
                 void this.chooseAnyWorkspaceFolder(postMessageService);
@@ -112,7 +119,7 @@ export class WorkspaceService extends PostMessageDisposableService {
                 this.selectT21WorkspaceFolder(postMessageService);
                 break;
         }
-        respond({command: "messageAck", data: undefined});
+        respond({ command: "messageAck", data: undefined });
     }
 
     /**
@@ -121,7 +128,7 @@ export class WorkspaceService extends PostMessageDisposableService {
      */
     private selectT21WorkspaceFolder(postMessageService: IPostMessageService): void {
         // TODO: Implement this method.
-        postMessageService.sendAndForget({command: "noWorkspace", data: undefined});
+        postMessageService.sendAndForget({ command: "noWorkspace", data: undefined });
     }
 
     /**
@@ -138,18 +145,18 @@ export class WorkspaceService extends PostMessageDisposableService {
             canSelectFolders: true,
             canSelectMany: false,
             openLabel: "Select",
-            title: "Select the Teams logs"
+            title: "Select the Teams logs",
         });
 
         if (!folders) {
             this.logger.info("chooseWorkspaceFolder.cancelled");
-            postMessageService.sendAndForget({command: "noWorkspace", data: undefined});
+            postMessageService.sendAndForget({ command: "noWorkspace", data: undefined });
             return undefined;
         }
 
         const folder = folders[0];
         this._workspaceFolder = workspace.getWorkspaceFolder(folder);
         this.logger.info("chooseWorkspaceFolder.selected", undefined, { folder: folder.fsPath });
-        postMessageService.sendAndForget({command: "workspaceReady", data: undefined});
-    } 
+        postMessageService.sendAndForget({ command: "workspaceReady", data: undefined });
+    }
 }

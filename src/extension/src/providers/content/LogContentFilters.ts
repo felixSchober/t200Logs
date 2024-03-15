@@ -150,7 +150,6 @@ export class LogContentFilters extends PostMessageDisposableService {
 
         // send the initial number of active filters to the webview
         this.postMessageService.sendAndForget({ command: "updateNumberOfActiveFilters", data: this.getNumberOfActiveFilters() });
-        
     }
 
     /**
@@ -293,7 +292,6 @@ export class LogContentFilters extends PostMessageDisposableService {
      * They are dispatched by the {@link ExtensionPostMessageService}.
      */
     private registerFilterEvents() {
-
         // FILTER KEYWORD
         const filterCheckboxStateChange = this.postMessageService.registerMessageHandler("filterCheckboxStateChange", (event, respond) => {
             if (event.isChecked) {
@@ -386,7 +384,7 @@ export class LogContentFilters extends PostMessageDisposableService {
         // FILTER FILE
         const filterFile = this.postMessageService.registerMessageHandler("updateFileFilterCheckboxState", (event, respond) => {
             this.disabledFiles.set(event.fileName, { isEnabled: event.isEnabled });
-            
+
             this.filterMessagesToRespondTo.push(respond);
             this.triggerDocumentChange();
         });
@@ -438,4 +436,3 @@ export class LogContentFilters extends PostMessageDisposableService {
         return numberOfKeywordFilters + numberOfTimeFilters + logLevelFilter + fileFilter;
     }
 }
-

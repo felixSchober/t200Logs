@@ -14,4 +14,3 @@ export const throwIfCancellation = (token?: CancellationToken) => {
         throw new CancellationError();
     }
 };
-

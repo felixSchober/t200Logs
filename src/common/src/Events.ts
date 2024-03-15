@@ -61,4 +61,3 @@ export type FilterChangedEvent = {
  * The event that is fired when the filter changes.
  */
 export type TimeFilterChangedEvent = Pick<FilterChangedEvent, "fromDate" | "tillDate">;
-

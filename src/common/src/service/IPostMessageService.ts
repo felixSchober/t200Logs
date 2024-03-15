@@ -57,4 +57,3 @@ export interface IPostMessageService {
      */
     sendAndForget(command: MessageCommand, requestId?: string): void;
 }
-

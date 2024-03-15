@@ -144,10 +144,12 @@ export class HarFileProvider {
         }
 
         const status = entry.response.status;
-        if (status < 400) { // 1xx, 2xx, 3xx
+        if (status < 400) {
+            // 1xx, 2xx, 3xx
             return "info";
         }
-        if (status < 500 && status !== 401) { // 4xx (except 401)
+        if (status < 500 && status !== 401) {
+            // 4xx (except 401)
             return "warning";
         }
         return "error";
@@ -276,29 +278,3 @@ export class HarFileProvider {
         return result;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

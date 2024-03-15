@@ -241,6 +241,7 @@ export class WorkspaceFileService extends PostMessageDisposableService {
         const match = filePath.match(regex);
 
         // will convert the capture group 2024-02-01_17-11-00 to two array entries
+        // eslint-disable-next-line prefer-const
         let [datePart, timePart] = match ? match[1].split("_") : ["", ""];
         timePart = timePart.replace(/-/g, ":");
         return new Date(`${datePart} ${timePart}`).getTime() || 0;
@@ -275,4 +276,3 @@ export class WorkspaceFileService extends PostMessageDisposableService {
         respond({ command: "messageAck", data: undefined });
     }
 }
-

@@ -7,7 +7,6 @@ import * as React from "react";
 import { ExtensionState, ExtensionStateKey } from "../vscode/ExtensionState";
 import { useVSCodeApi } from "../vscode/useVSCodeApi";
 
-
 type UseExtensionStateHook<T extends ExtensionStateKey> = [ExtensionState[T], React.Dispatch<React.SetStateAction<ExtensionState[T]>>];
 
 /**
@@ -34,5 +33,3 @@ export const useExtensionState = <TKey extends ExtensionStateKey>(stateKey: Exte
         return [state, setExtensionState];
     }, [state, setExtensionState]);
 };
-
-

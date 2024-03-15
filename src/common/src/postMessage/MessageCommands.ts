@@ -61,4 +61,3 @@ export type PostMessageCommand<TId extends CommandId> = GetCommandById<TId> & {
  * Utility type that takes a command id and returns the type of the data that is sent with the command.
  */
 export type CommandIdToData<T extends CommandId> = z.TypeOf<(typeof MessageSchemaMap)[T]>;
-

@@ -14,7 +14,7 @@ export const useStyles = makeStyles({
         cursor: "pointer",
 
         "&:hover": {
-            ...shorthands.border("1px", "solid", "--vscode-focusBorder")
+            ...shorthands.border("1px", "solid", "--vscode-focusBorder"),
         },
     },
     popover: {
@@ -27,5 +27,5 @@ export const useStyles = makeStyles({
         right: "0px",
         bottom: "0px",
         left: "0px",
-    }
+    },
 });

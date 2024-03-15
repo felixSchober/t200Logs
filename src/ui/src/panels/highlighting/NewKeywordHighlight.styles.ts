@@ -12,9 +12,11 @@ export const useStyles = makeStyles({
         height: "26px",
         width: "26px",
         maxHeight: "26px",
-        alignSelf: "flex-end"
+        alignSelf: "flex-end",
     },
     removeButton: {
-        marginLeft: "auto", maxHeight: "26px", alignSelf: "flex-end"
-    }
+        marginLeft: "auto",
+        maxHeight: "26px",
+        alignSelf: "flex-end",
+    },
 });

@@ -39,6 +39,8 @@
         "@babel/preset-typescript": "^7.23.3",
         "@griffel/eslint-plugin": "1.5.1",
         "@griffel/webpack-loader": "^3.0.0-alpha.2",
+        "@stylistic/eslint-plugin": "^1.7.0",
+        "@stylistic/eslint-plugin-jsx": "^1.7.0",
         "@types/node": "20.x",
         "@types/react": "^18.2.14",
         "@types/react-color": "^3.0.12",

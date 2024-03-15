@@ -174,9 +174,3 @@ export const KeywordFilter: React.FC = () => {
         </Flex>
     );
 };
-
-
-
-
-
-

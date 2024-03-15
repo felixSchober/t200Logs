@@ -25,4 +25,3 @@ export const INITIAL_EXTENSION_STATE = {
         displayDatesInLine: false,
     },
 } as const;
-

@@ -44,15 +44,3 @@ export const ERROR_REGEX = /.*ERROR.*|.*\sErr\s.*|.*<ERR>.*|\[failure\]|Error/g;
  * - warning.
  */
 export const WARN_REGEX = /.*\sWARN\s.*|.*\sWarn\s.*|.*\sWar\s.*|.*<WARN>.*|\s<WAR>\s|warning/g;
-
-
-
-
-
-
-
-
-
-
-
-

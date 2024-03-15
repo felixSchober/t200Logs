@@ -49,4 +49,3 @@ export class DialogReporter {
         return await vscode.window.showInformationMessage(message, ...options);
     }
 }
-

@@ -101,14 +101,3 @@ export const ColorPicker: React.FC<ColorPickerProps> = props => {
         </>
     );
 };
-
-
-
-
-
-
-
-
-
-
-

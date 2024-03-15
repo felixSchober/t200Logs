@@ -97,4 +97,3 @@ export const DisplaySettings: React.FC = () => {
         </Flex>
     );
 };
-

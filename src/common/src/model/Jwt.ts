@@ -28,4 +28,3 @@ export const JwtSchema = z.object({
      */
     scp: z.string().optional(),
 });
-

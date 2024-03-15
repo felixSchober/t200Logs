@@ -40,4 +40,3 @@ export const ErrorList: React.FC = () => {
         </Flex>
     );
 };
-
