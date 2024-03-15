@@ -180,6 +180,10 @@ export abstract class PostMessageServiceBase implements IPostMessageService {
             commandSchema: MessageSchemaMap.openFile,
             eventListeners: [],
         },
+        setErrorList: {
+            commandSchema: MessageSchemaMap.setErrorList,
+            eventListeners: [],
+        },
     };
 
     /**

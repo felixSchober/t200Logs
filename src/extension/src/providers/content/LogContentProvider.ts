@@ -50,11 +50,6 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     private groupedLogEntries: Map<number, LogEntry[]> = new Map();
 
     /**
-     * A list of log entries that have the log level "error".
-     */
-    private errorLogEntries: LogEntry[] = [];
-
-    /**
      * The scheme for the log viewer document.
      */
     public static readonly documentScheme = "log-viewer";
@@ -264,7 +259,6 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     public reset(resetFilters = false) {
         this.logger.info("reset");
         this.logEntryCache = [];
-        this.errorLogEntries = [];
         this.groupedLogEntries = new Map();
         this.harFileProvider.clearCache();
         if (resetFilters) {
@@ -396,12 +390,27 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 // update the cursor position if we have a position to update
                 // we have to wait for the content to be generated before we can update the cursor position
                 this.updateCursorPosition(token);
-
                 this.updateFileList(logEntries, filteredLogEntires, token);
+                this.updateErrorList(filteredLogEntires);
 
                 return content;
             }
         );
+    }
+
+    /**
+     * Updates the list of error log entries in the webview.
+     * @param filteredLogEntries Map of the log entries after filtering and grouping. The key is the timestamp in seconds and the value is the log entries for that second.
+     */
+    private updateErrorList(filteredLogEntries: Map<number, LogEntry[]>) {
+        let filteredErrors: LogEntry[] = [];
+        for (const [, logEntries] of filteredLogEntries.entries()) {
+            const errorsInGroup = logEntries.filter(entry => entry.logLevel === "error");
+            filteredErrors = filteredErrors.concat(errorsInGroup);
+        }
+
+        this.logger.info("updateErrorList", undefined, { filteredErrors: "" + filteredErrors.length });
+        this.postMessageService.sendAndForget({ command: "setErrorList", data: filteredErrors });
     }
 
     /**
@@ -582,10 +591,6 @@ export class LogContentProvider extends PostMessageDisposableService implements 
                 filePath,
                 logLevel: this.getLogLevelFromText(truncatedLine),
             };
-
-            if (entry.logLevel === "error") {
-                this.errorLogEntries.push(entry);
-            }
             return entry;
         });
 
@@ -979,4 +984,3 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         }
     }
 }
-

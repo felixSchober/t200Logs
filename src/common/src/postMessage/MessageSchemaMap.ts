@@ -274,6 +274,31 @@ export const MessageSchemaMap = {
      * The data is the file path to open.
      */
     openFile: z.string(),
+
+    /**
+     * Message sent from the extension to the webview to set the list of error log entries.
+     */
+    setErrorList: z.array(z.object({
+        /**
+         * The date of the log entry.
+         */
+        date: z.string().transform((value) => new Date(value)),
+
+        /**
+         * The text of the log entry.
+         */
+        text: z.string(),
+
+        /**
+         * The service that generated the log entry. (This is a reduced file name).
+         */
+        service: z.string().nullable().optional(),
+
+        /**
+         * The file path of the log entry if it exists.
+         */
+        filePath: z.string().nullable().optional(),
+    }))
 } as const;
 
 
