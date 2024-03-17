@@ -32,9 +32,21 @@ They could also be used in the future to extract more information from the logs 
 
 See below for a list of release notes
 
+### 0.4.1
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+#### 🐛 Bug Fixes
+
+- fix: combine changelog build and version bump into one job.
+- fix: fix readme so that newest version comes first
+
+
+#### 📦 Changes
+- feat: add error list
+
 
 ### 0.4.0
 
