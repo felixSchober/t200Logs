@@ -34,9 +34,17 @@ See below for a list of release notes
 
 ### 0.4.1
 
+### 0.4.2
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+
+#### 📦 Changes
+- fix: Fix changelog generation
+- build(deps): bump toshimaru/auto-author-assign from 1.1.0 to 2.1.0
+
 
 #### 🐛 Bug Fixes
 
