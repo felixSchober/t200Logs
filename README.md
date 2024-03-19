@@ -38,9 +38,17 @@ See below for a list of release notes
 
 ### 0.4.3
 
+### 0.4.4
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+
+#### 📦 Changes
+- Merge pull request #68 from felixSchober/releases/v0.4.3
+- Bump eslint-plugin-security from 1.7.1 to 2.1.1
+
 
 #### 🐛 Bug Fixes
 
