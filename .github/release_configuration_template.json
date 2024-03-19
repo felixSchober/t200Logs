@@ -6,14 +6,16 @@
                 "type: feature request",
                 "type: enhancement",
                 "type: epic",
-                "feat:"
+                "feat"
             ]
         },
         {
             "title": "#### 🐛 Bug Fixes",
             "labels": [
                 "type: bug",
-                "fix:"
+                "fix",
+                "perf",
+                "revert"
             ]
         },
         {
@@ -24,7 +26,11 @@
                 "type: ci",
                 "type: dependencies",
                 "documentation",
-                "bump"
+                "Bump",
+                "bump",
+                "docs",
+                "style",
+                "test"
             ]
         }
     ],
@@ -34,9 +40,6 @@
         "invalid",
         "wontfix"
     ],
-    "template": "#{{CHANGELOG}}\n#### 📦 Uncategorized\n${{UNCATEGORIZED}}",
-    "pr_template": "- #{{TITLE}}",
-    "base_branches": [
-        "dev"
-    ]
+    "template": "#{{CHANGELOG}}\n#### 📦 Changes\n${{UNCATEGORIZED}}",
+    "pr_template": "- #{{TITLE}}"
 }
