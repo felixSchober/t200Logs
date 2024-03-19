@@ -36,9 +36,19 @@ See below for a list of release notes
 
 ### 0.4.2
 
+### 0.4.3
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+#### 🐛 Bug Fixes
+
+- fix: combine jobs into one
+
+
+#### 📦 Changes
+
 
 
 #### 📦 Changes
