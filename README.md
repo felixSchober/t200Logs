@@ -40,9 +40,17 @@ See below for a list of release notes
 
 ### 0.4.4
 
+### 0.4.5
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+
+#### 📦 Changes
+- Merge pull request #15 from felixSchober/dependabot/npm_and_yarn/eslint-plugin-security-2.1.1
+- build(deps-dev): bump @babel/core from 7.24.0 to 7.24.1
+
 
 
 #### 📦 Changes
