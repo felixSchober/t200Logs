@@ -42,9 +42,17 @@ See below for a list of release notes
 
 ### 0.4.5
 
+### 0.4.6
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+
+#### 📦 Changes
+- Merge pull request #69 from felixSchober/dependabot/npm_and_yarn/babel/core-7.24.1
+- build(deps-dev): bump the webpack group with 2 updates
+
 
 
 #### 📦 Changes
