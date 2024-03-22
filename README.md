@@ -44,9 +44,17 @@ See below for a list of release notes
 
 ### 0.4.6
 
+### 0.4.7
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+
+#### 📦 Changes
+- Merge pull request #73 from felixSchober/dependabot/npm_and_yarn/typescript-5.4.3
+- build(deps-dev): bump @babel/core from 7.24.1 to 7.24.3
+
 
 
 #### 📦 Changes
