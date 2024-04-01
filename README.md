@@ -46,9 +46,17 @@ See below for a list of release notes
 
 ### 0.4.7
 
+### 0.4.8
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+
+#### 📦 Changes
+- Merge pull request #75 from felixSchober/dependabot/npm_and_yarn/eslint-d14e95e965
+- build(deps-dev): bump @types/react from 18.2.65 to 18.2.73
+
 
 
 #### 📦 Changes
