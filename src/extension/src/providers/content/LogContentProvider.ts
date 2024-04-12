@@ -662,7 +662,9 @@ export class LogContentProvider extends PostMessageDisposableService implements 
         if (isoDateMatch) {
             if (useDesktopTimezoneWorkaroundFix) {
                 // return the first capture group which is only the date without the timezone offset
-                return new Date(isoDateMatch[1]);
+                // we need to append a "Z" to mark this as a UTC date
+                // otherwise the UTC date would be interpreted as local time by the Date constructor
+                return new Date(`${isoDateMatch[1]}Z`);
             }
             return new Date(isoDateMatch[0]);
         }
