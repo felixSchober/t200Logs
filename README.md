@@ -46,9 +46,20 @@ See below for a list of release notes
 
 ### 0.4.7
 
+### 0.4.8
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+#### 🐛 Bug Fixes
+
+- fix: use ZULU modifier to desktop log dates to make sure they are interpreted as UTC
+
+
+#### 📦 Changes
+- Merge pull request #75 from felixSchober/dependabot/npm_and_yarn/eslint-d14e95e965
+
 
 
 #### 📦 Changes
