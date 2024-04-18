@@ -96,6 +96,18 @@
                         {
                             "keyword": "(a|A)cquire(_)?(t|T)oken",
                             "isChecked": false
+                        },
+                        {
+                            "keyword": "(t|T)oken",
+                            "isChecked": false
+                        },
+                        {
+                            "keyword": "(l|L)ogout",
+                            "isChecked": false
+                        },
+                        {
+                            "keyword": "InteractionRequired",
+                            "isChecked": false
                         }
                     ]
                 },
@@ -106,6 +118,16 @@
                         {
                             "keyword": "Auth|auth",
                             "color": "#FF0000",
+                            "isChecked": false
+                        },
+                        {
+                            "keyword": "InteractionRequired",
+                            "color": "#d01113",
+                            "isChecked": true
+                        },
+                        {
+                            "keyword": "AcquireCredentialSilently",
+                            "color": "#3eb2f0",
                             "isChecked": false
                         }
                     ]
