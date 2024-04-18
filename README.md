@@ -32,9 +32,25 @@ They could also be used in the future to extract more information from the logs 
 
 See below for a list of release notes
 
+### 0.5.0
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+#### 🚀 Features
+
+- feat: add log line truncation as configuration parameter.
+- feat: add more default filters and keywords
+- feat: ignore source files for extension build
+
+#### 🐛 Bug Fixes
+
+- fix: clean readme
+
+
+#### 📦 Changes
+
 
 #### 🐛 Bug Fixes
 
