@@ -163,7 +163,7 @@ export class LogContentProvider extends PostMessageDisposableService implements 
     constructor(
         onFilterChangeEvent: vscode.Event<TimeFilterChangedEvent>,
         private readonly postMessageService: IPostMessageService,
-        configurationManager: ConfigurationManager,
+        private readonly configurationManager: ConfigurationManager,
         private readonly documentLocationManager: DocumentLocationManager,
         private readonly workspaceFileService: WorkspaceFileService,
         logger: ITelemetryLogger
@@ -626,8 +626,8 @@ export class LogContentProvider extends PostMessageDisposableService implements 
      * @returns The truncated line.
      */
     private truncateLongLines(line: string): string {
-        if (line.length > 4000) {
-            return line.substring(0, 2000) + " ...";
+        if (line.length > this.configurationManager.logTruncationLimit) {
+            return line.substring(0, this.configurationManager.logTruncationLimit) + " ...";
         }
         return line;
     }

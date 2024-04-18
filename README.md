@@ -32,82 +32,71 @@ They could also be used in the future to extract more information from the logs 
 
 See below for a list of release notes
 
-### 0.4.1
-
-### 0.4.2
-
-### 0.4.3
-
-### 0.4.4
-
-### 0.4.5
-
-### 0.4.6
-
-### 0.4.7
-
-### 0.4.8
+### 0.5.0
 
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
 
+#### 🚀 Features
+
+- feat: add log line truncation as configuration parameter.
+- feat: add more default filters and keywords
+- feat: ignore source files for extension build
+
+#### 🐛 Bug Fixes
+
+- fix: clean readme
+
+
+#### 📦 Changes
+
+
 #### 🐛 Bug Fixes
 
 - fix: use ZULU modifier to desktop log dates to make sure they are interpreted as UTC
 
-
 #### 📦 Changes
+
 - Merge pull request #75 from felixSchober/dependabot/npm_and_yarn/eslint-d14e95e965
 
-
-
 #### 📦 Changes
+
 - Merge pull request #73 from felixSchober/dependabot/npm_and_yarn/typescript-5.4.3
 - build(deps-dev): bump the eslint group with 3 updates
 
-
-
 #### 📦 Changes
+
 - Merge pull request #69 from felixSchober/dependabot/npm_and_yarn/babel/core-7.24.1
 - build(deps-dev): bump typescript from 5.4.2 to 5.4.3
 
-
-
 #### 📦 Changes
+
 - Merge pull request #15 from felixSchober/dependabot/npm_and_yarn/eslint-plugin-security-2.1.1
 - build(deps-dev): bump @babel/core from 7.24.0 to 7.24.1
 
-
-
 #### 📦 Changes
+
 - Merge pull request #68 from felixSchober/releases/v0.4.3
 - Bump eslint-plugin-security from 1.7.1 to 2.1.1
-
 
 #### 🐛 Bug Fixes
 
 - fix: combine jobs into one
 
-
 #### 📦 Changes
 
-
-
-#### 📦 Changes
 - fix: Fix changelog generation
 - build(deps): bump toshimaru/auto-author-assign from 1.1.0 to 2.1.0
-
 
 #### 🐛 Bug Fixes
 
 - fix: combine changelog build and version bump into one job.
 - fix: fix readme so that newest version comes first
 
-
 #### 📦 Changes
-- feat: add error list
 
+- feat: add error list
 
 ### 0.4.0
 

@@ -24,6 +24,11 @@ export const KEYWORD_HIGHLIGHT_CONFIGURATION_SETTING_NAME = "keywords.highlights
 export const WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME = "showWelcomeMessage";
 
 /**
+ * The name of the configuration setting that contains the state of the log truncation.
+ */
+export const LOG_TRUNCATION_LIMIT_CONFIGURATION_SETTING_NAME = "lineTruncation";
+
+/**
  * The date of the epoch. Used for filtering out log entries that do not have a timestamp.
  */
 export const EPOCH_DATE = new Date(0);

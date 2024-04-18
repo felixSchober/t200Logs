@@ -3,12 +3,13 @@
  */
 
 import { IPostMessageService, KeywordFilter, KeywordHighlightWithIsChecked } from "@t200logs/common";
-import { workspace } from "vscode";
+import { ConfigurationTarget, workspace } from "vscode";
 
 import {
     EXTENSION_ID,
     KEYWORD_FILTER_CONFIGURATION_SETTING_NAME,
     KEYWORD_HIGHLIGHT_CONFIGURATION_SETTING_NAME,
+    LOG_TRUNCATION_LIMIT_CONFIGURATION_SETTING_NAME,
     WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME,
 } from "../constants/constants";
 import { PostMessageDisposableService } from "../service/PostMessageDisposableService";
@@ -26,6 +27,7 @@ export class ConfigurationManager extends PostMessageDisposableService {
     private _keywordHighlights: KeywordHighlightWithIsChecked[] | undefined;
     private _keywordFilters: KeywordFilter[] | undefined;
     private _shouldShowWelcomeMessage: boolean | undefined;
+    private _logTruncationLimit: number | undefined;
 
     private readonly projectConfiguration: ProjectConfigurationManager;
     private readonly logger: ScopedILogger;
@@ -200,6 +202,25 @@ export class ConfigurationManager extends PostMessageDisposableService {
     }
 
     /**
+     * Returns the log truncation limit.
+     * @returns The log truncation limit.
+     */
+    public get logTruncationLimit(): number {
+        if (!this._logTruncationLimit) {
+            this.loadSettings();
+        }
+        return this._logTruncationLimit || 6000;
+    }
+
+    /**
+     * Sets the log truncation limit.
+     */
+    public set logTruncationLimit(value: number) {
+        this._logTruncationLimit = value;
+        void this.storeSettings();
+    }
+
+    /**
      * Returns the configuration of keyword filters to use for filtering.
      * @returns The configuration of keyword filters to use for filtering.
      */
@@ -311,6 +332,7 @@ export class ConfigurationManager extends PostMessageDisposableService {
         this._keywordHighlights = configuration.get<KeywordHighlightWithIsChecked[]>(KEYWORD_HIGHLIGHT_CONFIGURATION_SETTING_NAME);
         this._keywordFilters = configuration.get<KeywordFilter[]>(KEYWORD_FILTER_CONFIGURATION_SETTING_NAME);
         this._shouldShowWelcomeMessage = configuration.get<boolean>(WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME);
+        this._logTruncationLimit = configuration.get<number>(LOG_TRUNCATION_LIMIT_CONFIGURATION_SETTING_NAME, 6000);
     }
 
     /**
@@ -323,8 +345,9 @@ export class ConfigurationManager extends PostMessageDisposableService {
             shouldShowWelcomeMessage: "" + this._shouldShowWelcomeMessage,
         });
         const configuration = workspace.getConfiguration(EXTENSION_ID);
-        await configuration.update(KEYWORD_HIGHLIGHT_CONFIGURATION_SETTING_NAME, this._keywordHighlights);
-        await configuration.update(KEYWORD_FILTER_CONFIGURATION_SETTING_NAME, this._keywordFilters);
-        await configuration.update(WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME, this._shouldShowWelcomeMessage);
+        await configuration.update(KEYWORD_HIGHLIGHT_CONFIGURATION_SETTING_NAME, this._keywordHighlights, ConfigurationTarget.Global);
+        await configuration.update(KEYWORD_FILTER_CONFIGURATION_SETTING_NAME, this._keywordFilters, ConfigurationTarget.Global);
+        await configuration.update(WELCOME_MESSAGE_CONFIGURATION_SETTING_NAME, this._shouldShowWelcomeMessage, ConfigurationTarget.Global);
+        await configuration.update(LOG_TRUNCATION_LIMIT_CONFIGURATION_SETTING_NAME, this._keywordHighlights, ConfigurationTarget.Global);
     }
 }
