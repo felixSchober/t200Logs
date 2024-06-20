@@ -34,9 +34,16 @@ See below for a list of release notes
 
 ### 0.5.0
 
+### 0.5.1
+
 ### #{NEW_VERSION}#
 
 #{CHANGES}#
+
+
+#### 📦 Changes
+- build(deps-dev): bump the webpack group across 1 directory with 3 updates
+
 
 #### 🚀 Features
 
